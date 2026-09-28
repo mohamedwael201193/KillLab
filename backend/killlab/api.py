@@ -22,6 +22,7 @@ from killlab.data.bitget import BitgetError, BitgetRest, NotFrozen
 from killlab.data.earnings import align_events, earnings_timestamps_ms
 from killlab.db import session_factory
 from killlab.engine.review import killed_decision, reconcile_point
+from killlab.guard import fixtures_loaded
 from killlab.hashutil import sha256_canonical
 from killlab.logjson import log_event
 from killlab.models import (
@@ -64,7 +65,7 @@ class FillsIn(BaseModel):
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or settings_from_environ()
-    if settings.production and any(name.startswith("tests.") or name == "tests" for name in sys.modules):
+    if settings.production and fixtures_loaded(tuple(sys.modules)):
         raise RuntimeError("production process cannot import test fixtures")
     factory, _engine = session_factory(settings)
     app = FastAPI(title="KillLab", version=ENGINE_VERSION)

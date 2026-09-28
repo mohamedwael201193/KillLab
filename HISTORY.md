@@ -99,6 +99,11 @@ This file is append-only.
 - Docker is installed but the daemon is not running, so the image was not built on this machine. Render is still the deploy path.
 - Engine tests: 10 passed.
 
+## 2026-09-28 Fixture guard
+
+- Production startup refuses to run if the `tests` package is already imported.
+- Engine and API tests: 15 passed.
+
 
 
 

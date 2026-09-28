@@ -147,7 +147,10 @@ def test_llm_schema_rejects_metrics_and_oos():
         enforce_kill_floor(bad)
 
 
-def test_log_line_redacts_a_database_uri():
+def test_production_refuses_loaded_test_modules():
+    from killlab.guard import fixtures_loaded
+    assert fixtures_loaded(["tests.fixtures.golden_dsr"]) is True
+    assert fixtures_loaded(["killlab.api", "killlab.runner"]) is False
     from killlab.logjson import log_event
     line = log_event("request", path="/health", note="postgresql://user:secret@host/db")
     assert "postgresql://" not in line
