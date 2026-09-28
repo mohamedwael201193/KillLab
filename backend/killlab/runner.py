@@ -47,6 +47,7 @@ def execute(spec: dict, snapshot: dict) -> dict:
     last_test = [folds[-1]["test"]] if folds else []
     dsr = None
     beats = None
+    ci = {"ci_low": None, "ci_high": None}
     alpha, t_stat = mean_tstat(oos or series)
     if len(oos) >= 3 and spec.get("variants"):
         dsr_doc = dsr_from_series(oos, n_trials=max(2, len(spec["variants"])))
@@ -76,4 +77,6 @@ def execute(spec: dict, snapshot: dict) -> dict:
     card["snapshot_sha256"] = snapshot.get("payload_sha256")
     card["spec_sha256"] = spec.get("content_sha256")
     card["dsr"] = dsr
+    card["ci_low"] = ci.get("ci_low")
+    card["ci_high"] = ci.get("ci_high")
     return card

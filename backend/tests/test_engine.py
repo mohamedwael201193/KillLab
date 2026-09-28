@@ -152,7 +152,16 @@ def test_explanation_drops_hallucinated_number():
     assert "7" in cleaned
 
 
-def test_data_client_refuses_unfrozen_pull():
+def test_killed_hypothesis_stays_dead_until_contradicted():
+    from killlab.engine.review import killed_decision, reconcile_point
+    entries = [{"stage": "DECISION", "body": {"label": "KILLED"}}]
+    assert killed_decision(entries) is True
+    assert killed_decision([{"stage": "DECISION", "body": {"label": "UNTESTABLE"}}]) is False
+    inside = reconcile_point(1.0, -2.0, 2.0)
+    outside = reconcile_point(5.0, -2.0, 2.0)
+    assert inside["inside_ci"] is True
+    assert outside["inside_ci"] is False
+    assert reconcile_point(1.0, None, None)["status"] == "no_forecast"
     with pytest.raises(NotFrozen):
         require_frozen(False)
 

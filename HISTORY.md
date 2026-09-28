@@ -74,6 +74,13 @@ This file is append-only.
 - Alpha t-stat is the t-stat of the out-of-sample mean, not a hardcoded zero.
 - Tests: 16 passed.
 
+## 2026-09-28 Ledger lock and fill review
+
+- A hypothesis whose latest decision is KILLED cannot get a new spec unless the request includes `contradicts`.
+- `POST /v1/runs/{id}/reconcile` compares a pasted buy/sell, or a supplied realized bps, with the run's bootstrap interval. Missing interval returns `no_forecast`.
+- Private Bitget fills still return 422. No order route was added.
+
+
 
 
 

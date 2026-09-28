@@ -20,6 +20,7 @@ from killlab.ai.boundary import enforce_kill_floor, filter_explanation, reject_f
 from killlab.config import Settings, settings_from_environ
 from killlab.data.bitget import BitgetError, BitgetRest, NotFrozen
 from killlab.db import session_factory
+from killlab.engine.review import killed_decision, reconcile_point
 from killlab.hashutil import sha256_canonical
 from killlab.models import (
     ENGINE_VERSION,
@@ -146,6 +147,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.post("/v1/hypotheses/{hypothesis_id}/specs", status_code=201)
     def create_spec(hypothesis_id: str, body: dict, session: Session = Depends(db), _: None = Depends(auth)):
+        prior = session.scalars(select(LedgerEntry).where(LedgerEntry.hypothesis_id == uuid.UUID(hypothesis_id)).order_by(LedgerEntry.created_at)).all()
+        entries = [{"stage": row.stage, "body": row.body} for row in prior]
+        contradicts = body.pop("contradicts", None) if isinstance(body, dict) else None
+        if killed_decision(entries) and not contradicts:
+            raise _error(409, "already_killed")
         try:
             reject_forbidden(body)
             cleaned = enforce_kill_floor(body)
@@ -272,6 +278,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         session.add(row)
         session.commit()
         return {"id": str(row.id)}
+
+    @app.post("/v1/runs/{run_id}/reconcile")
+    def reconcile(run_id: str, body: dict, session: Session = Depends(db), _: None = Depends(auth)):
+        run = session.get(TestRun, uuid.UUID(run_id))
+        if run is None or not run.result_json:
+            raise _error(409, "not_ready")
+        fill_ids = body.get("fill_ids") or []
+        realized = body.get("realized_bps")
+        if realized is None:
+            pasted = []
+            for fill_id in fill_ids:
+                row = session.get(Fill, uuid.UUID(fill_id))
+                if row and row.body:
+                    pasted.extend(row.body.get("fills") or [])
+            if len(pasted) < 2:
+                raise _error(422, "validation")
+            buy = next(item for item in pasted if item.get("side") == "buy")
+            sell = next(item for item in pasted if item.get("side") == "sell")
+            realized = (float(sell["px"]) / float(buy["px"]) - 1.0) * 1e4
+        review = reconcile_point(float(realized), run.result_json.get("ci_low"), run.result_json.get("ci_high"))
+        if review.get("status") == "no_forecast":
+            raise _error(409, "no_forecast")
+        return review
 
     @app.post("/v1/runs/{run_id}/explain")
     def explain(run_id: str, body: dict, session: Session = Depends(db), _: None = Depends(auth)):
