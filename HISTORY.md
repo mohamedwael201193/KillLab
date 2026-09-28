@@ -86,6 +86,12 @@ This file is append-only.
 - If yfinance is missing or the call fails, the event list is empty and the run stays UNTESTABLE.
 - Tests: 16 passed, including the alignment fixture.
 
+## 2026-09-28 Production re-check on f24221b
+
+- Deploy status live, commit `f24221b`. Health 200.
+- New production run `63e085d6-48fa-4f9a-8d6a-4c60394889c4`: label UNTESTABLE, trap `insufficient_units`, `n` 20, `actual_first` 2026-07-23T20:00:00Z. Events were aligned. Twenty is below the 100-event gate, so the verdict stays UNTESTABLE.
+- Probability of overfitting is now attached when an out-of-sample series is long enough for two variants.
+
 
 
 

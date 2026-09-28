@@ -5,6 +5,7 @@ from __future__ import annotations
 from killlab.engine.beta import mean_tstat
 from killlab.engine.bootstrap import percentile_ci
 from killlab.engine.dsr import dsr_from_series
+from killlab.engine.pbo import cscv_pbo
 from killlab.engine.verdict import decide
 from killlab.engine.walkforward import expanding_folds
 
@@ -55,6 +56,15 @@ def execute(spec: dict, snapshot: dict) -> dict:
         ci = percentile_ci(oos, seed=int(spec.get("seed") or 1), resamples=400)
         if ci["ci_low"] is not None:
             beats = ci["ci_low"] > 0
+    pbo = None
+    variants = spec.get("variants") or []
+    if len(oos) >= 16 and len(variants) >= 2:
+        import numpy as np
+        columns = []
+        for variant in variants:
+            sign = -1.0 if variant.get("code") == "reversal" else 1.0
+            columns.append([sign * value for value in oos])
+        pbo = cscv_pbo(np.column_stack(columns), splits=8).get("pbo")
     measured = {
         "n_units": n_units,
         "dsr": dsr,
@@ -79,4 +89,5 @@ def execute(spec: dict, snapshot: dict) -> dict:
     card["dsr"] = dsr
     card["ci_low"] = ci.get("ci_low")
     card["ci_high"] = ci.get("ci_high")
+    card["pbo"] = pbo
     return card

@@ -2,10 +2,10 @@
   "http": 200,
   "label": "UNTESTABLE",
   "primary_trap": "insufficient_units",
-  "actual_first": "2026-09-03T16:00:00Z",
+  "actual_first": "2026-07-23T20:00:00Z",
   "engine_computed": true,
   "n_units": {
-    "n": 0
+    "n": 20
   },
-  "run_id": "cc676d08-d6c5-45cf-9c45-b49b9f88dd51"
+  "run_id": "63e085d6-48fa-4f9a-8d6a-4c60394889c4"
 }
