@@ -90,7 +90,35 @@ def test_traps_positive_and_negative():
     assert not trap_waiting_risk("event_earnings", [], False, [])
 
 
-def test_short_sample_is_untestable_not_alive():
+def test_execute_uses_walkforward_dsr_not_a_hardcoded_verdict():
+    from killlab.runner import execute
+    import random
+    rng = random.Random(1)
+    price = 100.0
+    rows = []
+    for i in range(80):
+        price *= 1 + rng.uniform(-0.01, 0.01)
+        rows.append([i, price, price, price, price])
+    spec = {
+        "family": "session_timing",
+        "variants": [{"code": "a"}, {"code": "b"}],
+        "selection": {"split": "IS"},
+        "costs": {"perp_taker_bps": 6},
+        "baseline_codes": ["buy_and_hold"],
+        "transforms": [],
+        "claims_alpha": True,
+        "event_kind": "none",
+        "grain": "1H",
+        "seed": 1,
+        "risk": {},
+    }
+    card = execute(spec, {"rows": rows, "actual_first": "2026-09-01T00:00:00Z", "payload_sha256": "abc"})
+    assert card["engine_computed"] is True
+    assert card["label"] in {"KILLED", "UNTESTABLE"}
+    assert card["label"] != "ALIVE"
+    empty = execute({**spec, "family": "event_earnings"}, {"rows": rows, "events": []})
+    assert empty["label"] == "UNTESTABLE"
+    assert empty["n_units"]["n"] < 100
     spec = {
         "family": "event_earnings",
         "variants": [{"code": "a"}],

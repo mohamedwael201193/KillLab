@@ -67,6 +67,14 @@ This file is append-only.
 - Production earnings run `cc676d08-d6c5-45cf-9c45-b49b9f88dd51` returned `UNTESTABLE` / `insufficient_units` with `actual_first` `2026-09-03T16:00:00Z` from a live Bitget pull. Not ALIVE. Not a copied forensic number.
 - Evidence: `backend/docs/evidence/phase16_verdict.json`.
 
+## 2026-09-28 Engine wiring
+
+- `execute` now runs expanding walk-forward, a seeded bootstrap interval, and Deflated Sharpe on out-of-sample returns for candle families.
+- Earnings runs still require an explicit event panel. Candle rows are not counted as earnings. A panel-less earnings spec stays UNTESTABLE.
+- Alpha t-stat is the t-stat of the out-of-sample mean, not a hardcoded zero.
+- Tests: 16 passed.
+
+
 
 
 
