@@ -25,6 +25,7 @@ from killlab.engine.review import killed_decision, reconcile_point, realized_fro
 from killlab.guard import fixtures_loaded
 from killlab.hashutil import sha256_canonical
 from killlab.logjson import log_event
+from killlab.ratelimit import allow, client_key
 from killlab.models import (
     ENGINE_VERSION,
     Fill,
@@ -102,14 +103,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not settings.api_token or not hmac.compare_digest(token, settings.api_token):
             raise _error(403, "forbidden")
 
-    def limit(request: Request) -> None:
+    def limit(request: Request, authorization: str | None = Header(default=None)) -> None:
         now = datetime.now(timezone.utc).timestamp()
-        bucket = _HITS[request.url.path]
-        _HITS[request.url.path] = [t for t in bucket if now - t < 3600]
+        key = client_key(request.url.path, authorization)
+        bucket = _HITS.setdefault(key, [])
         cap = 10 if request.url.path.endswith("/runs") else 30
-        if len(_HITS[request.url.path]) >= cap:
+        if not allow(bucket, now, 3600, cap):
             raise _error(429, "rate_limited")
-        _HITS[request.url.path].append(now)
 
     @app.get("/health")
     def health():

@@ -121,6 +121,12 @@ This file is append-only.
 - Run `4d590635-8a0f-4454-8733-710568ed6902`: UNTESTABLE, `insufficient_units`, n=20, `actual_first` 2026-07-23T20:00:00Z, `engine_computed` true. Unauthenticated create returned 401.
 - `KillLab/FRONTEND/` is still absent, so phases 17–20 are not started.
 
+## 2026-09-28 Rate limit
+
+- Run limits are counted per caller. The bucket key is a hash of the authorization header, not the raw token.
+- A second caller does not consume the first caller's cap. The window is one hour.
+- Engine tests: 10 passed. Docker Desktop was started. Image build is `killlab-api`.
+
 
 
 

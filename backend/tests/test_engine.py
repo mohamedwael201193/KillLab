@@ -147,7 +147,14 @@ def test_llm_schema_rejects_metrics_and_oos():
         enforce_kill_floor(bad)
 
 
-def test_production_refuses_loaded_test_modules():
+def test_rate_limit_is_per_caller_and_expires():
+    from killlab.ratelimit import allow, client_key
+    assert client_key("/v1/runs", "Bearer a") != client_key("/v1/runs", "Bearer b")
+    bucket: list[float] = []
+    assert allow(bucket, 100, 3600, 2) is True
+    assert allow(bucket, 101, 3600, 2) is True
+    assert allow(bucket, 102, 3600, 2) is False
+    assert allow(bucket, 100 + 3601, 3600, 2) is True
     from killlab.guard import fixtures_loaded
     assert fixtures_loaded(["tests.fixtures.golden_dsr"]) is True
     assert fixtures_loaded(["killlab.api", "killlab.runner"]) is False
