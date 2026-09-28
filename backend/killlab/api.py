@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from killlab.ai.boundary import enforce_kill_floor, filter_explanation, reject_forbidden
 from killlab.config import Settings, settings_from_environ
 from killlab.data.bitget import BitgetError, BitgetRest, NotFrozen
+from killlab.data.earnings import align_events, earnings_timestamps_ms
 from killlab.db import session_factory
 from killlab.engine.review import killed_decision, reconcile_point
 from killlab.hashutil import sha256_canonical
@@ -221,7 +222,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             symbol = instrument if instrument.endswith("USDT") else instrument + "USDT"
             if spec.canonical_json.get("venue") == "bitget_rtoken" and not symbol.startswith("R"):
                 symbol = "R" + symbol
-            snapshot = client.history_candles(frozen=True, product=product, symbol=symbol, pages=3)
+            pages = 8 if spec.canonical_json.get("family") == "event_earnings" else 3
+            snapshot = client.history_candles(frozen=True, product=product, symbol=symbol, pages=pages)
+            if spec.canonical_json.get("family") == "event_earnings":
+                snapshot["events"] = align_events(snapshot.get("rows") or [], earnings_timestamps_ms(symbol))
             card = execute({**spec.canonical_json, "content_sha256": spec.content_sha256}, snapshot)
             run.status = "untestable" if card["label"] == "UNTESTABLE" else "succeeded"
             run.result_json = card

@@ -152,7 +152,13 @@ def test_explanation_drops_hallucinated_number():
     assert "7" in cleaned
 
 
-def test_killed_hypothesis_stays_dead_until_contradicted():
+def test_earnings_events_align_to_bars_and_ignore_plain_candles():
+    from killlab.data.earnings import align_events
+    rows = [[1_000 * i, 1, 1, 1, 100 + i] for i in range(20)]
+    events = align_events(rows, [5_000], horizon_bars=2)
+    assert len(events) == 1
+    assert events[0]["return_bps"] != 0
+    assert align_events(rows, [10_000_000]) == []
     from killlab.engine.review import killed_decision, reconcile_point
     entries = [{"stage": "DECISION", "body": {"label": "KILLED"}}]
     assert killed_decision(entries) is True

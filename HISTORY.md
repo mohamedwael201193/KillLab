@@ -80,6 +80,12 @@ This file is append-only.
 - `POST /v1/runs/{id}/reconcile` compares a pasted buy/sell, or a supplied realized bps, with the run's bootstrap interval. Missing interval returns `no_forecast`.
 - Private Bitget fills still return 422. No order route was added.
 
+## 2026-09-28 Earnings panel
+
+- Earnings timestamps are aligned to Bitget bars. A candle with no earnings time is not an event.
+- If yfinance is missing or the call fails, the event list is empty and the run stays UNTESTABLE.
+- Tests: 16 passed, including the alignment fixture.
+
 
 
 
