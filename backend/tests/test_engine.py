@@ -147,7 +147,12 @@ def test_llm_schema_rejects_metrics_and_oos():
         enforce_kill_floor(bad)
 
 
-def test_stale_running_jobs_are_interrupted():
+def test_next_hypothesis_is_not_stored_and_has_no_metric():
+    from killlab.engine.review import next_hypothesis
+    proposal = next_hypothesis("insufficient_units")
+    assert proposal["stored"] is False
+    assert "bps" not in proposal["proposed_raw_text"].lower()
+    assert "sharpe" not in proposal["proposed_raw_text"].lower()
     from killlab.recover import interrupted_if_stale
     assert interrupted_if_stale(15, 15) is True
     assert interrupted_if_stale(14.9, 15) is False

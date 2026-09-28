@@ -143,6 +143,12 @@ This file is append-only.
 - Inline execution cannot resume a dead request, so those rows are not put back on a queue.
 - Startup against the live database succeeded in the OpenAPI test.
 
+## 2026-09-28 Next hypothesis
+
+- `POST /v1/ledger/{id}/next` returns a follow-up question from the decision trap.
+- It does not store a hypothesis and the text does not contain a metric.
+- The unit test passed.
+
 
 
 

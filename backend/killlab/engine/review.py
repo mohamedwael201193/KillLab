@@ -21,6 +21,29 @@ def realized_from_fills(fills: list[dict]) -> float | None:
     return (float(sell["px"]) / buy_px - 1.0) * 1e4
 
 
+def next_hypothesis(primary_trap: str | None) -> dict:
+    """A next question. It does not store a hypothesis and it does not invent a metric."""
+    prompts = {
+        "insufficient_units": "Repeat this test after more independent events are on the Bitget tape.",
+        "MULTIPLE_TESTING": "Pre-register fewer variants and run the same test again.",
+        "BETA_AS_ALPHA": "Compare the strategy with buy-and-hold of the same names before calling it alpha.",
+        "BAR_TIMING": "Rebuild the test with one-minute bars at the cash open and close.",
+        "WRONG_HORIZON": "Measure risk over the full wait until the session switch, not one bar.",
+        "LEAKAGE": "Refit every feature using only data from before the test window.",
+        "VENUE_HISTORY": "Start the test at the first Bitget bar the API actually returns.",
+        "EFFECT_ERASE": "Remove within-regime rescaling and rerun the contrast.",
+        "WRONG_COST_BASELINE": "Include fees, funding, and the Earn USDT baseline.",
+        "WAITING_RISK": "Score waiting with horizon volatility, not only the spread.",
+        "baseline": "Show the excess over the frozen baseline with a confidence interval above zero.",
+        "family_unsupported": "Rewrite the idea into session timing, earnings, carry, or execution venue.",
+        "baseline_not_computed": "Wait until the sample can support a baseline comparison.",
+    }
+    return {
+        "proposed_raw_text": prompts.get(primary_trap or "", "State the next kill rule before touching more data."),
+        "stored": False,
+    }
+
+
 def reconcile_point(realized_bps: float, ci_low: float | None, ci_high: float | None) -> dict:
     if ci_low is None or ci_high is None:
         return {"status": "no_forecast"}

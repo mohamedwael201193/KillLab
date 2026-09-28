@@ -21,7 +21,7 @@ from killlab.config import Settings, settings_from_environ
 from killlab.data.bitget import BitgetError, BitgetRest, NotFrozen
 from killlab.data.earnings import align_events, earnings_timestamps_ms
 from killlab.db import session_factory
-from killlab.engine.review import killed_decision, reconcile_point, realized_from_fills
+from killlab.engine.review import killed_decision, next_hypothesis, reconcile_point, realized_from_fills
 from killlab.guard import fixtures_loaded
 from killlab.hashutil import sha256_canonical
 from killlab.logjson import log_event
@@ -320,7 +320,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/v1/ledger")
     def ledger(hypothesis_id: str, session: Session = Depends(db), _: None = Depends(auth)):
         rows = session.scalars(select(LedgerEntry).where(LedgerEntry.hypothesis_id == uuid.UUID(hypothesis_id)).order_by(LedgerEntry.created_at)).all()
-        return {"entries": [{"stage": r.stage, "body": r.body, "test_run_id": str(r.test_run_id) if r.test_run_id else None} for r in rows]}
+        return {"entries": [{"id": str(r.id), "stage": r.stage, "body": r.body, "test_run_id": str(r.test_run_id) if r.test_run_id else None} for r in rows]}
+
+    @app.post("/v1/ledger/{entry_id}/next")
+    def propose_next(entry_id: str, session: Session = Depends(db), _: None = Depends(auth)):
+        row = session.get(LedgerEntry, uuid.UUID(entry_id))
+        if row is None or row.stage != "DECISION":
+            raise _error(404, "not_found")
+        proposal = next_hypothesis((row.body or {}).get("primary_trap") or (row.body or {}).get("label"))
+        return proposal
 
     @app.post("/v1/hypotheses/{hypothesis_id}/fills", status_code=201)
     def fills(hypothesis_id: str, body: FillsIn, session: Session = Depends(db), _: None = Depends(auth)):
