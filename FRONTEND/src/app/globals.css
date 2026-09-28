@@ -1,0 +1,210 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 10px);
+
+  /* KillLab semantic tokens */
+  --color-ice: var(--ice);
+  --color-ice-soft: var(--ice-soft);
+  --color-verdict-alive: var(--verdict-alive);
+  --color-verdict-killed: var(--verdict-killed);
+  --color-verdict-untestable: var(--verdict-untestable);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-hairline: var(--hairline);
+}
+
+/*
+ * KillLab dark-first visual system.
+ * Near-black cool foundation · white typography · hairline borders ·
+ * one controlled ice-cyan accent · restrained verdict colors.
+ */
+:root {
+  --radius: 0.75rem;
+
+  /* KillLab dark tokens are the default (dark-first). */
+  --background: oklch(0.13 0.005 250);
+  --foreground: oklch(0.97 0.002 250);
+  --card: oklch(0.165 0.006 250);
+  --card-foreground: oklch(0.97 0.002 250);
+  --popover: oklch(0.17 0.006 250);
+  --popover-foreground: oklch(0.97 0.002 250);
+  --primary: oklch(0.98 0.002 250);
+  --primary-foreground: oklch(0.16 0.006 250);
+  --secondary: oklch(0.21 0.006 250);
+  --secondary-foreground: oklch(0.93 0.002 250);
+  --muted: oklch(0.2 0.006 250);
+  --muted-foreground: oklch(0.62 0.008 250);
+  --accent: oklch(0.22 0.01 250);
+  --accent-foreground: oklch(0.96 0.002 250);
+  --destructive: oklch(0.62 0.19 25);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: oklch(0.75 0.09 210);
+
+  /* Semantic KillLab palette */
+  --ice: oklch(0.87 0.075 215);
+  --ice-soft: oklch(0.78 0.065 215);
+  --verdict-alive: oklch(0.8 0.12 160);
+  --verdict-killed: oklch(0.66 0.19 25);
+  --verdict-untestable: oklch(0.75 0.06 250);
+  --panel: oklch(0.155 0.006 250);
+  --panel-2: oklch(0.185 0.007 250);
+  --hairline: oklch(1 0 0 / 8%);
+}
+
+.dark {
+  --background: oklch(0.13 0.005 250);
+  --foreground: oklch(0.97 0.002 250);
+  --card: oklch(0.165 0.006 250);
+  --card-foreground: oklch(0.97 0.002 250);
+  --popover: oklch(0.17 0.006 250);
+  --popover-foreground: oklch(0.97 0.002 250);
+  --primary: oklch(0.98 0.002 250);
+  --primary-foreground: oklch(0.16 0.006 250);
+  --secondary: oklch(0.21 0.006 250);
+  --secondary-foreground: oklch(0.93 0.002 250);
+  --muted: oklch(0.2 0.006 250);
+  --muted-foreground: oklch(0.62 0.008 250);
+  --accent: oklch(0.22 0.01 250);
+  --accent-foreground: oklch(0.96 0.002 250);
+  --destructive: oklch(0.62 0.19 25);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: oklch(0.75 0.09 210);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+    /* Non-static so framer-motion scroll targets measure offsets correctly. */
+    position: relative;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01" on, "cv05" on;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--ice) 30%, transparent);
+    color: var(--foreground);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* KillLab utilities                                                   */
+/* ------------------------------------------------------------------ */
+
+@layer utilities {
+  /* Display type with tightened tracking */
+  .kl-display {
+    letter-spacing: -0.032em;
+    font-weight: 500;
+  }
+
+  /* Fine hairline with gradient fade at the edges */
+  .kl-hairline {
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      oklch(1 0 0 / 10%) 18%,
+      oklch(1 0 0 / 13%) 50%,
+      oklch(1 0 0 / 10%) 82%,
+      transparent
+    );
+    height: 1px;
+  }
+
+  /* The signature KillLab ice edge used on primary CTAs */
+  .kl-edge {
+    position: relative;
+  }
+  .kl-edge::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--ice) 65%, transparent),
+      color-mix(in oklch, var(--ice) 12%, transparent) 40%,
+      transparent 70%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Restrained grid backdrop */
+  .kl-grid-bg {
+    background-image:
+      linear-gradient(oklch(1 0 0 / 2.5%) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(1 0 0 / 2.5%) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+
+  /* Custom scrollbar for evidence lists */
+  .kl-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .kl-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .kl-scroll::-webkit-scrollbar-thumb {
+    background: oklch(1 0 0 / 10%);
+    border-radius: 999px;
+  }
+  .kl-scroll::-webkit-scrollbar-thumb:hover {
+    background: oklch(1 0 0 / 18%);
+  }
+  .kl-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(1 0 0 / 10%) transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
