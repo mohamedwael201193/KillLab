@@ -90,6 +90,20 @@ def test_freeze_then_run_is_not_alive(client, auth_header):
     assert verdict.json()["label"] in {"KILLED", "UNTESTABLE"}
     assert verdict.json()["label"] != "ALIVE"
     assert "engine_computed" in verdict.json()
+    rid = run.json()["test_run_id"]
+    results = client.get(f"/v1/runs/{rid}/results", headers=auth_header)
+    assert results.status_code == 200
+    assert results.json()["label"] == verdict.json()["label"]
+    traps = client.get(f"/v1/runs/{rid}/traps", headers=auth_header)
+    assert traps.status_code == 200
+    ledger = client.get(f"/v1/ledger?hypothesis_id={hid}", headers=auth_header)
+    assert any(entry["stage"] == "DECISION" for entry in ledger.json()["entries"])
+    private = client.post(
+        f"/v1/hypotheses/{hid}/fills",
+        json={"source": "bitget_private", "fills": []},
+        headers=auth_header,
+    )
+    assert private.status_code == 422
     _ = replay
 
 

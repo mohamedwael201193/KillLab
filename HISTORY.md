@@ -104,6 +104,12 @@ This file is append-only.
 - Production startup refuses to run if the `tests` package is already imported.
 - Engine and API tests: 15 passed.
 
+## 2026-09-28 API contract on a live Bitget run
+
+- The freeze-and-run test now also checks `/results` matches the verdict label, `/traps`, the ledger `DECISION`, and that private fills return 422.
+- A verdict log line records the label and trap only, not candle rows.
+- That test passed against Bitget.
+
 
 
 

@@ -235,6 +235,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if spec.canonical_json.get("family") == "event_earnings":
                 snapshot["events"] = align_events(snapshot.get("rows") or [], earnings_timestamps_ms(symbol))
             card = execute({**spec.canonical_json, "content_sha256": spec.content_sha256}, snapshot)
+            log_event("verdict", label=card.get("label"), primary_trap=card.get("primary_trap"), run_id=str(run.id))
             run.status = "untestable" if card["label"] == "UNTESTABLE" else "succeeded"
             run.result_json = card
             session.add(LedgerEntry(hypothesis_id=spec.hypothesis_id, test_run_id=run.id, stage="RESULT", body={"label": card["label"]}))
