@@ -1,0 +1,7 @@
+{
+  "symbol": "NVDAUSDT",
+  "n": 8000,
+  "actual_first": "2025-10-28T19:00:00Z",
+  "payload_sha256": "8a3222216362fc47b8fe6679564c96fc90cdf93e77306a5f99a271dc376a276d",
+  "source": "bitget_rest_v2"
+}

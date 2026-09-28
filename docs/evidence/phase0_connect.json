@@ -1,0 +1,69 @@
+{
+  "checked_at": "2026-09-28T17:49:43Z",
+  "killab_api_token_generated": false,
+  "killab_api_token_present": true,
+  "values_present": {
+    "RENDER_API_KEY": true,
+    "VERCEL_TOKEN": true,
+    "GITHUB_TOKEN": true,
+    "GITHUB_REPO": true,
+    "DATABASE_URL": true,
+    "DIRECT_URL": true,
+    "KILLAB_API_TOKEN": true,
+    "SESSION_SECRET": false,
+    "LLM_API_KEY": false,
+    "LLM_BASE_URL": false,
+    "LLM_MODEL": false,
+    "BITGET_API_KEY": false,
+    "BITGET_API_SECRET": false,
+    "BITGET_API_PASSPHRASE": false,
+    "SUPABASE_URL": true,
+    "SUPABASE_ANON_KEY": false,
+    "SUPABASE_SERVICE_ROLE_KEY": false,
+    "BACKEND_PUBLIC_URL": false,
+    "FRONTEND_ORIGIN": false,
+    "LOG_LEVEL": true
+  },
+  "database_url": {
+    "ok": true,
+    "server_version": "17.6",
+    "error_class": null
+  },
+  "direct_url": {
+    "ok": true,
+    "server_version": "17.6",
+    "error_class": null
+  },
+  "github_user": {
+    "http": 200,
+    "login": "mohamedwael201193",
+    "error_class": null
+  },
+  "github_repo": {
+    "http": 200,
+    "exists": true,
+    "private": false,
+    "default_branch": "main",
+    "pushed_at": "2026-09-28T15:54:03Z",
+    "permissions": {
+      "admin": true,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    },
+    "error_class": null
+  },
+  "render": {
+    "http": 200,
+    "ok": true,
+    "service_count": 5,
+    "error_class": null
+  },
+  "vercel": {
+    "http": 200,
+    "ok": true,
+    "username": "mohamedwael201193",
+    "error_class": null
+  }
+}

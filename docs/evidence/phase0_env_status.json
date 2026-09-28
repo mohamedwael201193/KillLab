@@ -1,0 +1,38 @@
+{
+  "checked_at": "2026-09-28T17:49:43Z",
+  "phase0": "database_and_providers_validated",
+  "notes": [
+    "KILLAB_API_TOKEN was generated locally on the first preflight. The value is not in this file.",
+    "DATABASE_URL select 1 failed until the pgbouncer query parameter was stripped. psycopg 3.3.4 rejects that parameter. With prepare_threshold=None and the parameter removed, select 1 succeeded. DIRECT_URL succeeded on the first attempt.",
+    "Postgres server_version 17.6 on both connections.",
+    "LLM_BASE_URL and LLM_MODEL are the public handbook values confirmed in Chrome on the GitBook page. LLM_API_KEY is absent, so the compiler stays off.",
+    "SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, and SESSION_SECRET are deliberately unused."
+  ],
+  "variables": [
+    {"name": "RENDER_API_KEY", "class": "cli_only", "required": "phase_15", "present": true, "validated": true, "validation": "GET /v1/services HTTP 200", "secret": true, "runtime": false, "blocking": false},
+    {"name": "VERCEL_TOKEN", "class": "cli_only", "required": "phase_18", "present": true, "validated": true, "validation": "GET /v2/user HTTP 200", "secret": true, "runtime": false, "blocking": false},
+    {"name": "GITHUB_TOKEN", "class": "cli_only", "required": "optional_until_push", "present": true, "validated": true, "validation": "GET /user and /repos HTTP 200, permissions.admin true", "secret": true, "runtime": false, "blocking": false},
+    {"name": "GITHUB_REPO", "class": "config", "required": "yes", "present": true, "validated": true, "validation": "mohamedwael201193/KillLab exists, default_branch main, public", "secret": false, "runtime": false, "blocking": false},
+    {"name": "DATABASE_URL", "class": "runtime", "required": "yes", "present": true, "validated": true, "validation": "select 1 ok after stripping pgbouncer param, prepare_threshold=None, postgres 17.6", "secret": true, "runtime": true, "blocking": false},
+    {"name": "DIRECT_URL", "class": "migrate", "required": "yes", "present": true, "validated": true, "validation": "select 1 ok, postgres 17.6", "secret": true, "runtime": true, "blocking": false},
+    {"name": "KILLAB_API_TOKEN", "class": "generated", "required": "yes", "present": true, "validated": true, "validation": "generated with secrets.token_urlsafe(32); presence only", "secret": true, "runtime": true, "blocking": false},
+    {"name": "KILLAB_ENV", "class": "config", "required": "yes", "present": true, "validated": true, "validation": "set to development", "secret": false, "runtime": true, "blocking": false},
+    {"name": "LLM_API_KEY", "class": "optional", "required": "no", "present": false, "validated": false, "validation": "not supplied; manual TestSpec is the fallback", "secret": true, "runtime": true, "blocking": false},
+    {"name": "LLM_BASE_URL", "class": "optional_default", "required": "when_key_set", "present": true, "validated": true, "validation": "public handbook host, not a credential", "secret": false, "runtime": true, "blocking": false},
+    {"name": "LLM_MODEL", "class": "optional_default", "required": "when_key_set", "present": true, "validated": true, "validation": "qwen3.8-max visible on live GitBook", "secret": false, "runtime": true, "blocking": false},
+    {"name": "LLM_TIMEOUT_S", "class": "config", "required": "yes", "present": true, "validated": true, "validation": "30", "secret": false, "runtime": true, "blocking": false},
+    {"name": "BITGET_API_KEY", "class": "optional", "required": "no", "present": false, "validated": false, "validation": "public MCP market does not need it", "secret": true, "runtime": true, "blocking": false},
+    {"name": "BITGET_API_SECRET", "class": "optional", "required": "no", "present": false, "validated": false, "validation": "absent on purpose", "secret": true, "runtime": true, "blocking": false},
+    {"name": "BITGET_API_PASSPHRASE", "class": "optional", "required": "no", "present": false, "validated": false, "validation": "absent on purpose", "secret": true, "runtime": true, "blocking": false},
+    {"name": "BITGET_HTTP_TIMEOUT_S", "class": "config", "required": "yes", "present": true, "validated": true, "validation": "20", "secret": false, "runtime": true, "blocking": false},
+    {"name": "BITGET_REST_BASE", "class": "config", "required": "yes", "present": true, "validated": true, "validation": "https://api.bitget.com", "secret": false, "runtime": true, "blocking": false},
+    {"name": "SUPABASE_URL", "class": "unused_v1", "required": "no", "present": true, "validated": false, "validation": "derived from project ref; SQL uses the pooler URIs", "secret": false, "runtime": false, "blocking": false},
+    {"name": "SUPABASE_ANON_KEY", "class": "deliberately_unused", "required": "no", "present": false, "validated": false, "validation": "do not add", "secret": true, "runtime": false, "blocking": false},
+    {"name": "SUPABASE_SERVICE_ROLE_KEY", "class": "deliberately_unused", "required": "no", "present": false, "validated": false, "validation": "do not add", "secret": true, "runtime": false, "blocking": false},
+    {"name": "BACKEND_PUBLIC_URL", "class": "derived_at_deploy", "required": "phase_15", "present": false, "validated": false, "validation": "Render assigns the host", "secret": false, "runtime": false, "blocking": false},
+    {"name": "FRONTEND_ORIGIN", "class": "derived_at_deploy", "required": "phase_18", "present": false, "validated": false, "validation": "Vercel assigns the host", "secret": false, "runtime": true, "blocking": false},
+    {"name": "SESSION_SECRET", "class": "deliberately_unused", "required": "no", "present": false, "validated": false, "validation": "no cookie sessions in v1", "secret": true, "runtime": false, "blocking": false},
+    {"name": "LOG_LEVEL", "class": "config", "required": "yes", "present": true, "validated": true, "validation": "INFO", "secret": false, "runtime": true, "blocking": false},
+    {"name": "RUN_STALE_MINUTES", "class": "config", "required": "yes", "present": true, "validated": true, "validation": "15", "secret": false, "runtime": true, "blocking": false}
+  ]
+}

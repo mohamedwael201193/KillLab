@@ -1,0 +1,7 @@
+checked_at: 2026-09-28T18:30:00Z
+select_1: ok
+server_version: 17.6
+migration: alembic 0001_killlab applied
+schema: killlab
+trigger: test_specs_freeze
+note: runtime URL uses psycopg dialect prefix in process only; stored URI unchanged

@@ -1,0 +1,25 @@
+[project]
+name = "killlab"
+version = "0.1.0"
+description = "Pre-registered falsification desk for Bitget US-stock ideas"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn>=0.32",
+  "pydantic>=2.9",
+  "sqlalchemy>=2.0",
+  "alembic>=1.13",
+  "psycopg[binary]>=3.2",
+  "httpx>=0.27",
+  "numpy>=2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "httpx>=0.27"]
+
+[tool.setuptools.packages.find]
+include = ["killlab*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["live: calls Bitget public REST"]

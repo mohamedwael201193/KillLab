@@ -1,0 +1,15 @@
+checked_at: 2026-09-28T17:50:00Z
+local_git_root: d:\route\bitget
+git_initialized_this_preflight: yes
+commits: none
+remote_configured: no
+check_ignore: KillLab/.gitignore:1:.env matches KillLab/.env
+ls_files_dotenv: none
+github_repo: mohamedwael201193/KillLab
+github_http: 200
+github_private: false
+github_default_branch: main
+github_permissions: admin, push
+github_login: mohamedwael201193
+pushed_this_preflight: no
+warning: do not push the forensic workspace to the KillLab remote. The GitHub repo is the product repo. This workspace also contains _forensics.

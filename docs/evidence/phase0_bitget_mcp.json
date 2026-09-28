@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-09-28T17:47:21Z",
+  "skill": "C:\\Users\\LOQ\\.cursor\\skills\\bitget-agentic\\SKILL.md",
+  "skill_package": "@bitget-ai/bitget-agent-mcp",
+  "mcp_namespace": "user-bitget-agentic",
+  "get_auth_status": {"authorized": true, "credential_printed": false},
+  "market_candlesHistory": {
+    "ok": true,
+    "endpoint": "GET /api/v3/market/history-candles",
+    "symbol": "NVDAUSDT",
+    "category": "USDT-FUTURES",
+    "interval": "1H",
+    "rows": 2
+  },
+  "market_instruments": {
+    "ok": true,
+    "endpoint": "GET /api/v3/market/instruments",
+    "symbol": "RNVDAUSDT",
+    "category": "SPOT",
+    "status": "online",
+    "symbolType": "stock",
+    "isReality": "yes"
+  },
+  "cloud_mcp": {
+    "namespace": "user-bitget-mcp-server",
+    "tool": "cloud_mcp_status",
+    "ok": false,
+    "http": 503,
+    "message": "Too many open sessions",
+    "effect": "not a blocker; agentic market MCP is the live path"
+  },
+  "orders_called": false
+}

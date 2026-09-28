@@ -1,0 +1,8 @@
+checked_at: 2026-09-28T18:14:00Z
+phase: 1
+mcp_authorized: true
+mcp_market_instruments: RNVDAUSDT SPOT online isReality=yes
+cloud_mcp: not re-probed this phase; phase0 recorded HTTP 503
+requirements_file: KillLab/backend/docs/REQUIREMENTS.md
+forbidden_product_names_as_build_targets: absent
+status: pass

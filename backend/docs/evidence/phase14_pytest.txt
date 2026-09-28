@@ -1,0 +1,4 @@
+pytest: 16 passed
+includes: health 200 with database, 401 without bearer, freeze, hash mismatch 409, frozen update rejected by trigger, live NVDA perp candles, golden DSR, nine trap positive/negative cases, no order symbols
+engine_version: killlab-0.1.0
+alembic: 0001_killlab
