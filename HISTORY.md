@@ -130,6 +130,7 @@ This file is append-only.
 ## 2026-09-28 Docker image
 
 - `docker build -t killlab-api` finished with exit code 0 in about 105 seconds.
+- A later rebuild of commit `143d8f5` also finished with exit code 0. The full suite before that rebuild was 16 passed.
 - Image tag `killlab-api:latest`. Evidence: `backend/docs/evidence/phase_docker.txt`.
 
 ## 2026-09-28 OpenAPI

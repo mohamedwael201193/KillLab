@@ -1,5 +1,6 @@
 image: killlab-api:latest
 exit_code: 0
-elapsed_s: 105
-manifest: sha256:0d79fdd5ed1b5a73bef23e7d3f083e26edf806cd7471230796e70bf4cbd9b52a
-note: built locally after Docker Desktop started. Render remains the production deploy.
+commit: 143d8f5
+manifest: sha256:c23f7bc111ac5b4b240ff4f46ac2fb17d1da47fec21ab664951c24208e309160
+note: rebuilt from the current tree. Render remains the production deploy.
+pytest: 16 passed on this tree before the rebuild.
