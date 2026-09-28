@@ -51,6 +51,15 @@ This file is append-only.
 - Retest: migration applied; pytest 16 passed.
 - Status: fixed.
 
+## 2026-09-28 Phase 15 — Render
+
+- Service `killlab-api` created in Frankfurt. Public host `https://killlab-api.onrender.com`.
+- First deploys failed in Alembic: SQLAlchemy could not parse the pooler URI when the password contains `@`.
+- Fix: `to_sqlalchemy_url()` splits on the last `@` and passes the password as a field. Local `select 1` succeeded after the fix.
+- Code pushed to `mohamedwael201193/KillLab` `main` (`b880c9a`, then the URL-parser commit).
+- Frontend phases 17–20 are not started. `KillLab/FRONTEND/` does not exist.
+
+
 
 ### Decision
 

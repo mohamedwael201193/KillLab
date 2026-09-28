@@ -3,7 +3,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import create_engine, pool, text
 
-from killlab.config import settings_from_environ
+from killlab.config import settings_from_environ, to_sqlalchemy_url
 from killlab.models import Base
 
 config = context.config
@@ -16,7 +16,7 @@ settings = settings_from_environ()
 
 def run_migrations_online() -> None:
     connectable = create_engine(
-        settings.direct_url,
+        to_sqlalchemy_url(settings.direct_url),
         poolclass=pool.NullPool,
         connect_args={"prepare_threshold": None},
     )

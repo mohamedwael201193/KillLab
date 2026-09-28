@@ -27,5 +27,7 @@ snapshots/
 var/
 backend/.data/
 docs/evidence/_preflight_once.py
+docs/evidence/_poll_health.py
+docs/evidence/_logs.py
 *.egg-info/
 

@@ -27,15 +27,13 @@ ET = ZoneInfo("America/New_York")
 
 
 def test_percent_encoded_password_still_parses():
-    from sqlalchemy.engine.url import make_url
-    from killlab.config import psycopg_url
-    parsed = make_url(psycopg_url("postgresql://user:secret%40word@host:5432/db?pgbouncer=true"))
-    assert parsed.password == "secret@word"
-    assert parsed.host == "host"
-    raw = "postgresql://user:secret@host:6543/postgres?pgbouncer=true"
-    cleaned = strip_pgbouncer(raw)
-    assert "pgbouncer" not in cleaned
-    assert cleaned.startswith("postgresql://")
+    from killlab.config import strip_pgbouncer, to_sqlalchemy_url
+    encoded = to_sqlalchemy_url("postgresql://user:secret%40word@host:5432/db?pgbouncer=true")
+    raw_at = to_sqlalchemy_url("postgresql://user:secret@word@host:6543/postgres?pgbouncer=true")
+    assert encoded.password == "secret@word"
+    assert raw_at.password == "secret@word"
+    assert raw_at.host == "host"
+    assert "pgbouncer" not in strip_pgbouncer("postgresql://user:secret@host:6543/postgres?pgbouncer=true")
 
 
 def test_hash_ignores_key_order():

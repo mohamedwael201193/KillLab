@@ -5,13 +5,13 @@ from __future__ import annotations
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from killlab.config import Settings
+from killlab.config import Settings, to_sqlalchemy_url
 
 
 def make_engine(url: str):
     if not url:
         raise RuntimeError("database url missing")
-    return create_engine(url, pool_pre_ping=True, connect_args={"prepare_threshold": None})
+    return create_engine(to_sqlalchemy_url(url), pool_pre_ping=True, connect_args={"prepare_threshold": None})
 
 
 def session_factory(settings: Settings):

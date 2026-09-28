@@ -29,16 +29,25 @@ def strip_pgbouncer(url: str) -> str:
     return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
 
-def psycopg_url(url: str) -> str:
-    """Use the psycopg 3 dialect. Does not log the URI."""
+def to_sqlalchemy_url(url: str):
+    """Build a SQLAlchemy URL even when the password contains @."""
+    from urllib.parse import unquote
+
+    from sqlalchemy.engine import URL
+
     cleaned = strip_pgbouncer(url)
-    if cleaned.startswith("postgresql+psycopg://"):
-        return cleaned
-    if cleaned.startswith("postgresql://"):
-        return "postgresql+psycopg://" + cleaned[len("postgresql://") :]
-    if cleaned.startswith("postgres://"):
-        return "postgresql+psycopg://" + cleaned[len("postgres://") :]
-    return cleaned
+    scheme, _, rest = cleaned.partition("://")
+    driver = "postgresql+psycopg"
+    userinfo, _, hostpart = rest.rpartition("@")
+    username, _, password = userinfo.partition(":")
+    hostport, _, path = hostpart.partition("/")
+    if ":" in hostport:
+        host, port_text = hostport.rsplit(":", 1)
+        port = int(port_text)
+    else:
+        host, port = hostport, 5432
+    database = path.split("?", 1)[0]
+    return URL.create(driver, username=unquote(username), password=unquote(password), host=host, port=port, database=database)
 
 
 @dataclass(frozen=True)
@@ -65,8 +74,8 @@ class Settings:
 def settings_from_environ() -> Settings:
     root = Path(__file__).resolve().parents[2]
     load_env_file(root / ".env")
-    db = psycopg_url(os.environ.get("DATABASE_URL", ""))
-    direct = psycopg_url(os.environ.get("DIRECT_URL", ""))
+    db = strip_pgbouncer(os.environ.get("DATABASE_URL", ""))
+    direct = strip_pgbouncer(os.environ.get("DIRECT_URL", ""))
     return Settings(
         database_url=db,
         direct_url=direct,
