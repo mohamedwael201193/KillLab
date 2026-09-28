@@ -175,7 +175,14 @@ def test_next_hypothesis_is_not_stored_and_has_no_metric():
     assert "7" in cleaned
 
 
-def test_earnings_events_align_to_bars_and_ignore_plain_candles():
+def test_each_listed_symbol_gets_its_own_events():
+    from killlab.data.earnings import symbol_for, tag_events
+    assert symbol_for("NVDA", "bitget_perp") == "NVDAUSDT"
+    assert symbol_for("NVDA", "bitget_rtoken") == "RNVDAUSDT"
+    assert symbol_for("RNVDAUSDT", "bitget_rtoken") == "RNVDAUSDT"
+    tagged = tag_events([{"id": "1", "return_bps": 5}], "NVDAUSDT")
+    other = tag_events([{"id": "1", "return_bps": 7}], "TSLAUSDT")
+    assert tagged[0]["id"] != other[0]["id"]
     from killlab.data.earnings import align_events
     rows = [[1_000 * i, 1, 1, 1, 100 + i] for i in range(20)]
     events = align_events(rows, [5_000], horizon_bars=2)

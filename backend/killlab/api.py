@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from killlab.ai.boundary import enforce_kill_floor, filter_explanation, reject_forbidden
 from killlab.config import Settings, settings_from_environ
 from killlab.data.bitget import BitgetError, BitgetRest, NotFrozen
-from killlab.data.earnings import align_events, earnings_timestamps_ms
+from killlab.data.earnings import align_events, earnings_timestamps_ms, symbol_for, tag_events
 from killlab.db import session_factory
 from killlab.engine.review import killed_decision, next_hypothesis, reconcile_point, realized_from_fills
 from killlab.guard import fixtures_loaded
@@ -249,15 +249,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         session.commit()
         try:
             client = BitgetRest(settings)
-            instrument = spec.canonical_json["instruments"][0]
-            product = "USDT-FUTURES" if spec.canonical_json.get("venue") == "bitget_perp" else "SPOT"
-            symbol = instrument if instrument.endswith("USDT") else instrument + "USDT"
-            if spec.canonical_json.get("venue") == "bitget_rtoken" and not symbol.startswith("R"):
-                symbol = "R" + symbol
+            venue = spec.canonical_json.get("venue")
+            product = "USDT-FUTURES" if venue == "bitget_perp" else "SPOT"
             pages = 8 if spec.canonical_json.get("family") == "event_earnings" else 3
-            snapshot = client.history_candles(frozen=True, product=product, symbol=symbol, pages=pages)
+            snapshot = None
+            events = []
+            failures = 0
+            for instrument in spec.canonical_json["instruments"]:
+                symbol = symbol_for(instrument, venue or "")
+                try:
+                    pulled = client.history_candles(frozen=True, product=product, symbol=symbol, pages=pages)
+                except BitgetError:
+                    failures += 1
+                    continue
+                if snapshot is None:
+                    snapshot = pulled
+                elif pulled.get("actual_first") and (
+                    snapshot.get("actual_first") is None or pulled["actual_first"] < snapshot["actual_first"]
+                ):
+                    snapshot["actual_first"] = pulled["actual_first"]
+                if spec.canonical_json.get("family") == "event_earnings":
+                    events.extend(tag_events(align_events(pulled.get("rows") or [], earnings_timestamps_ms(symbol)), symbol))
+            if snapshot is None:
+                raise BitgetError(f"no symbol ({failures} failed)")
             if spec.canonical_json.get("family") == "event_earnings":
-                snapshot["events"] = align_events(snapshot.get("rows") or [], earnings_timestamps_ms(symbol))
+                snapshot["events"] = events
             card = execute({**spec.canonical_json, "content_sha256": spec.content_sha256}, snapshot)
             log_event("verdict", label=card.get("label"), primary_trap=card.get("primary_trap"), run_id=str(run.id))
             run.status = "untestable" if card["label"] == "UNTESTABLE" else "succeeded"

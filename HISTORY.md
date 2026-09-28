@@ -150,6 +150,12 @@ This file is append-only.
 - It does not store a hypothesis and the text does not contain a metric.
 - The unit test passed.
 
+## 2026-09-29 Multi-symbol runs
+
+- An earnings spec now pulls every listed instrument, not only the first.
+- Events are tagged by symbol so the same timestamp on NVDA and TSLA stays two events.
+- A missing symbol is skipped. If every symbol fails, the run fails as `bitget_unavailable`.
+
 
 
 

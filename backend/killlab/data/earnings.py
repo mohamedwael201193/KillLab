@@ -3,6 +3,23 @@
 from __future__ import annotations
 
 
+def symbol_for(instrument: str, venue: str) -> str:
+    symbol = instrument if str(instrument).endswith("USDT") else f"{instrument}USDT"
+    if venue == "bitget_rtoken" and not symbol.startswith("R"):
+        return "R" + symbol
+    return symbol
+
+
+def tag_events(events: list[dict], symbol: str) -> list[dict]:
+    tagged = []
+    for event in events:
+        item = dict(event)
+        item["symbol"] = symbol
+        item["id"] = f"{symbol}:{event.get('id')}"
+        tagged.append(item)
+    return tagged
+
+
 def align_events(rows: list, event_times_ms: list[int], horizon_bars: int = 6) -> list[dict]:
     bars = []
     for row in rows:
