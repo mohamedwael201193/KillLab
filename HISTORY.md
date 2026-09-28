@@ -162,6 +162,11 @@ This file is append-only.
 - Result: UNTESTABLE, `insufficient_units`, n=40, `actual_first` 2026-07-23T23:00:00Z, `engine_computed` true.
 - One name previously produced 20 events. Two names produced 40, so both tapes were used. Forty is still below the 100-event gate.
 
+## 2026-09-29 Sample counts
+
+- A verdict now includes `n_events`, the raw panel or candle-return count, as well as `n_units`, the out-of-sample folds actually scored.
+- The walk-forward test checks that 80 prices produce 79 returns.
+
 
 
 
