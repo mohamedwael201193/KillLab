@@ -117,6 +117,7 @@ def test_execute_uses_walkforward_dsr_not_a_hardcoded_verdict():
     assert card["label"] in {"KILLED", "UNTESTABLE"}
     assert card["label"] != "ALIVE"
     assert "pbo" in card
+    assert card["n_events"] == 79
     empty = execute({**spec, "family": "event_earnings"}, {"rows": rows, "events": []})
     assert empty["label"] == "UNTESTABLE"
     assert empty["n_units"]["n"] < 100

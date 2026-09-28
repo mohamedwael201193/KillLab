@@ -90,4 +90,5 @@ def execute(spec: dict, snapshot: dict) -> dict:
     card["ci_low"] = ci.get("ci_low")
     card["ci_high"] = ci.get("ci_high")
     card["pbo"] = pbo
+    card["n_events"] = len(series)
     return card
