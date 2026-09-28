@@ -115,6 +115,12 @@ This file is append-only.
 - A pasted fill set without both a buy and a sell returns validation failure instead of an uncaught exception.
 - A 100 to 110 round trip is 1000 bps. Engine tests: 10 passed.
 
+## 2026-09-28 Production verdict on 23cb1e8
+
+- Live service health was already 200 on this commit.
+- Run `4d590635-8a0f-4454-8733-710568ed6902`: UNTESTABLE, `insufficient_units`, n=20, `actual_first` 2026-07-23T20:00:00Z, `engine_computed` true. Unauthenticated create returned 401.
+- `KillLab/FRONTEND/` is still absent, so phases 17–20 are not started.
+
 
 
 
