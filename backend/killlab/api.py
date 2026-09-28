@@ -26,6 +26,7 @@ from killlab.guard import fixtures_loaded
 from killlab.hashutil import sha256_canonical
 from killlab.logjson import log_event
 from killlab.ratelimit import allow, client_key
+from killlab.recover import interrupted_if_stale
 from killlab.models import (
     ENGINE_VERSION,
     Fill,
@@ -64,11 +65,34 @@ class FillsIn(BaseModel):
     fills: list[dict]
 
 
+def _fail_stale_runs(factory, stale_minutes: int) -> int:
+    session = factory()
+    try:
+        rows = session.scalars(select(TestRun).where(TestRun.status == "running")).all()
+        changed = 0
+        now = datetime.now(timezone.utc)
+        for row in rows:
+            created = row.created_at
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            age = (now - created).total_seconds() / 60
+            if interrupted_if_stale(age, stale_minutes):
+                row.status = "failed"
+                row.error_code = "interrupted"
+                changed += 1
+        if changed:
+            session.commit()
+        return changed
+    finally:
+        session.close()
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or settings_from_environ()
     if settings.production and fixtures_loaded(tuple(sys.modules)):
         raise RuntimeError("production process cannot import test fixtures")
     factory, _engine = session_factory(settings)
+    _fail_stale_runs(factory, settings.run_stale_minutes)
     app = FastAPI(title="KillLab", version=ENGINE_VERSION, openapi_url="/v1/openapi.json")
 
     @app.middleware("http")

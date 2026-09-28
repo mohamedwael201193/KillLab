@@ -137,6 +137,12 @@ This file is append-only.
 - The machine-readable schema is public at `/v1/openapi.json`. It does not require the bearer token.
 - The test also confirms `/health` still reports the database up.
 
+## 2026-09-28 Stale runs
+
+- On startup, a run left in `running` for at least `RUN_STALE_MINUTES` is marked `failed` with `interrupted`.
+- Inline execution cannot resume a dead request, so those rows are not put back on a queue.
+- Startup against the live database succeeded in the OpenAPI test.
+
 
 
 

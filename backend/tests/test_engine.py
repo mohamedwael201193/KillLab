@@ -147,7 +147,10 @@ def test_llm_schema_rejects_metrics_and_oos():
         enforce_kill_floor(bad)
 
 
-def test_rate_limit_is_per_caller_and_expires():
+def test_stale_running_jobs_are_interrupted():
+    from killlab.recover import interrupted_if_stale
+    assert interrupted_if_stale(15, 15) is True
+    assert interrupted_if_stale(14.9, 15) is False
     from killlab.ratelimit import allow, client_key
     assert client_key("/v1/runs", "Bearer a") != client_key("/v1/runs", "Bearer b")
     bucket: list[float] = []
