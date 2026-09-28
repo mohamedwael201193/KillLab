@@ -251,7 +251,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             client = BitgetRest(settings)
             venue = spec.canonical_json.get("venue")
             product = "USDT-FUTURES" if venue == "bitget_perp" else "SPOT"
-            pages = 8 if spec.canonical_json.get("family") == "event_earnings" else 3
+            pages = 8 if spec.canonical_json.get("family") in {"event_earnings", "execution_venue_time", "carry_basis", "session_timing"} else 3
             snapshot = None
             events = []
             failures = 0
@@ -270,6 +270,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     snapshot["actual_first"] = pulled["actual_first"]
                 if spec.canonical_json.get("family") == "event_earnings":
                     events.extend(tag_events(align_events(pulled.get("rows") or [], earnings_timestamps_ms(symbol)), symbol))
+                if spec.canonical_json.get("family") == "carry_basis":
+                    try:
+                        funding = client.history_funding(frozen=True, symbol=symbol)
+                    except BitgetError:
+                        funding = {"rows": []}
+                    snapshot.setdefault("funding", [])
+                    snapshot["funding"].extend(funding.get("rows") or [])
             if snapshot is None:
                 raise BitgetError(f"no symbol ({failures} failed)")
             if spec.canonical_json.get("family") == "event_earnings":

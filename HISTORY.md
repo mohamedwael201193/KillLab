@@ -181,6 +181,16 @@ This file is append-only.
 - Date: 2026-09-28.
 - Impact: phase-start MCP checks stay in the build log. Production numbers come from REST snapshots.
 
+## 2026-09-29 BUG-002 — families were scored as raw bar returns
+
+- Symptom: a session-timing hypothesis was scored on every hourly close-to-close return. Continuation and reversal only flipped that same series for PBO. Costs in `costs.py` were never subtracted. Carry read `baseline_codes`, so a spec that used `baselines` skipped the earn-USDT requirement.
+- Reproduction: `execute()` on 80 synthetic prices with `family=session_timing` reported `n_events=79`.
+- Root cause: `runner.execute` did not build a decision unit per family.
+- Fix: `killlab/engine/mechanisms.py`. Session units are the 09:00 ET hour versus the rest of the cash day, net of one round trip. Earnings follow or fade the first post-event bar. Carry uses Bitget funding prints and is empty without them. Execution compares weekend-MM with waiting for StockRoute. Variant choice uses only past units. Engine version is `killlab-0.2.0`.
+- Regression: `test_session_units_are_cash_hours_not_every_bar`. Suite: `python -m pytest -q` → 17 passed.
+- Production result: not redeployed in this note. The previous live KILLED run remains `killlab-0.1.0` and must not be reread as a session test.
+
+
 ## 2026-09-29 Frontend connected to the live API
 
 - The desk in `FRONTEND/` calls `/api/killlab`, a same-origin server route. The browser request has no bearer token. `KILLAB_API_TOKEN` stays on the server.

@@ -32,10 +32,17 @@ def align_events(rows: list, event_times_ms: list[int], horizon_bars: int = 6) -
         if index is None or index + horizon_bars >= len(bars):
             continue
         start = bars[index][1]
+        impulse_px = bars[index + 1][1]
         end = bars[index + horizon_bars][1]
-        if not start:
+        if not start or not impulse_px:
             continue
-        events.append({"id": str(stamp), "return_bps": (end / start - 1.0) * 1e4, "ts": stamp})
+        events.append({
+            "id": str(stamp),
+            "ts": stamp,
+            "impulse_bps": (impulse_px / start - 1.0) * 1e4,
+            "hold_bps": (end / impulse_px - 1.0) * 1e4,
+            "return_bps": (end / start - 1.0) * 1e4,
+        })
     return events
 
 

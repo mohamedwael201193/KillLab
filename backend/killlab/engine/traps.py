@@ -121,7 +121,7 @@ def scan(spec: dict, measured: dict) -> list[dict]:
     findings += trap_effect_erase(list(spec.get("transforms") or []))
     findings += trap_wrong_cost_baseline(
         str(spec.get("family")),
-        list(spec.get("baseline_codes") or []),
+        list(spec.get("baseline_codes") or spec.get("baselines") or []),
         bool(spec.get("costs")),
         measured.get("net_apr"),
         measured.get("baseline_apr"),

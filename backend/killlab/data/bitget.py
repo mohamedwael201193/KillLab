@@ -77,3 +77,26 @@ class BitgetRest:
             "payload_sha256": hashlib.sha256(blob).hexdigest(),
             "rows": rows,
         }
+
+    def history_funding(self, *, frozen: bool, symbol: str, pages: int = 3) -> dict:
+        require_frozen(frozen)
+        path = "/api/v2/mix/market/history-fund-rate"
+        rows: list = []
+        with httpx.Client(timeout=self.settings.bitget_timeout_s, headers={"User-Agent": "curl/8.0"}) as client:
+            for page in range(1, pages + 1):
+                response = client.get(
+                    self.settings.bitget_rest_base + path,
+                    params={"symbol": symbol, "productType": "usdt-futures", "pageSize": "100", "pageNo": str(page)},
+                )
+                if response.status_code >= 400:
+                    raise BitgetError(f"http {response.status_code}")
+                payload = response.json()
+                if payload.get("code") not in {None, "00000"}:
+                    raise BitgetError(str(payload.get("code")))
+                batch = payload.get("data") or []
+                if not batch:
+                    break
+                rows.extend(batch)
+                if len(batch) < 100:
+                    break
+        return {"symbol": symbol, "n": len(rows), "rows": rows}

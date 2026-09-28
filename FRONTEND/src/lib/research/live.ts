@@ -44,7 +44,7 @@ export function draftSpec(text: string) {
     test_end: "2026-09-28",
     grain: "1H",
     costs: { perp_taker_bps: 6 },
-    baselines: ["buy_and_hold"],
+    baselines: family === "carry_basis" ? ["earn_usdt", "btc_eth_carry"] : ["buy_and_hold"],
     variants: [{ code: "continuation" }, { code: "reversal" }],
     selection: { split: "IS" },
     target_metric: "oos_mean_bps",

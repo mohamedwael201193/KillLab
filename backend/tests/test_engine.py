@@ -114,10 +114,10 @@ def test_execute_uses_walkforward_dsr_not_a_hardcoded_verdict():
     }
     card = execute(spec, {"rows": rows, "actual_first": "2026-09-01T00:00:00Z", "payload_sha256": "abc"})
     assert card["engine_computed"] is True
-    assert card["label"] in {"KILLED", "UNTESTABLE"}
+    assert card["label"] == "UNTESTABLE"
+    assert card["mechanism"] == "ny_open_hour_vs_rest_of_rth"
+    assert card["n_events"] == 0
     assert card["label"] != "ALIVE"
-    assert "pbo" in card
-    assert card["n_events"] == 79
     empty = execute({**spec, "family": "event_earnings"}, {"rows": rows, "events": []})
     assert empty["label"] == "UNTESTABLE"
     assert empty["n_units"]["n"] < 100
@@ -135,6 +135,62 @@ def test_execute_uses_walkforward_dsr_not_a_hardcoded_verdict():
     card = decide(spec, {"n_units": 7, "dsr": 0.99, "alpha": 1, "t_stat": 5, "grain_seconds": 60, "bar_open_delta_s": 0, "beats_baseline": True})
     assert card["label"] == "UNTESTABLE"
     assert card["engine_computed"] is True
+
+
+def test_session_units_are_cash_hours_not_every_bar():
+    from datetime import datetime, timedelta
+    from killlab.runner import execute
+    start = datetime(2026, 6, 1, 9, 0, tzinfo=ET)
+    rows = []
+    price = 100.0
+    day = start
+    built = 0
+    while built < 70:
+        if day.weekday() < 5:
+            for hour in (9, 10, 16):
+                stamp = int(day.replace(hour=hour).timestamp() * 1000)
+                price *= 1.0001
+                rows.append([stamp, price, price, price, price])
+            built += 1
+        day += timedelta(days=1)
+    spec = {
+        "family": "session_timing",
+        "venue": "bitget_perp",
+        "variants": [{"code": "continuation"}, {"code": "reversal"}],
+        "selection": {"split": "IS"},
+        "costs": {"perp_taker_bps": 6},
+        "baselines": ["buy_and_hold"],
+        "transforms": [],
+        "claims_alpha": False,
+        "event_kind": "none",
+        "grain": "1H",
+        "seed": 1,
+        "risk": {},
+    }
+    card = execute(spec, {"rows": rows, "actual_first": "2026-06-01T13:00:00Z", "payload_sha256": "abc"})
+    assert card["mechanism"] == "ny_open_hour_vs_rest_of_rth"
+    assert card["n_events"] == 70
+    assert card["n_events"] < len(rows)
+    assert card["label"] != "ALIVE"
+    missing = execute({**spec, "family": "carry_basis"}, {"rows": rows, "funding": []})
+    assert missing["label"] == "UNTESTABLE"
+    assert missing["n_events"] == 0
+    killed_floor = decide(
+        {
+            "family": "carry_basis",
+            "baselines": ["buy_and_hold"],
+            "costs": {"perp_taker_bps": 6},
+            "variants": [{}],
+            "selection": {"split": "IS"},
+            "claims_alpha": False,
+            "event_kind": "none",
+            "transforms": [],
+            "risk": {},
+        },
+        {"n_units": 80, "dsr": 0.99, "alpha": 1, "t_stat": 3, "grain_seconds": 3600, "bar_open_delta_s": 0, "beats_baseline": True},
+    )
+    assert killed_floor["label"] == "UNTESTABLE"
+    assert killed_floor["primary_trap"] == "WRONG_COST_BASELINE"
 
 
 def test_llm_schema_rejects_metrics_and_oos():
