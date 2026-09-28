@@ -176,6 +176,10 @@ def test_earnings_events_align_to_bars_and_ignore_plain_candles():
     assert inside["inside_ci"] is True
     assert outside["inside_ci"] is False
     assert reconcile_point(1.0, None, None)["status"] == "no_forecast"
+    from killlab.engine.review import realized_from_fills
+    got = realized_from_fills([{"side": "buy", "px": 100}, {"side": "sell", "px": 110}])
+    assert got is not None and abs(got - 1000) < 1e-6
+    assert realized_from_fills([{"side": "buy", "px": 100}]) is None
     with pytest.raises(NotFrozen):
         require_frozen(False)
 

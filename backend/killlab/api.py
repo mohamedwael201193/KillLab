@@ -21,7 +21,7 @@ from killlab.config import Settings, settings_from_environ
 from killlab.data.bitget import BitgetError, BitgetRest, NotFrozen
 from killlab.data.earnings import align_events, earnings_timestamps_ms
 from killlab.db import session_factory
-from killlab.engine.review import killed_decision, reconcile_point
+from killlab.engine.review import killed_decision, reconcile_point, realized_from_fills
 from killlab.guard import fixtures_loaded
 from killlab.hashutil import sha256_canonical
 from killlab.logjson import log_event
@@ -324,9 +324,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     pasted.extend(row.body.get("fills") or [])
             if len(pasted) < 2:
                 raise _error(422, "validation")
-            buy = next(item for item in pasted if item.get("side") == "buy")
-            sell = next(item for item in pasted if item.get("side") == "sell")
-            realized = (float(sell["px"]) / float(buy["px"]) - 1.0) * 1e4
+            realized = realized_from_fills(pasted)
+            if realized is None:
+                raise _error(422, "validation")
         review = reconcile_point(float(realized), run.result_json.get("ci_low"), run.result_json.get("ci_high"))
         if review.get("status") == "no_forecast":
             raise _error(409, "no_forecast")

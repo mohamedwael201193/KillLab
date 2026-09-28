@@ -110,6 +110,11 @@ This file is append-only.
 - A verdict log line records the label and trap only, not candle rows.
 - That test passed against Bitget.
 
+## 2026-09-28 Fill reconciliation
+
+- A pasted fill set without both a buy and a sell returns validation failure instead of an uncaught exception.
+- A 100 to 110 round trip is 1000 bps. Engine tests: 10 passed.
+
 
 
 
