@@ -1,0 +1,15 @@
+{
+  "http": 200,
+  "label": "UNTESTABLE",
+  "primary_trap": "insufficient_units",
+  "actual_first": "2026-07-23T23:00:00Z",
+  "engine_computed": true,
+  "n_units": {
+    "n": 40
+  },
+  "run_id": "7792d8a0-595f-4990-993a-0fd177e4fe9d",
+  "instruments": [
+    "NVDAUSDT",
+    "TSLAUSDT"
+  ]
+}

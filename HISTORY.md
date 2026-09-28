@@ -156,6 +156,12 @@ This file is append-only.
 - Events are tagged by symbol so the same timestamp on NVDA and TSLA stays two events.
 - A missing symbol is skipped. If every symbol fails, the run fails as `bitget_unavailable`.
 
+## 2026-09-29 Two-symbol production check
+
+- Live run `7792d8a0-595f-4990-993a-0fd177e4fe9d` on NVDAUSDT and TSLAUSDT.
+- Result: UNTESTABLE, `insufficient_units`, n=40, `actual_first` 2026-07-23T23:00:00Z, `engine_computed` true.
+- One name previously produced 20 events. Two names produced 40, so both tapes were used. Forty is still below the 100-event gate.
+
 
 
 
