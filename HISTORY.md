@@ -189,4 +189,6 @@ This file is append-only.
 - Local earnings run, spec `8089b2fe00d96c81cc30edc1470a2b47c1f31cadbc4331d9e5d21593f7603219`: UNTESTABLE, n_units 40, n_events 48, first bar 2026-07-24T00:00:00Z. The ledger next question was the insufficient-units prompt, with no metric.
 - Production site `https://killlab.vercel.app`. Run `c2544e34-82ae-4ad5-a9f3-13fb20653d88`: KILLED, n_units 591, n_events 599, DSR 0.25542728815162685, PBO 0.8857142857142857, first bar 2026-09-03T21:00:00Z, spec `5ee49af183708761c4b3383d7ae63cbc16fb54188d488c23c04d872129650f1b`, snapshot `f0c0d4be46c716fe56404fb7e45b4425b2932c1a0f760acd14b8b4aa60e967c1`, engine `killlab-0.1.0`. Browser, API JSON, and the displayed fields agree.
 - Backend pytest: 16 passed. Frontend typecheck and `next build` passed. Git `0231428` pushed to `mohamedwael201193/KillLab` main.
+- Unused simulated report files were removed from `FRONTEND/src/lib/research/fixtures`. Trap explanations and example prompts remain. They are not run results.
+
 
