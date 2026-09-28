@@ -1,0 +1,6 @@
+https://killlab-api.onrender.com
+service: killlab-api
+region: frankfurt
+health: 200 db ok engine killlab-0.1.0
+commit: 73045f9 plus env-var fix deployed
+

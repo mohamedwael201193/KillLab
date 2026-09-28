@@ -59,6 +59,15 @@ This file is append-only.
 - Code pushed to `mohamedwael201193/KillLab` `main` (`b880c9a`, then the URL-parser commit).
 - Frontend phases 17–20 are not started. `KillLab/FRONTEND/` does not exist.
 
+## 2026-09-28 Phase 15–16 result
+
+- Render env vars were missing on the first service create (zero keys). They were set with a PUT. A new deploy went live.
+- `GET /health` returned 200, `db=ok`, engine `killlab-0.1.0`.
+- Unauthenticated `POST /v1/hypotheses` returned 401.
+- Production earnings run `cc676d08-d6c5-45cf-9c45-b49b9f88dd51` returned `UNTESTABLE` / `insufficient_units` with `actual_first` `2026-09-03T16:00:00Z` from a live Bitget pull. Not ALIVE. Not a copied forensic number.
+- Evidence: `backend/docs/evidence/phase16_verdict.json`.
+
+
 
 
 ### Decision

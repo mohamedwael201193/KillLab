@@ -1,0 +1,11 @@
+{
+  "http": 200,
+  "label": "UNTESTABLE",
+  "primary_trap": "insufficient_units",
+  "actual_first": "2026-09-03T16:00:00Z",
+  "engine_computed": true,
+  "n_units": {
+    "n": 0
+  },
+  "run_id": "cc676d08-d6c5-45cf-9c45-b49b9f88dd51"
+}
