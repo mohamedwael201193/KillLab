@@ -166,6 +166,7 @@ This file is append-only.
 
 - A verdict now includes `n_events`, the raw panel or candle-return count, as well as `n_units`, the out-of-sample folds actually scored.
 - The walk-forward test checks that 80 prices produce 79 returns.
+- `GET /v1/runs/{id}/results` includes `n_events`. A live Bitget run confirmed the field is present.
 
 
 

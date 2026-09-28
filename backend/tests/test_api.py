@@ -99,6 +99,7 @@ def test_freeze_then_run_is_not_alive(client, auth_header):
     results = client.get(f"/v1/runs/{rid}/results", headers=auth_header)
     assert results.status_code == 200
     assert results.json()["label"] == verdict.json()["label"]
+    assert "n_events" in results.json()
     traps = client.get(f"/v1/runs/{rid}/traps", headers=auth_header)
     assert traps.status_code == 200
     ledger = client.get(f"/v1/ledger?hypothesis_id={hid}", headers=auth_header)

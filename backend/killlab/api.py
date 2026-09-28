@@ -306,6 +306,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "dsr": card.get("dsr"),
             "pbo": card.get("pbo"),
             "n_units": card.get("n_units"),
+            "n_events": card.get("n_events"),
             "ci_low": card.get("ci_low"),
             "ci_high": card.get("ci_high"),
             "actual_first": card.get("actual_first"),
