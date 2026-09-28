@@ -132,6 +132,11 @@ This file is append-only.
 - `docker build -t killlab-api` finished with exit code 0 in about 105 seconds.
 - Image tag `killlab-api:latest`. Evidence: `backend/docs/evidence/phase_docker.txt`.
 
+## 2026-09-28 OpenAPI
+
+- The machine-readable schema is public at `/v1/openapi.json`. It does not require the bearer token.
+- The test also confirms `/health` still reports the database up.
+
 
 
 

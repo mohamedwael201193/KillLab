@@ -42,7 +42,12 @@ def auth_header():
     return {"Authorization": f"Bearer {settings.api_token}"}
 
 
-def test_health(client):
+def test_openapi_is_public(client):
+    response = client.get("/v1/openapi.json")
+    assert response.status_code == 200
+    paths = response.json()["paths"]
+    assert "/v1/runs" in paths
+    assert "/health" in paths
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["db"] == "ok"

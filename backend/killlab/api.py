@@ -69,7 +69,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if settings.production and fixtures_loaded(tuple(sys.modules)):
         raise RuntimeError("production process cannot import test fixtures")
     factory, _engine = session_factory(settings)
-    app = FastAPI(title="KillLab", version=ENGINE_VERSION)
+    app = FastAPI(title="KillLab", version=ENGINE_VERSION, openapi_url="/v1/openapi.json")
 
     @app.middleware("http")
     async def access_log(request: Request, call_next):
