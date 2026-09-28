@@ -36,7 +36,16 @@ def test_percent_encoded_password_still_parses():
     assert "pgbouncer" not in strip_pgbouncer("postgresql://user:secret@host:6543/postgres?pgbouncer=true")
 
 
-def test_hash_ignores_key_order():
+def test_walkforward_does_not_leak_and_bootstrap_is_seeded():
+    from killlab.engine.bootstrap import percentile_ci
+    from killlab.engine.walkforward import expanding_folds
+    folds = expanding_folds(["a", "b", "c", "d"], min_train=2)
+    assert folds[0]["test"] not in folds[0]["train"]
+    assert len(folds) == 2
+    first = percentile_ci([1, 2, 3, 4], seed=1, resamples=200)
+    second = percentile_ci([1, 2, 3, 4], seed=1, resamples=200)
+    assert first["ci_low"] == second["ci_low"]
+    assert first["ci_low"] < first["point"] < first["ci_high"]
     a = sha256_canonical({"b": 1, "a": 2})
     b = sha256_canonical({"a": 2, "b": 1})
     assert a == b
