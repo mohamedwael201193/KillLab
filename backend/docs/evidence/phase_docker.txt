@@ -1,0 +1,5 @@
+image: killlab-api:latest
+exit_code: 0
+elapsed_s: 105
+manifest: sha256:0d79fdd5ed1b5a73bef23e7d3f083e26edf806cd7471230796e70bf4cbd9b52a
+note: built locally after Docker Desktop started. Render remains the production deploy.

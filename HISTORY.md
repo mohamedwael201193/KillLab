@@ -127,6 +127,11 @@ This file is append-only.
 - A second caller does not consume the first caller's cap. The window is one hour.
 - Engine tests: 10 passed. Docker Desktop was started. Image build is `killlab-api`.
 
+## 2026-09-28 Docker image
+
+- `docker build -t killlab-api` finished with exit code 0 in about 105 seconds.
+- Image tag `killlab-api:latest`. Evidence: `backend/docs/evidence/phase_docker.txt`.
+
 
 
 
