@@ -92,6 +92,13 @@ This file is append-only.
 - New production run `63e085d6-48fa-4f9a-8d6a-4c60394889c4`: label UNTESTABLE, trap `insufficient_units`, `n` 20, `actual_first` 2026-07-23T20:00:00Z. Events were aligned. Twenty is below the 100-event gate, so the verdict stays UNTESTABLE.
 - Probability of overfitting is now attached when an out-of-sample series is long enough for two variants.
 
+## 2026-09-28 Request logs and results route
+
+- Each HTTP response writes a JSON log line with path, status, and engine version. A database URI in a field is replaced with `[redacted]`.
+- `GET /v1/runs/{id}/results` returns the computed label, DSR, PBO, sample size, and interval from the stored run.
+- Docker is installed but the daemon is not running, so the image was not built on this machine. Render is still the deploy path.
+- Engine tests: 10 passed.
+
 
 
 

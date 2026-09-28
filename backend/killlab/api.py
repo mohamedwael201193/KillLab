@@ -23,6 +23,7 @@ from killlab.data.earnings import align_events, earnings_timestamps_ms
 from killlab.db import session_factory
 from killlab.engine.review import killed_decision, reconcile_point
 from killlab.hashutil import sha256_canonical
+from killlab.logjson import log_event
 from killlab.models import (
     ENGINE_VERSION,
     Fill,
@@ -67,6 +68,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         raise RuntimeError("production process cannot import test fixtures")
     factory, _engine = session_factory(settings)
     app = FastAPI(title="KillLab", version=ENGINE_VERSION)
+
+    @app.middleware("http")
+    async def access_log(request: Request, call_next):
+        response = await call_next(request)
+        log_event("request", path=request.url.path, status=response.status_code, engine_version=ENGINE_VERSION)
+        return response
 
     @app.exception_handler(APIError)
     def _api_error(_request: Request, exc: APIError):
@@ -245,6 +252,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if row is None:
             raise _error(404, "not_found")
         return {"status": row.status, "error_code": row.error_code, "engine_version": row.engine_version}
+
+    @app.get("/v1/runs/{run_id}/results")
+    def results(run_id: str, session: Session = Depends(db), _: None = Depends(auth)):
+        row = session.get(TestRun, uuid.UUID(run_id))
+        if row is None or row.result_json is None:
+            raise _error(409, "not_ready")
+        card = row.result_json
+        return {
+            "label": card.get("label"),
+            "dsr": card.get("dsr"),
+            "pbo": card.get("pbo"),
+            "n_units": card.get("n_units"),
+            "ci_low": card.get("ci_low"),
+            "ci_high": card.get("ci_high"),
+            "actual_first": card.get("actual_first"),
+            "engine_version": row.engine_version,
+        }
 
     @app.get("/v1/runs/{run_id}/verdict")
     def verdict(run_id: str, session: Session = Depends(db), _: None = Depends(auth)):

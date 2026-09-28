@@ -147,7 +147,11 @@ def test_llm_schema_rejects_metrics_and_oos():
         enforce_kill_floor(bad)
 
 
-def test_explanation_drops_hallucinated_number():
+def test_log_line_redacts_a_database_uri():
+    from killlab.logjson import log_event
+    line = log_event("request", path="/health", note="postgresql://user:secret@host/db")
+    assert "postgresql://" not in line
+    assert "[redacted]" in line
     cleaned = filter_explanation("the dsr was 9.99 and n was 7", {"n_units": {"n": 7}})
     assert "9.99" not in cleaned
     assert "7" in cleaned
