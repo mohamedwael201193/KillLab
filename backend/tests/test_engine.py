@@ -26,7 +26,12 @@ from tests.fixtures.golden_dsr import GOLDEN_DSR
 ET = ZoneInfo("America/New_York")
 
 
-def test_pgbouncer_query_param_is_stripped_regression():
+def test_percent_encoded_password_still_parses():
+    from sqlalchemy.engine.url import make_url
+    from killlab.config import psycopg_url
+    parsed = make_url(psycopg_url("postgresql://user:secret%40word@host:5432/db?pgbouncer=true"))
+    assert parsed.password == "secret@word"
+    assert parsed.host == "host"
     raw = "postgresql://user:secret@host:6543/postgres?pgbouncer=true"
     cleaned = strip_pgbouncer(raw)
     assert "pgbouncer" not in cleaned
