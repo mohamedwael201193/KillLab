@@ -287,6 +287,7 @@ This file is append-only.
 - Reason: the landing page said three outcomes while the engine already returned `INCONCLUSIVE`. A stored book that never affected a claim was incomplete. Personal notes and reviews must not become a new Sharpe.
 - Source: engine `decide` in `verdict.py`; public merge-depth is current only (`history-orderbook` remains `40404`). Family floors and the daily sweep were not changed. The basis spec stays one unit short if the tape is still short.
 - Files: landing verdict, protocol, and evidence copy; `map-verdict.ts`; write and review views; `traps.py`; `runner.py`; `review.py`; `compile.py`; hypothesis `thesis` column `0003_hypothesis_thesis`.
-- Test: `python -m pytest -q` → 39 passed before the version string moved to `killlab-0.9.0`. `tests/test_overmatch.py` covers four-state copy, thesis isolation, review isolation, book cases, and invented numbers. Frontend `tsc --noEmit` passed.
+- Test: `python -m pytest -q` → 39 passed before the version string moved to `killlab-0.9.0`. `tests/test_overmatch.py` covers four-state copy, thesis isolation, review isolation, book cases, and invented numbers. Frontend `tsc --noEmit` and `next build` passed.
+- Production after `d78f2a6`: `GET /health` returned `killlab-0.9.0`. Chrome on `https://killlab.vercel.app` showed KILLED, ALIVE, INCONCLUSIVE, and UNTESTABLE, and the phrase “exactly one of four.” A desk compile showed the thesis sentence beside `session_timing` before any candle pull. An execution run returned `INCONCLUSIVE` / `underpowered`, book provenance `forward_recorded`, `historical` false, the thesis on the card, and a next question. The thesis was not in the compiler draft and the draft had no verdict field. The basis floor was not lowered.
 
 
