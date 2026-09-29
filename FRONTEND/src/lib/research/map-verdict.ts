@@ -97,7 +97,10 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
       overallPct: 0,
       bars: raw.actual_first || "—",
       gaps: [],
-      notes: raw.snapshot_sha256 ? [`Snapshot ${raw.snapshot_sha256.slice(0, 16)}`] : [],
+      notes: [
+        raw.pagination_stop === "page_cap" ? "Page cap, not a venue floor" : raw.pagination_stop ? `Fetch stop ${raw.pagination_stop}` : "",
+        raw.snapshot_sha256 ? `Snapshot ${raw.snapshot_sha256.slice(0, 16)}` : "",
+      ].filter((item) => item.length > 0),
     },
     aiInterpretation: {
       paragraphs: [hypothesis, summary],

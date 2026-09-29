@@ -298,9 +298,8 @@ export function VerdictView() {
           </div>
             </>
           ) : (
-            <p className="font-mono text-[12px] text-foreground/80">First bar {report.dataCoverage.bars}</p>
+            <p className="font-mono text-[12px] text-foreground/80">Oldest fetched bar {report.dataCoverage.bars}</p>
           )}
-          <p className="mt-2.5 font-mono text-[11px] text-muted-foreground">{report.dataCoverage.bars}</p>
           {report.dataCoverage.gaps.length > 0 && (
             <ul className="mt-3 space-y-1.5 border-t border-hairline/60 pt-3">
               {report.dataCoverage.gaps.map((g) => (

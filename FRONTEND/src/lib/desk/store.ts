@@ -286,7 +286,15 @@ export const useDesk = create<DeskState>((set, get) => ({
         { ...verdict, ...results, findings: traps.findings, snapshot_sha256: evidence.snapshot_sha256, engine_version: results.engine_version || evidence.engine_version },
         hypothesisText,
       );
-      set({ report, screen: { kind: "verdict" } });
+      const engine = results.engine_version || evidence.engine_version;
+      const live = get().liveScenario;
+      set({
+        report,
+        screen: { kind: "verdict" },
+        liveScenario: live
+          ? { ...live, frozen: { ...live.frozen, engineVersion: engine || live.frozen.engineVersion } }
+          : live,
+      });
       await refreshLedger(set, get);
       finishing = false;
     } catch (err) {
