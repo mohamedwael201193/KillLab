@@ -17,6 +17,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from killlab.ai.boundary import enforce_kill_floor, filter_explanation, reject_forbidden
+from killlab.ai.compile import LLMUnavailable, compile_text
 from killlab.config import Settings, settings_from_environ
 from killlab.data.bitget import BitgetError, BitgetRest, NotFrozen
 from killlab.data.earnings import align_events, earnings_timestamps_ms, symbol_for, tag_events
@@ -156,10 +157,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"id": str(row.id), "family": None, "status": "stored"}
 
     @app.post("/v1/hypotheses/{hypothesis_id}/compile")
-    def compile_spec(hypothesis_id: str, _: None = Depends(auth)):
-        if not settings.llm_api_key:
+    def compile_spec(hypothesis_id: str, session: Session = Depends(db), _: None = Depends(auth)):
+        row = session.get(Hypothesis, uuid.UUID(hypothesis_id))
+        if row is None:
+            raise _error(404, "not_found")
+        try:
+            draft = compile_text(row.raw_text, timeout_s=settings.llm_timeout_s)
+        except LLMUnavailable:
             return JSONResponse({"error": {"code": "llm_unavailable", "message": "manual spec accepted"}, "manual_spec_accepted": True}, status_code=503)
-        return JSONResponse({"error": {"code": "llm_unavailable", "message": "compiler client not enabled without a reviewed prompt"}}, status_code=503)
+        return {"manual_spec_accepted": False, "draft": draft}
 
     @app.put("/v1/test-specs/{spec_id}")
     def update_spec(spec_id: str, body: dict, session: Session = Depends(db), _: None = Depends(auth)):

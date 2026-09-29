@@ -36,7 +36,7 @@ export function LandingVenue() {
             {
               title: "Deterministic by contract",
               text: "No random seeds, no re-fitting, no vibes. The engine is a calculator with an audit trail — re-running a frozen spec reproduces every number.",
-              meta: "killlab-0.1.0",
+              meta: "engine version is on the verdict",
             },
             {
               title: "One venue, full fidelity",

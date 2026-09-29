@@ -111,7 +111,16 @@ export const useDesk = create<DeskState>((set, get) => ({
     set({ error: null, hypothesisText: text });
     try {
       const created = await killlab("POST", "/v1/hypotheses", { raw_text: text });
-      const spec = draftSpec(text);
+      const local = draftSpec(text);
+      let spec = local;
+      try {
+        const compiled = await killlab("POST", `/v1/hypotheses/${created.id}/compile`);
+        if (compiled.draft?.family && Array.isArray(compiled.draft.instruments)) {
+          spec = { ...local, ...compiled.draft };
+        }
+      } catch {
+        spec = local;
+      }
       set({
         hypothesisId: created.id,
         specDraft: spec,
@@ -392,7 +401,7 @@ function scenarioFrom(text: string, spec: ReturnType<typeof draftSpec>, hash: st
   };
   return {
     spec: researchSpec,
-    frozen: { ...researchSpec, freezeHash: hash || "computed when you open freeze", frozenAt: now, engineVersion: "killlab-0.1.0", datasetVersion: "Bitget public REST after freeze" },
+    frozen: { ...researchSpec, freezeHash: hash || "computed when you open freeze", frozenAt: now, engineVersion: "assigned at run", datasetVersion: "Bitget public REST after freeze" },
     runStages: [],
     report: {
       scenarioKey: "earnings-momentum",

@@ -44,8 +44,25 @@ def _panel(unit_ids: list[str], variants: dict[str, list[float]], baseline: list
     return {"mechanism": name, "unit_ids": unit_ids, "variants": variants, "baseline": baseline}
 
 
+def _one_hour_return_bps(items: list, index: int) -> float | None:
+    """Return to the next bar only when that bar is actually about one hour later."""
+    if index + 1 >= len(items):
+        return None
+    delta = (items[index + 1][0] - items[index][0]).total_seconds()
+    if not (45 * 60 <= delta <= 75 * 60):
+        return None
+    start = items[index][1]
+    if not start:
+        return None
+    return (items[index + 1][1] / start - 1.0) * 1e4
+
+
 def session_panel(rows: list, spec: dict) -> dict:
-    """First cash hour (09:00 ET bar, which contains 09:30) versus the rest of the cash day."""
+    """Open hour versus the other one-hour cash bars that same day.
+
+    The rest-of-day cumulative move is a different horizon and is not the baseline.
+    A day with no other one-hour bars is not a unit.
+    """
     cost = trade_cost_bps(spec)
     by_day: dict = {}
     for stamp, close in _bars(rows):
@@ -60,16 +77,22 @@ def session_panel(rows: list, spec: dict) -> dict:
     for _day, items in sorted(by_day.items()):
         items.sort(key=lambda item: item[0])
         open_at = next((i for i, item in enumerate(items) if item[0].hour == 9), None)
-        close_at = next((i for i, item in enumerate(items) if item[0].hour >= 16), None)
-        if open_at is None or close_at is None or open_at + 1 >= len(items) or close_at <= open_at + 1:
+        if open_at is None:
             continue
-        gross = (items[open_at + 1][1] / items[open_at][1] - 1.0) * 1e4
-        rest = (items[close_at][1] / items[open_at + 1][1] - 1.0) * 1e4
+        gross = _one_hour_return_bps(items, open_at)
+        peers = [
+            value
+            for i, item in enumerate(items)
+            if 10 <= item[0].hour <= 15 and (value := _one_hour_return_bps(items, i)) is not None
+        ]
+        if gross is None or not peers:
+            continue
+        edge = gross - (sum(peers) / len(peers))
         ids.append(str(items[open_at][2]))
-        continuation.append(gross - cost)
-        reversal.append(-gross - cost)
-        baseline.append(rest)
-    return _panel(ids, {"continuation": continuation, "reversal": reversal}, baseline, "ny_open_hour_vs_rest_of_rth")
+        continuation.append(edge - cost)
+        reversal.append(-edge - cost)
+        baseline.append(0.0)
+    return _panel(ids, {"continuation": continuation, "reversal": reversal}, baseline, "ny_open_hour_vs_other_cash_hours")
 
 
 def earnings_panel(events: list, spec: dict) -> dict:
@@ -80,7 +103,12 @@ def earnings_panel(events: list, spec: dict) -> dict:
     reversal: list[float] = []
     baseline: list[float] = []
     ordered = sorted(events or [], key=lambda item: int(item.get("ts") or 0))
+    previous_ts = None
     for event in ordered:
+        stamp = int(event.get("ts") or 0)
+        if previous_ts is not None and stamp - previous_ts < 6 * 60 * 60 * 1000:
+            continue
+        previous_ts = stamp
         impulse = event.get("impulse_bps")
         hold = event.get("hold_bps")
         if impulse is None or hold is None or float(impulse) == 0.0:
@@ -94,20 +122,28 @@ def earnings_panel(events: list, spec: dict) -> dict:
 
 
 def carry_panel(funding: list, spec: dict) -> dict:
-    """Receive the funding print. One round trip is spread across a 9-print hold, not charged every 8h."""
+    """One continuous hold is one decision. Eight-hour prints inside it are not independent trials."""
     if not funding:
         return _panel([], {}, [], "funding_receive")
-    cost = trade_cost_bps(spec) / 9.0
-    ids: list[str] = []
-    received: list[float] = []
+    cost = trade_cost_bps(spec)
+    prints = []
     for item in sorted(funding, key=lambda row: int(row.get("fundingTime") or row.get("ts") or 0)):
         rate = item.get("fundingRate")
         if rate is None:
             continue
-        bps = abs(float(rate)) * 1e4
-        ids.append(str(item.get("fundingTime") or item.get("ts")))
-        received.append(bps - cost)
-    return _panel(ids, {"receive": received}, [0.0] * len(ids), "funding_receive_vs_cash")
+        prints.append((int(item.get("fundingTime") or item.get("ts")), abs(float(rate)) * 1e4))
+    episodes: list[list[tuple[int, float]]] = []
+    current: list[tuple[int, float]] = []
+    for stamp, bps in prints:
+        if current and stamp - current[-1][0] > 12 * 60 * 60 * 1000:
+            episodes.append(current)
+            current = []
+        current.append((stamp, bps))
+    if current:
+        episodes.append(current)
+    ids = [str(episode[0][0]) for episode in episodes]
+    received = [sum(bps for _stamp, bps in episode) - cost for episode in episodes]
+    return _panel(ids, {"receive": received}, [0.0] * len(ids), "funding_hold_versus_cash")
 
 
 def execution_panel(rows: list, spec: dict) -> dict:
@@ -143,6 +179,8 @@ def execution_panel(rows: list, spec: dict) -> dict:
 
 
 def build_panel(spec: dict, snapshot: dict) -> dict:
+    if not spec.get("costs"):
+        return _panel([], {}, [], "missing_cost")
     family = spec.get("family")
     if family == "event_earnings":
         return earnings_panel(snapshot.get("events") or [], spec)
@@ -178,7 +216,7 @@ def walk_forward_selected(panel: dict, min_train: int) -> dict:
     return {
         "oos": oos,
         "excess": excess,
-        "train_ids": ids[: min_train],
-        "test_ids": test_ids[-1:] if test_ids else [],
+        "train_ids": ids[: index] if test_ids else [],
+        "test_ids": [ids[index]] if test_ids else [],
         "selected": chosen if test_ids else None,
     }

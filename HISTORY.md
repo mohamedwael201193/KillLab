@@ -190,6 +190,16 @@ This file is append-only.
 - Regression: `test_session_units_are_cash_hours_not_every_bar`. Suite: `python -m pytest -q` → 17 passed.
 - Production result: not redeployed in this note. The previous live KILLED run remains `killlab-0.1.0` and must not be reread as a session test.
 
+## 2026-09-29 BUG-003 — open-hour baseline used the wrong horizon
+
+- Old behavior: the 09:00 ET hour was compared with the cumulative move from 10:00 to 16:00. Carry counted every 8-hour funding print inside one hold as its own trial. A model cost, if accepted, could replace the versioned fee.
+- Why it was wrong: a one-hour return against a six-hour return is not a timing test. Overlapping funding prints are not independent decisions. The compiler must not own the fee.
+- Evidence: `session_panel` subtracted the rest-of-day return. `carry_panel` appended one row per print and divided the round trip by 9.
+- Correct behavior: the open hour is compared with the other one-hour cash bars that same day, then one round trip is charged on that difference. A day without a peer hour is not a unit. One continuous funding hold is one unit. Overlapping earnings inside six hours collapse to the first event. Walk-forward selection of a variant uses only the past; a future spike cannot win the first out-of-sample step. Engine version `killlab-0.3.0`.
+- Fix: `mechanisms.py`, `ai/compile.py`. The temporary compiler is Groq `openai/gpt-oss-120b` because `llama-3.3-70b-versatile` now returns 404. Gemini is not called. Qwen remains first when `LLM_API_KEY` is set. The server overwrites costs to the versioned 6 bps taker schedule and forces `selection.split=IS`.
+- Test: `python -m pytest -q` → 19 passed. A live compile of an NVDA open-hour sentence returned `session_timing`, instrument `NVDAUSDT`, cost 6, split `IS`, and no verdict field.
+- Production verification: pending the `killlab-0.3.0` deploy. Runs from `killlab-0.1.0` and `killlab-0.2.0` stay in history and are not session-timing verdicts under this baseline.
+
 
 ## 2026-09-29 Frontend connected to the live API
 

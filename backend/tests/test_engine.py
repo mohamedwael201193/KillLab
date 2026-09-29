@@ -115,7 +115,7 @@ def test_execute_uses_walkforward_dsr_not_a_hardcoded_verdict():
     card = execute(spec, {"rows": rows, "actual_first": "2026-09-01T00:00:00Z", "payload_sha256": "abc"})
     assert card["engine_computed"] is True
     assert card["label"] == "UNTESTABLE"
-    assert card["mechanism"] == "ny_open_hour_vs_rest_of_rth"
+    assert card["mechanism"] == "ny_open_hour_vs_other_cash_hours"
     assert card["n_events"] == 0
     assert card["label"] != "ALIVE"
     empty = execute({**spec, "family": "event_earnings"}, {"rows": rows, "events": []})
@@ -147,7 +147,7 @@ def test_session_units_are_cash_hours_not_every_bar():
     built = 0
     while built < 70:
         if day.weekday() < 5:
-            for hour in (9, 10, 16):
+            for hour in range(9, 17):
                 stamp = int(day.replace(hour=hour).timestamp() * 1000)
                 price *= 1.0001
                 rows.append([stamp, price, price, price, price])
@@ -168,13 +168,21 @@ def test_session_units_are_cash_hours_not_every_bar():
         "risk": {},
     }
     card = execute(spec, {"rows": rows, "actual_first": "2026-06-01T13:00:00Z", "payload_sha256": "abc"})
-    assert card["mechanism"] == "ny_open_hour_vs_rest_of_rth"
+    assert card["mechanism"] == "ny_open_hour_vs_other_cash_hours"
     assert card["n_events"] == 70
     assert card["n_events"] < len(rows)
     assert card["label"] != "ALIVE"
     missing = execute({**spec, "family": "carry_basis"}, {"rows": rows, "funding": []})
     assert missing["label"] == "UNTESTABLE"
     assert missing["n_events"] == 0
+    prints = [{"fundingTime": str(1_700_000_000_000 + i * 8 * 60 * 60 * 1000), "fundingRate": "0.0001"} for i in range(30)]
+    held = execute({**spec, "family": "carry_basis"}, {"funding": prints})
+    assert held["mechanism"] == "funding_hold_versus_cash"
+    assert held["n_events"] == 1
+    assert held["label"] == "UNTESTABLE"
+    no_cost = execute({**spec, "costs": {}}, {"rows": rows})
+    assert no_cost["mechanism"] == "missing_cost"
+    assert no_cost["label"] == "UNTESTABLE"
     killed_floor = decide(
         {
             "family": "carry_basis",
@@ -191,6 +199,48 @@ def test_session_units_are_cash_hours_not_every_bar():
     )
     assert killed_floor["label"] == "UNTESTABLE"
     assert killed_floor["primary_trap"] == "WRONG_COST_BASELINE"
+
+
+def test_selection_cannot_see_the_future_and_overlapping_events_collapse():
+    from killlab.engine.mechanisms import earnings_panel, walk_forward_selected
+    panel = {
+        "unit_ids": [str(i) for i in range(20)],
+        "variants": {
+            "quiet_then_spike": [1.0] * 10 + [100.0] * 10,
+            "better_past": [5.0] * 10 + [-100.0] * 10,
+        },
+        "baseline": [0.0] * 20,
+    }
+    chosen = walk_forward_selected(panel, min_train=10)
+    assert chosen["oos"][0] == -100.0
+    assert chosen["test_ids"][0] not in chosen["train_ids"]
+    events = [
+        {"id": "a", "ts": 1_000, "impulse_bps": 10, "hold_bps": 5},
+        {"id": "b", "ts": 1_000 + 60 * 60 * 1000, "impulse_bps": -10, "hold_bps": 8},
+    ]
+    collapsed = earnings_panel(events, {"venue": "bitget_perp", "costs": {"perp_taker_bps": 6}})
+    assert collapsed["unit_ids"] == ["a"]
+
+
+def test_compiler_drops_a_model_that_injects_a_metric():
+    from killlab.ai.compile import LLMUnavailable, _extract_json, compile_text, normalize_draft
+    injected = _extract_json('note {"family":"session_timing","sharpe":2}')
+    with pytest.raises(ValueError):
+        normalize_draft("Trade NVDA", injected)
+    partial = _extract_json('{"family":"session_timing","costs":{"perp_taker_bps":0.01},"baseline":"buy_and_hold"}')
+    owned = normalize_draft("Trade NVDA perp in the first hour", partial)
+    assert owned["costs"]["perp_taker_bps"] == 6
+    assert owned["instruments"] == ["NVDAUSDT"]
+    assert owned["selection"]["split"] == "IS"
+    os_environ = __import__("os").environ
+    saved = {name: os_environ.pop(name, None) for name in ("LLM_API_KEY", "GROQ_API_KEY", "CEREBRAS_API_KEY", "SAMBANOVA_API_KEY", "TOGETHER_API_KEY", "OPENROUTER_API_KEY", "KIMI_API_KEY")}
+    try:
+        with pytest.raises(LLMUnavailable):
+            compile_text("trade the open")
+    finally:
+        for name, value in saved.items():
+            if value is not None:
+                os_environ[name] = value
 
 
 def test_llm_schema_rejects_metrics_and_oos():
