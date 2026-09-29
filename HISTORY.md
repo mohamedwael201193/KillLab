@@ -317,5 +317,15 @@ This file is append-only.
 - Test: `python -m pytest -q` → 57 passed. Frontend `tsc --noEmit` and `next build` passed.
 - Not done in this entry: a new production run on `killlab-0.11.0`, and a natural `AUTO_RUN`. Family floors were not changed. No new research family was added. Historical order-book depth was not reconstructed.
 
+## 2026-09-29 Production check of killlab-0.11.0
+
+- Render `GET /health` returned `killlab-0.11.0` on commit `8d16359`. Vercel production for that commit was READY. Chrome on `https://killlab.vercel.app/?v=8d16359` called only `https://killlab.vercel.app/api/killlab`.
+- Run `e24f3258-1aca-4e1a-bbde-a2c1434a842b`: `UNTESTABLE`, 39 of 60, mechanism `ny_open_hour_vs_other_cash_hours`, run origin `manual`, engine `killlab-0.11.0`. Book row: forward-recorded, spread 0.437 bps, retrieved `1790661355233`, not a past book. Context changes the verdict: no.
+- Official US-stock row: host `agent.bitget.com/mcp`, tool `do_query`, freshness `unavailable`, retrieved `2026-09-29T05:55:56+00:00`, no source time, failure `too many open sessions`. No price was shown.
+- Research-skill row: host `datahub.noxiaohao.com/mcp`, tool `technical_analysis`, freshness `undated`, retrieved the same clock second, rsi 60.63, timeframe 4h, period 14, signal neutral. The two hosts are labeled apart.
+- `POST /v1/internal/forward-sweep` for UTC day `2026-09-29` returned 11 `duplicate` actions and no `AUTO_RUN`. The day had already been checked. Floors were not changed.
+- An earlier production run on `killlab-0.10.0`, `52680de5-831d-4ce4-bef5-fafd25249d56`, did receive NVDA `last_price` 228.5 from `do_query`. That success is not repeated on this deploy. The current official-endpoint state from production is the session refusal above.
+
+
 
 
