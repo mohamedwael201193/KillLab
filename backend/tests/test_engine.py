@@ -171,7 +171,10 @@ def test_session_units_are_cash_hours_not_every_bar():
     assert card["mechanism"] == "ny_open_hour_vs_other_cash_hours"
     assert card["n_events"] == 70
     assert card["n_events"] < len(rows)
-    assert card["label"] != "ALIVE"
+    assert card["label"] == "KILLED"
+    crowded = execute({**spec, "variants": [{"code": f"v{i}"} for i in range(10)]}, {"rows": rows, "payload_sha256": "abc"})
+    assert crowded["selected_variant"] in {"continuation", "reversal"}
+    assert crowded["label"] == "KILLED"
     missing = execute({**spec, "family": "carry_basis"}, {"rows": rows, "funding": []})
     assert missing["label"] == "UNTESTABLE"
     assert missing["n_events"] == 0
@@ -199,6 +202,58 @@ def test_session_units_are_cash_hours_not_every_bar():
     )
     assert killed_floor["label"] == "UNTESTABLE"
     assert killed_floor["primary_trap"] == "WRONG_COST_BASELINE"
+
+
+def test_noise_and_a_short_weekend_sample_cannot_be_alive():
+    import random
+    from datetime import datetime, timedelta
+    from killlab.runner import execute
+    rng = random.Random(7)
+    start = datetime(2026, 6, 1, 9, 0, tzinfo=ET)
+    rows = []
+    price = 100.0
+    day = start
+    built = 0
+    while built < 80:
+        if day.weekday() < 5:
+            for hour in range(9, 17):
+                price *= 1 + rng.uniform(-0.002, 0.002)
+                rows.append([int(day.replace(hour=hour).timestamp() * 1000), price, price, price, price])
+            built += 1
+        day += timedelta(days=1)
+    spec = {
+        "family": "session_timing",
+        "venue": "bitget_perp",
+        "variants": [{"code": "continuation"}, {"code": "reversal"}],
+        "selection": {"split": "IS"},
+        "costs": {"perp_taker_bps": 6},
+        "baselines": ["buy_and_hold"],
+        "transforms": [],
+        "claims_alpha": False,
+        "event_kind": "none",
+        "grain": "1H",
+        "seed": 7,
+        "risk": {},
+    }
+    noisy = execute(spec, {"rows": rows, "payload_sha256": "noise"})
+    assert noisy["label"] == "KILLED"
+    weekend_rows = []
+    cursor = datetime(2026, 7, 3, 20, 0, tzinfo=ET)
+    px = 100.0
+    for _ in range(3):
+        for step in range(49):
+            stamp = cursor + timedelta(hours=step)
+            if step < 40:
+                px *= 1.001
+            weekend_rows.append([int(stamp.timestamp() * 1000), px, px, px, px])
+        cursor += timedelta(days=7)
+    short = execute(
+        {**spec, "family": "execution_venue_time", "risk": {"sigma_span": "until_sunday_switch", "horizon_span": "until_sunday_switch", "alternatives": ["NOW", "WAIT"], "lambda_grid": [0.5]}},
+        {"rows": weekend_rows, "payload_sha256": "wk"},
+    )
+    assert short["mechanism"] == "weekend_choice_same_exit"
+    assert short["n_events"] == 3
+    assert short["label"] == "UNTESTABLE"
 
 
 def test_selection_cannot_see_the_future_and_overlapping_events_collapse():

@@ -147,9 +147,13 @@ def carry_panel(funding: list, spec: dict) -> dict:
 
 
 def execution_panel(rows: list, spec: dict) -> dict:
-    """Each weekend is one decision: trade through weekend MM, or wait for StockRoute."""
+    """One weekend, two actions, one shared exit: the first StockRoute bar.
+
+    NOW is in the market from Friday 20:00 ET through that exit.
+    WAIT is flat until the weekend ends, then marked to the same exit.
+    """
     cost = trade_cost_bps(spec)
-    bars = [( _local(stamp), close, stamp) for stamp, close in _bars(rows)]
+    bars = [(_local(stamp), close, stamp) for stamp, close in _bars(rows)]
     episodes: list[list] = []
     current: list = []
     previous = False
@@ -168,14 +172,14 @@ def execution_panel(rows: list, spec: dict) -> dict:
     wait_rets: list[float] = []
     for episode in episodes:
         start = episode[0]
-        end = episode[-1]
-        after = next((bar for bar in bars if bar[2] > end[2] and not is_weekend_mm(bar[0])), None)
-        if start[1] == 0 or after is None:
+        switch = episode[-1]
+        exit_bar = next((bar for bar in bars if bar[2] > switch[2] and not is_weekend_mm(bar[0])), None)
+        if start[1] == 0 or switch[1] == 0 or exit_bar is None:
             continue
         ids.append(str(start[2]))
-        now_rets.append((end[1] / start[1] - 1.0) * 1e4 - cost)
-        wait_rets.append((after[1] / end[1] - 1.0) * 1e4 - cost)
-    return _panel(ids, {"NOW": now_rets, "WAIT": wait_rets}, now_rets, "wait_versus_weekend_mm")
+        now_rets.append((exit_bar[1] / start[1] - 1.0) * 1e4 - cost)
+        wait_rets.append((exit_bar[1] / switch[1] - 1.0) * 1e4 - cost)
+    return _panel(ids, {"NOW": now_rets, "WAIT": wait_rets}, now_rets, "weekend_choice_same_exit")
 
 
 def build_panel(spec: dict, snapshot: dict) -> dict:

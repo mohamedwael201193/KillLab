@@ -200,6 +200,14 @@ This file is append-only.
 - Test: `python -m pytest -q` → 19 passed. A live compile of an NVDA open-hour sentence returned `session_timing`, instrument `NVDAUSDT`, cost 6, split `IS`, and no verdict field.
 - Production verification: `GET /health` returned `killlab-0.3.0`. `POST /v1/hypotheses/{id}/compile` on that deploy returned `session_timing` for an NVDA open-hour sentence, cost 6, split `IS`, and `manual_spec_accepted` false. Runs from `killlab-0.1.0` and `killlab-0.2.0` stay in history and are not session-timing verdicts under this baseline.
 
+## 2026-09-29 BUG-004 — weekend actions did not share an exit
+
+- Old behavior: NOW was the move until the end of weekend market-making, and WAIT was the move of the next bar after that. A flat drift across cash hours was only asserted not to be ALIVE.
+- Why it was wrong: the two execution actions covered different clocks, so the longer weekend move dominated for mechanical reasons. A market-wide drift must not look like an open-hour edge, and a three-weekend sample must not clear the family floor.
+- Correct behavior: both actions are marked to the first StockRoute bar. NOW includes the weekend; WAIT is flat until the switch. Engine `killlab-0.4.0`. Extra variant codes in the spec do not create extra trials; the family scores only its own pre-registered pair.
+- Test: `python -m pytest -q` → 20 passed. Equal hourly drift is KILLED. Eighty days of noise are KILLED. Three weekends are UNTESTABLE with `n_events` 3.
+- Production verification: pending the `killlab-0.4.0` deploy. `killlab-0.3.0` execution results, if any, used the old clocks.
+
 
 ## 2026-09-29 Frontend connected to the live API
 
