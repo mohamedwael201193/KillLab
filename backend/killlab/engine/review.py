@@ -45,7 +45,40 @@ def next_hypothesis(primary_trap: str | None) -> dict:
 
 
 def reconcile_point(realized_bps: float, ci_low: float | None, ci_high: float | None) -> dict:
+    """Mean-interval helper kept for tests. A single fill must not use this as the forecast."""
     if ci_low is None or ci_high is None:
         return {"status": "no_forecast"}
     inside = ci_low <= realized_bps <= ci_high
-    return {"realized_bps": realized_bps, "ci_low": ci_low, "ci_high": ci_high, "inside_ci": inside}
+    return {"realized_bps": realized_bps, "ci_low": ci_low, "ci_high": ci_high, "inside_ci": inside, "object": "mean"}
+
+
+def reconcile_unit(realized_bps: float, low: float | None, high: float | None) -> dict:
+    """Compare one fill with the predictive range of one decision unit, not the CI of the mean."""
+    if low is None or high is None:
+        return {"status": "no_forecast", "object": "unit"}
+    return {
+        "realized_bps": realized_bps,
+        "unit_low": low,
+        "unit_high": high,
+        "inside_predictive": low <= realized_bps <= high,
+        "object": "unit",
+    }
+
+
+def research_fingerprint(spec: dict) -> str:
+    """Identity of the research, not the wording. Rewording does not reset it."""
+    from killlab.hashutil import sha256_canonical
+
+    codes = sorted(
+        str(item.get("code"))
+        for item in (spec.get("variants") or [])
+        if isinstance(item, dict) and item.get("code")
+    )
+    return sha256_canonical(
+        {
+            "family": spec.get("family"),
+            "instruments": sorted(str(item) for item in (spec.get("instruments") or [])),
+            "grain": spec.get("grain"),
+            "variants": codes,
+        }
+    )

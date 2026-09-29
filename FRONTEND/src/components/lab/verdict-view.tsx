@@ -406,10 +406,10 @@ export function VerdictView() {
 
 function formatReview(note: string) {
   try {
-    const data = JSON.parse(note) as { realized_bps?: number; ci_low?: number; ci_high?: number; inside_ci?: boolean; status?: string };
+    const data = JSON.parse(note) as { realized_bps?: number; unit_low?: number; unit_high?: number; inside_predictive?: boolean; status?: string };
     if (data.status) return data.status;
     const bps = data.realized_bps === undefined ? "—" : String(Math.round(data.realized_bps * 1000) / 1000);
-    return `Realized ${bps} bps. Interval ${data.ci_low} to ${data.ci_high}. Inside the interval: ${data.inside_ci}.`;
+    return `Realized ${bps} bps. One-trade range ${data.unit_low} to ${data.unit_high}. Inside that range: ${data.inside_predictive}.`;
   } catch {
     return note;
   }

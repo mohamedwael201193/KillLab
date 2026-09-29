@@ -18,7 +18,17 @@ def _mde(low, high) -> float | None:
     return (1.64485 + 0.84162) * standard_error
 
 
-def execute(spec: dict, snapshot: dict) -> dict:
+def _predictive(values: list[float]) -> tuple[float | None, float | None]:
+    import numpy as np
+
+    clean = np.asarray(values, float)
+    clean = clean[np.isfinite(clean)]
+    if len(clean) < 8:
+        return None, None
+    return float(np.quantile(clean, 0.05)), float(np.quantile(clean, 0.95))
+
+
+def execute(spec: dict, snapshot: dict, prior_trials: int = 0) -> dict:
     panel = build_panel(spec, snapshot)
     series_ids = panel["unit_ids"]
     n_events = len(series_ids)
@@ -32,7 +42,7 @@ def execute(spec: dict, snapshot: dict) -> dict:
     alpha, t_stat = mean_tstat(oos or [])
     variants = list(panel["variants"])
     if len(oos) >= 3 and variants:
-        dsr_doc = dsr_from_series(oos, n_trials=max(1, len(variants)))
+        dsr_doc = dsr_from_series(oos, n_trials=max(1, len(variants)) + max(0, int(prior_trials)))
         dsr = dsr_doc.get("dsr")
         ci = percentile_ci(selected["excess"] or oos, seed=int(spec.get("seed") or 1), resamples=400)
         if ci["ci_low"] is not None:
@@ -79,6 +89,12 @@ def execute(spec: dict, snapshot: dict) -> dict:
     card["pbo_reason"] = pbo_reason
     card["bar_straddle"] = measured["bar_straddle"]
     card["mde_bps"] = _mde(ci.get("ci_low"), ci.get("ci_high"))
+    unit_low, unit_high = _predictive(oos)
+    card["unit_p05"] = unit_low
+    card["unit_p95"] = unit_high
+    card["n_eff"] = n_units
+    card["prior_trials"] = max(0, int(prior_trials))
+    card["n_trials"] = max(1, len(variants)) + card["prior_trials"]
     card["n_events"] = n_events
     card["mechanism"] = panel["mechanism"]
     card["selected_variant"] = selected["selected"]

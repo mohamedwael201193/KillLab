@@ -402,6 +402,16 @@ def test_each_listed_symbol_gets_its_own_events():
     assert inside["inside_ci"] is True
     assert outside["inside_ci"] is False
     assert reconcile_point(1.0, None, None)["status"] == "no_forecast"
+    from killlab.engine.review import reconcile_unit, research_fingerprint
+    wide = reconcile_unit(40.0, -90.0, 90.0)
+    assert wide["inside_predictive"] is True
+    assert wide["object"] == "unit"
+    assert reconcile_point(40.0, -5.0, 5.0)["inside_ci"] is False
+    same = research_fingerprint({"family": "session_timing", "instruments": ["TSLAUSDT", "NVDAUSDT"], "grain": "1H", "variants": [{"code": "reversal"}, {"code": "continuation"}]})
+    again = research_fingerprint({"family": "session_timing", "instruments": ["NVDAUSDT", "TSLAUSDT"], "grain": "1H", "variants": [{"code": "continuation"}, {"code": "reversal"}], "raw_text": "different words"})
+    other = research_fingerprint({"family": "session_timing", "instruments": ["NVDAUSDT"], "grain": "1H", "variants": [{"code": "continuation"}]})
+    assert same == again
+    assert same != other
     from killlab.engine.review import realized_from_fills
     got = realized_from_fills([{"side": "buy", "px": 100}, {"side": "sell", "px": 110}])
     assert got is not None and abs(got - 1000) < 1e-6

@@ -1,5 +1,5 @@
 {
-  "engine_version": "killlab-0.5.0",
+  "engine_version": "killlab-0.6.0",
   "protocol": "session_timing",
   "seed": 11,
   "days": 80,

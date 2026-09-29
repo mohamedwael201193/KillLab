@@ -22,7 +22,7 @@ from killlab.config import Settings, settings_from_environ
 from killlab.data.bitget import BitgetError, BitgetRest, NotFrozen
 from killlab.data.earnings import align_events, earnings_timestamps_ms, symbol_for, tag_events
 from killlab.db import session_factory
-from killlab.engine.review import killed_decision, next_hypothesis, reconcile_point, realized_from_fills
+from killlab.engine.review import killed_decision, next_hypothesis, reconcile_unit, research_fingerprint, realized_from_fills
 from killlab.guard import fixtures_loaded
 from killlab.hashutil import sha256_canonical
 from killlab.logjson import log_event
@@ -287,7 +287,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 raise BitgetError(f"no symbol ({failures} failed)")
             if spec.canonical_json.get("family") == "event_earnings":
                 snapshot["events"] = events
-            card = execute({**spec.canonical_json, "content_sha256": spec.content_sha256}, snapshot)
+            fingerprint = research_fingerprint(spec.canonical_json)
+            prior = 0
+            for previous in session.scalars(select(TestRun).where(TestRun.result_json.is_not(None))):
+                if (previous.result_json or {}).get("fingerprint") == fingerprint:
+                    prior += 1
+            card = execute({**spec.canonical_json, "content_sha256": spec.content_sha256}, snapshot, prior_trials=prior)
+            card["fingerprint"] = fingerprint
             log_event("verdict", label=card.get("label"), primary_trap=card.get("primary_trap"), run_id=str(run.id))
             run.status = "untestable" if card["label"] == "UNTESTABLE" else "succeeded"
             run.result_json = card
@@ -389,7 +395,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             realized = realized_from_fills(pasted)
             if realized is None:
                 raise _error(422, "validation")
-        review = reconcile_point(float(realized), run.result_json.get("ci_low"), run.result_json.get("ci_high"))
+        review = reconcile_unit(float(realized), run.result_json.get("unit_p05"), run.result_json.get("unit_p95"))
         if review.get("status") == "no_forecast":
             raise _error(409, "no_forecast")
         return review
