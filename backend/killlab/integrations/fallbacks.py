@@ -15,11 +15,16 @@ from killlab.data.bitget import require_frozen
 from killlab.integrations.evidence import evidence_object
 
 NYFED_SOFR = "https://markets.newyorkfed.org/api/rates/secured/sofr/last/1.json"
+NYFED_SOFR_90 = "https://markets.newyorkfed.org/api/rates/secured/sofr/last/90.json"
 NYFED_ALL = "https://markets.newyorkfed.org/api/rates/all/latest.json"
 FED_RSS = "https://www.federalreserve.gov/feeds/press_monetary.xml"
 COINDESK_RSS = "https://www.coindesk.com/arc/outboundfeeds/rss/"
+TREASURY_XML = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value={year}"
 BITGET_REST = "https://api.bitget.com"
 _HEADERS = {"User-Agent": "killlab-research/1"}
+_ATOM = "{http://www.w3.org/2005/Atom}"
+_DS = "{http://schemas.microsoft.com/ado/2007/08/dataservices}"
+_DSM = "{http://schemas.microsoft.com/ado/2007/08/dataservices/metadata}"
 
 
 def _now() -> str:
@@ -72,6 +77,156 @@ def macro_rates(*, frozen: bool, timeout: float = 12.0, get=None) -> dict | None
         item["data_timestamp"] = stamp
         item["current_or_historical"] = "current" if _fresh(stamp) else "stale"
         item["provenance"]["data_timestamp"] = stamp
+    return item
+
+
+def treasury_curve_series(*, frozen: bool, year: str = "2026", timeout: float = 20.0, get=None) -> dict:
+    """Dated 2s10s from the Treasury par-yield XML. Empty inverted_dates if the curve is not inverted."""
+    require_frozen(frozen)
+    url = TREASURY_XML.format(year=year)
+    requested = _now()
+    empty = {
+        "source": "us_treasury_par_yield_curve",
+        "url": url,
+        "rule": {"spread": "t10y_minus_t2y", "op": "lt", "threshold": 0, "align": "session_date"},
+        "rows": [],
+        "inverted_dates": [],
+        "n_days": 0,
+        "n_inverted": 0,
+        "retrieved_at": requested,
+        "year": year,
+    }
+    try:
+        response = _get(url, timeout=timeout, get=get)
+        if getattr(response, "status_code", 0) != 200 or not getattr(response, "content", b""):
+            empty["failure_class"] = "empty_result"
+            return empty
+        root = ET.fromstring(response.content)
+    except (httpx.HTTPError, ET.ParseError, TypeError, ValueError):
+        empty["failure_class"] = "transport_error"
+        return empty
+    rows = []
+    inverted = []
+    spreads = []
+    for entry in root.findall(f"{_ATOM}entry"):
+        props = entry.find(f".//{_DSM}properties")
+        if props is None:
+            continue
+        date_text = _ds(props, "NEW_DATE")
+        t2 = _num(_ds(props, "BC_2YEAR"))
+        t10 = _num(_ds(props, "BC_10YEAR"))
+        if not date_text or t2 is None or t10 is None:
+            continue
+        day = date_text[:10]
+        spread = t10 - t2
+        flag = spread < 0
+        rows.append({"date": day, "t2y": t2, "t10y": t10, "spread": round(spread, 4), "inverted": flag})
+        spreads.append(spread)
+        if flag:
+            inverted.append(day)
+    empty.update(
+        {
+            "rows": rows,
+            "inverted_dates": inverted,
+            "n_days": len(rows),
+            "n_inverted": len(inverted),
+            "spread_min": min(spreads) if spreads else None,
+            "spread_max": max(spreads) if spreads else None,
+            "first_date": rows[0]["date"] if rows else None,
+            "last_date": rows[-1]["date"] if rows else None,
+            "failure_class": "valid_data" if rows else "empty_result",
+        }
+    )
+    return empty
+
+
+def treasury_curve_evidence(*, frozen: bool, year: str = "2026", timeout: float = 20.0, get=None) -> dict | None:
+    require_frozen(frozen)
+    started = datetime.now(timezone.utc).timestamp()
+    series = treasury_curve_series(frozen=True, year=year, timeout=timeout, get=get)
+    if not series.get("n_days"):
+        return None
+    payload = {
+        "n_days": series["n_days"],
+        "n_inverted": series["n_inverted"],
+        "spread_min": series.get("spread_min"),
+        "spread_max": series.get("spread_max"),
+        "first_date": series.get("first_date"),
+        "last_date": series.get("last_date"),
+        "rule": series.get("rule"),
+    }
+    item = evidence_object(
+        source_type="SKILL_CONTEXT",
+        provider="authoritative_fallback",
+        tool_name="treasury_par_yield",
+        symbol=None,
+        query={"skill": "macro-analyst", "recipe": "t10y_minus_t2y_history", "fallback": True},
+        payload=payload,
+        source_url=series.get("url"),
+        requested_at=series.get("retrieved_at"),
+        latency_ms=int((datetime.now(timezone.utc).timestamp() - started) * 1000),
+    )
+    item["skill"] = "macro-analyst"
+    item["source_class"] = "authoritative_fallback"
+    item["failure_class"] = series.get("failure_class") or "valid_data"
+    stamp = f"{series.get('last_date')}T00:00:00+00:00" if series.get("last_date") else None
+    if stamp:
+        item["data_timestamp"] = stamp
+        item["provenance"]["data_timestamp"] = stamp
+        item["current_or_historical"] = "historical"
+    return item
+
+
+def sofr_history(*, frozen: bool, timeout: float = 12.0, get=None) -> dict | None:
+    """NY Fed SOFR last-90. Dated history for context. Not a 60-unit scored family by itself."""
+    require_frozen(frozen)
+    requested = _now()
+    started = datetime.now(timezone.utc).timestamp()
+    try:
+        response = _get(NYFED_SOFR_90, timeout=timeout, get=get)
+        if getattr(response, "status_code", 0) != 200:
+            return None
+        rows = (response.json() or {}).get("refRates")
+    except (httpx.HTTPError, ValueError, TypeError):
+        return None
+    if not isinstance(rows, list) or not rows:
+        return None
+    points = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        rate = row.get("percentRate")
+        day = row.get("effectiveDate")
+        if not isinstance(day, str) or not isinstance(rate, (int, float)) or isinstance(rate, bool):
+            continue
+        points.append({"effective_date": day, "sofr": rate})
+    if not points:
+        return None
+    payload = {
+        "n": len(points),
+        "first_date": points[-1]["effective_date"],
+        "last_date": points[0]["effective_date"],
+        "min": min(item["sofr"] for item in points),
+        "max": max(item["sofr"] for item in points),
+    }
+    item = evidence_object(
+        source_type="SKILL_CONTEXT",
+        provider="authoritative_fallback",
+        tool_name="nyfed_sofr_history",
+        symbol=None,
+        query={"skill": "macro-analyst", "recipe": "sofr_last_90", "fallback": True},
+        payload=payload,
+        source_url=NYFED_SOFR_90,
+        requested_at=requested,
+        latency_ms=int((datetime.now(timezone.utc).timestamp() - started) * 1000),
+    )
+    item["skill"] = "macro-analyst"
+    item["source_class"] = "authoritative_fallback"
+    item["failure_class"] = "valid_data"
+    stamp = f"{payload['last_date']}T00:00:00+00:00"
+    item["data_timestamp"] = stamp
+    item["provenance"]["data_timestamp"] = stamp
+    item["current_or_historical"] = "historical"
     return item
 
 
@@ -197,6 +352,12 @@ def for_skill(skill: str, *, frozen: bool, symbol: str | None, text: str = "", t
         row = macro_rates(frozen=True, timeout=timeout, get=get)
         if row:
             items.append(row)
+        history = sofr_history(frozen=True, timeout=timeout, get=get)
+        if history:
+            items.append(history)
+        curve = treasury_curve_evidence(frozen=True, timeout=timeout, get=get)
+        if curve:
+            items.append(curve)
     elif skill == "sentiment-analyst":
         row = bitget_positioning(frozen=True, symbol=symbol, timeout=timeout, get=get)
         if row:
@@ -218,6 +379,12 @@ def for_skill(skill: str, *, frozen: bool, symbol: str | None, text: str = "", t
             headlines["query"] = {**(headlines.get("query") or {}), "skill": "market-intel", "recipe": "etf_news_proxy"}
             items.append(headlines)
     return items
+
+
+def _ds(props, name: str) -> str | None:
+    el = props.find(f"{_DS}{name}")
+    text = None if el is None else el.text
+    return text.strip() if isinstance(text, str) and text.strip() else None
 
 
 def _nyfed_rows(body: object) -> tuple[dict, str | None]:

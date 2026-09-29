@@ -72,6 +72,12 @@ export const EXAMPLE_HYPOTHESES: ExampleHypothesis[] = [
     note: "Basis family. Direct ETF flow is not available. Positioning and public headlines are the proxy.",
   },
   {
+    scenarioKey: "curve-inversion",
+    chip: "Curve inversion",
+    text: "Does NVDA's first cash hour differ when the Treasury 10-year minus 2-year is inverted?",
+    note: "Regime family. The inversion rule is frozen. Too few inverted days stay UNTESTABLE.",
+  },
+  {
     scenarioKey: "range-rotation",
     chip: "Outside the tape",
     text: "When BTC breaks its 20-day range, rotate into majors' alts perps within 48 hours.",

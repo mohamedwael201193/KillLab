@@ -101,7 +101,7 @@ def execute(spec: dict, snapshot: dict, prior_trials: int = 0, related_trials: i
         "ci_high": ci.get("ci_high"),
         "n_trials": n_trials,
         "book_capture": snapshot.get("book_capture"),
-        "bar_straddle": spec.get("family") == "session_timing" and spec.get("grain") in {"1H", "1h"},
+        "bar_straddle": spec.get("family") in {"session_timing", "macro_regime"} and spec.get("grain") in {"1H", "1h"},
     }
     if beats is not None:
         measured["beats_baseline"] = beats

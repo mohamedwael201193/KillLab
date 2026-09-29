@@ -9,6 +9,7 @@ FAMILY_MIN_UNITS = {
     "execution_venue_time": 8,
     "basis_convergence": 60,
     "lead_lag": 60,
+    "macro_regime": 60,
     "unsupported": 10**9,
 }
 

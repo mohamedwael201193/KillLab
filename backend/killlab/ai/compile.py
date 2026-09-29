@@ -17,7 +17,7 @@ from killlab.ai.boundary import FORBIDDEN_KEYS, enforce_kill_floor, reject_forbi
 
 SYSTEM = (
     "You compile a trading hypothesis into one JSON object and nothing else. "
-    "Allowed families: session_timing, event_earnings, carry_basis, basis_convergence, execution_venue_time, lead_lag. "
+    "Allowed families: session_timing, event_earnings, carry_basis, basis_convergence, execution_venue_time, lead_lag, macro_regime. "
     "If the idea is none of those, use family unsupported. "
     "Do not include sharpe, dsr, pbo, bps, pnl, n, verdict, or avoided_loss_bps. "
     "selection.split must be IS. claims_alpha must be false unless the text explicitly claims alpha. "
@@ -90,7 +90,7 @@ def _tickers_in_text(raw_text: str) -> list[str]:
     return found
 
 
-_FAMILIES = {"session_timing", "event_earnings", "carry_basis", "basis_convergence", "execution_venue_time", "lead_lag", "unsupported"}
+_FAMILIES = {"session_timing", "event_earnings", "carry_basis", "basis_convergence", "execution_venue_time", "lead_lag", "macro_regime", "unsupported"}
 
 
 def family_from_text(raw_text: str, proposed_family: str | None) -> str:
@@ -105,6 +105,8 @@ def family_from_text(raw_text: str, proposed_family: str | None) -> str:
         return "carry_basis"
     if re.search(r"basis|converge|perp versus spot|perp vs spot", raw_text, re.I):
         return "basis_convergence"
+    if re.search(r"invert|inverted|yield curve|2s10s|2s-10s|10y-2y|10-year minus 2", raw_text, re.I):
+        return "macro_regime"
     if re.search(r"cash close|closing hour|last cash hour|session|first cash hour|first hour|cash open|ny open|new york open", raw_text, re.I):
         return "session_timing"
     if proposed_family in _FAMILIES:
@@ -131,6 +133,7 @@ def normalize_draft(raw_text: str, proposed: dict) -> dict:
         "basis_convergence": [{"code": "fade"}],
         "execution_venue_time": [{"code": "NOW"}, {"code": "WAIT"}],
         "lead_lag": [{"code": "follow"}, {"code": "fade"}],
+        "macro_regime": [{"code": "continuation"}, {"code": "reversal"}],
     }.get(family, [{"code": "none"}])
     from killlab.engine.costs import COST_SCHEDULE
     draft = {
@@ -154,6 +157,16 @@ def normalize_draft(raw_text: str, proposed: dict) -> dict:
     }
     if family == "session_timing" and _cash_close(raw_text) and not _cash_open(raw_text):
         draft["session_hour"] = 15
+    if family == "macro_regime":
+        draft["regime"] = {
+            "source": "us_treasury_par_yield_curve",
+            "spread": "t10y_minus_t2y",
+            "op": "lt",
+            "threshold": 0,
+            "align": "session_date",
+        }
+        if _cash_close(raw_text) and not _cash_open(raw_text):
+            draft["session_hour"] = 15
     if family == "lead_lag":
         named = _tickers_in_text(raw_text)
         coins = [item for item in named if item in {"BTCUSDT", "ETHUSDT"}]

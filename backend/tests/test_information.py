@@ -995,3 +995,115 @@ def test_stale_fallback_rates_are_not_called_current():
 def test_a_missing_history_family_stays_untestable():
     card = execute({**_spec(), "family": "unsupported"}, {"rows": []})
     assert card["label"] == "UNTESTABLE"
+
+
+def test_inversion_wording_is_not_silent_session_timing():
+    from killlab.ai.compile import family_from_text, normalize_draft
+    from killlab.integrations.bitget_signal import route_skills
+
+    text = "Does NVDA's first cash hour differ when the Treasury 10-year minus 2-year is inverted?"
+    draft = normalize_draft(text, {})
+    assert family_from_text(text, None) == "macro_regime"
+    assert draft["family"] == "macro_regime"
+    assert draft["regime"]["spread"] == "t10y_minus_t2y"
+    assert draft["regime"]["threshold"] == 0
+    assert route_skills(text, draft["family"])[0]["skill"] == "macro-analyst"
+    fed = normalize_draft("Does the Fed funds backdrop change NVDA's first cash hour?", {})
+    assert fed["family"] == "session_timing"
+    assert "regime" not in fed
+
+
+def test_treasury_curve_and_sofr_history_refuse_before_freeze():
+    from killlab.integrations import fallbacks
+
+    with pytest.raises(NotFrozen):
+        fallbacks.treasury_curve_series(frozen=False)
+    with pytest.raises(NotFrozen):
+        fallbacks.sofr_history(frozen=False)
+
+
+def test_treasury_curve_series_keeps_zero_inverted_days():
+    from killlab.integrations import fallbacks
+
+    xml = """<?xml version="1.0" encoding="utf-8"?>
+    <feed xmlns="http://www.w3.org/2005/Atom" xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata">
+      <entry><content><m:properties>
+        <d:NEW_DATE>2026-06-02T00:00:00</d:NEW_DATE>
+        <d:BC_2YEAR>3.50</d:BC_2YEAR>
+        <d:BC_10YEAR>4.20</d:BC_10YEAR>
+      </m:properties></content></entry>
+      <entry><content><m:properties>
+        <d:NEW_DATE>2026-06-03T00:00:00</d:NEW_DATE>
+        <d:BC_2YEAR>4.10</d:BC_2YEAR>
+        <d:BC_10YEAR>3.90</d:BC_10YEAR>
+      </m:properties></content></entry>
+    </feed>"""
+
+    class _Resp:
+        status_code = 200
+        content = xml.encode()
+        text = xml
+
+    series = fallbacks.treasury_curve_series(frozen=True, get=lambda *args, **kwargs: _Resp())
+    assert series["n_days"] == 2
+    assert series["n_inverted"] == 1
+    assert series["inverted_dates"] == ["2026-06-03"]
+    assert series["url"].startswith("https://home.treasury.gov/")
+    evidence = fallbacks.treasury_curve_evidence(frozen=True, get=lambda *args, **kwargs: _Resp())
+    assert evidence["usable_for_verdict"] is False
+    assert evidence["source_class"] == "authoritative_fallback"
+    assert evidence["current_or_historical"] == "historical"
+    assert "noxiaohao" not in (evidence.get("source_url") or "")
+
+
+def test_sofr_history_is_labeled_historical_and_unused_for_verdict():
+    from killlab.integrations import fallbacks
+
+    class _Resp:
+        status_code = 200
+        text = '{"refRates":[{"effectiveDate":"2026-09-28","type":"SOFR","percentRate":3.9},{"effectiveDate":"2026-05-20","type":"SOFR","percentRate":3.5}]}'
+        content = text.encode()
+
+        def json(self):
+            return {
+                "refRates": [
+                    {"effectiveDate": "2026-09-28", "type": "SOFR", "percentRate": 3.9},
+                    {"effectiveDate": "2026-05-20", "type": "SOFR", "percentRate": 3.5},
+                ]
+            }
+
+    item = fallbacks.sofr_history(frozen=True, get=lambda *args, **kwargs: _Resp())
+    assert item["usable_for_verdict"] is False
+    assert item["current_or_historical"] == "historical"
+    assert item["source_class"] == "authoritative_fallback"
+    assert "last/90" in (item.get("source_url") or "")
+    assert item["structured_data"]["n"] == 2
+
+
+def test_empty_inverted_days_are_untestable_not_unfiltered_session():
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    et = ZoneInfo("America/New_York")
+    start = datetime(2026, 6, 1, 9, 0, tzinfo=et)
+    rows = []
+    price = 100.0
+    day = start
+    built = 0
+    while built < 70:
+        if day.weekday() < 5:
+            for hour in range(9, 17):
+                stamp = int(day.replace(hour=hour).timestamp() * 1000)
+                price *= 1.0001
+                rows.append([stamp, price, price, price, price])
+            built += 1
+        day += timedelta(days=1)
+    spec = {**_spec(), "family": "macro_regime", "grain": "1H", "session_hour": 9}
+    empty = execute(spec, {"rows": rows, "regime": {"inverted_dates": []}, "payload_sha256": "abc"})
+    assert empty["label"] == "UNTESTABLE"
+    assert empty["n_units"]["n"] == 0
+    assert empty["mechanism"] == "cash_open_when_treasury_2s10s_inverted"
+    session = execute({**spec, "family": "session_timing"}, {"rows": rows, "payload_sha256": "abc"})
+    assert session["n_units"]["n"] >= 60
+    assert session["n_units"]["n"] != empty["n_units"]["n"]
+

@@ -30,7 +30,8 @@ export type ScenarioKey =
   | "fed-backdrop"
   | "crowd-positioning"
   | "fed-release"
-  | "positioning-proxy";
+  | "positioning-proxy"
+  | "curve-inversion";
 
 /* ------------------------------------------------------------------ */
 /* Specification (pre-freeze)                                          */

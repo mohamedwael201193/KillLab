@@ -504,6 +504,15 @@ This file is append-only.
 - Macro and sentiment Chrome freeze-to-run on this exact URL were not repeated. Those paths do not contain the substring `coincide`. Their last Chrome proofs remain the `95d9e14` runs `e9f58735` and `ecaa572c` on the same engine.
 - No new scored family. Snapshot fallbacks are still not a 60-unit history. Official Signal recipes for the four non-technical skills remain empty on this host.
 
+## 2026-09-30 Dated macro history and an inversion family that stays UNTESTABLE
+
+- Decision: engine `killlab-0.13.1`. A live SOFR print is still not a 60-unit history. NY Fed `https://markets.newyorkfed.org/api/rates/secured/sofr/last/90.json` returned 90 dated SOFR prints, 2026-05-20 to 2026-09-28, min 3.5 max 3.9. Eight of those 90 days were at or above 3.75, so a high-SOFR filter would miss the session floor. Treasury daily par-yield XML `field_tdr_date_value=2026` returned 187 days of 2-year and 10-year points. The 10-year minus 2-year spread stayed positive (0.20 to 0.74). Zero inverted days. The empty Treasury CSV path is still unused. Bitget public long/short returned 30 hourly prints, not 60 units.
+- After freeze, macro-analyst context now also attaches that SOFR last-90 summary and a Treasury 2s10s summary. `source_class` is `authoritative_fallback`. `usable_for_verdict` stays false. `current_or_historical` is `historical` for those series. Latest NY Fed snapshot remains a separate row.
+- New family `macro_regime`: frozen rule `t10y_minus_t2y < 0` aligned to the cash-session date. The unit is still one cash hour versus the other cash hours that day. Missing dates are dropped, not filled. Floor stays 60. 2026 tape has 0 inverted days, so the panel is empty and the verdict is `UNTESTABLE`. Existing `session_timing` is unchanged. Fed-funds backdrop wording still compiles to `session_timing`.
+- LUI chip `Curve inversion`. Compile and desk copy name the frozen inversion rule.
+- Tests: `python -m pytest -q` → 95 passed. `node --experimental-strip-types src/lib/research/draft-spec.test.ts` printed `draft-spec ok`. `npx tsc --noEmit` and `npm run build` succeeded.
+- Production Chrome for this engine is not in this entry.
+
 
 
 

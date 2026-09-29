@@ -6,8 +6,9 @@ from datetime import datetime, timedelta, timezone
 
 from killlab.data.bitget import BitgetError, BitgetRest
 from killlab.data.earnings import align_events, classify_event_times, earnings_timestamps_ms, symbol_for, tag_events
+from killlab.integrations import fallbacks
 
-_FAMILIES = {"event_earnings", "execution_venue_time", "carry_basis", "basis_convergence", "session_timing", "lead_lag"}
+_FAMILIES = {"event_earnings", "execution_venue_time", "carry_basis", "basis_convergence", "session_timing", "lead_lag", "macro_regime"}
 
 
 def assemble_snapshot(client: BitgetRest, canonical: dict) -> dict:
@@ -104,6 +105,11 @@ def assemble_snapshot(client: BitgetRest, canonical: dict) -> dict:
         snapshot["book_capture"] = capture
     if canonical.get("family") == "event_earnings":
         snapshot["events"] = events
+    if canonical.get("family") == "macro_regime":
+        snapshot["regime"] = fallbacks.treasury_curve_series(
+            frozen=True,
+            year=_year(canonical.get("test_start")),
+        )
     snapshot["requested_start"] = canonical.get("test_start")
     return snapshot
 
@@ -119,3 +125,10 @@ def _window_ms(value: object, *, end: bool) -> int | None:
         day = day + timedelta(days=1)
         return int(day.timestamp() * 1000) - 1
     return int(day.timestamp() * 1000)
+
+
+def _year(value: object) -> str:
+    text = str(value or "")
+    if len(text) >= 4 and text[:4].isdigit():
+        return text[:4]
+    return "2026"

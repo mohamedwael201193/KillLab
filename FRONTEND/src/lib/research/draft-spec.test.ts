@@ -60,6 +60,11 @@ const coincide = draftSpec("Did a Fed release coincide with NVDA after earnings?
 assert.equal(coincide.family, "event_earnings");
 assert.deepEqual(coincide.instruments, ["NVDAUSDT"]);
 
+const inversion = draftSpec("Does NVDA's first cash hour differ when the Treasury 10-year minus 2-year is inverted?");
+assert.equal(inversion.family, "macro_regime");
+assert.equal(inversion.regime?.spread, "t10y_minus_t2y");
+assert.equal(fedBackdrop.family, "session_timing");
+
 function closeText(spec: { session_hour?: number }): string {
   return spec.session_hour === 15 ? "Trade NVDA in the last cash hour." : "";
 }

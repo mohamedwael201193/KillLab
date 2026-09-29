@@ -35,7 +35,7 @@ def next_hypothesis(primary_trap: str | None) -> dict:
         "WRONG_COST_BASELINE": "Include fees, funding, and the Earn USDT baseline.",
         "WAITING_RISK": "Score waiting with horizon volatility, not only the spread.",
         "baseline": "Show the excess over the frozen baseline with a confidence interval above zero.",
-        "family_unsupported": "Rewrite the idea into session timing, earnings, carry, or execution venue.",
+        "family_unsupported": "Rewrite the idea into session timing, earnings, carry, execution venue, or a dated regime with enough units.",
         "baseline_not_computed": "Wait until the sample can support a baseline comparison.",
     }
     return {

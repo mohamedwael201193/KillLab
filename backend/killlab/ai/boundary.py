@@ -31,6 +31,7 @@ class TestSpecDraft(BaseModel):
     session_hour: int | None = None
     leader: str | None = None
     claimed_start: str | None = None
+    regime: dict | None = None
 
 
 def reject_forbidden(document: dict) -> None:

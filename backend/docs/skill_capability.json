@@ -1,5 +1,5 @@
 {
-  "engine_version": "killlab-0.13.0",
+  "engine_version": "killlab-0.13.1",
   "usable_for_verdict": false,
   "skills": [
     {
@@ -18,10 +18,10 @@
       "canonical_recipe": "rates_yields action=rates_snapshot",
       "tool": "rates_yields",
       "primary_source": "official_signal_mcp",
-      "fallback_source": "https://markets.newyorkfed.org/api/rates/secured/sofr/last/1.json",
-      "expected_fields": ["percentRate", "effectiveDate"],
-      "timestamp_support": "effectiveDate",
-      "historical_support": false,
+      "fallback_source": "https://markets.newyorkfed.org/api/rates/secured/sofr/last/90.json plus Treasury par-yield XML 2s10s",
+      "expected_fields": ["percentRate", "effectiveDate", "n_inverted", "spread_min"],
+      "timestamp_support": "effectiveDate and NEW_DATE",
+      "historical_support": "sofr_last_90 and daily 2s10s; inversion family needs 60 inverted days",
       "production_verified": true
     },
     {

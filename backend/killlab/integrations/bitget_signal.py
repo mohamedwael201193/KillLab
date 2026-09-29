@@ -25,7 +25,7 @@ SKILLS = (
 
 _RULES = (
     ("news-briefing", ("news", "headline", "breaking", "earnings", "catalyst", "what happened")),
-    ("macro-analyst", ("macro", "fed", "cpi", "inflation", "dxy", "yield", "recession", "fomc", "rates")),
+    ("macro-analyst", ("macro", "fed", "cpi", "inflation", "dxy", "yield", "recession", "fomc", "rates", "invert", "treasury")),
     ("sentiment-analyst", ("fear", "greed", "funding", "long/short", "long short", "positioning", "sentiment", "crowd")),
     ("market-intel", ("etf", "whale", "institutional", "on-chain", "onchain", "tvl", "flow")),
     ("technical-analysis", ("rsi", "technical", "overbought", "support", "trend", "indicator", "session", "hour")),
@@ -37,6 +37,7 @@ _FAMILY = {
     "basis_convergence": "technical-analysis",
     "session_timing": "technical-analysis",
     "lead_lag": "technical-analysis",
+    "macro_regime": "macro-analyst",
 }
 
 _TECHNICAL_ACTIONS = ("rsi", "macd", "atr", "ema", "bollinger", "ma")

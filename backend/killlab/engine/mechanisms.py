@@ -69,11 +69,12 @@ def _session_target(spec: dict) -> tuple[int, set[int], str]:
     return 9, set(range(10, 16)), "ny_open_hour_vs_other_cash_hours"
 
 
-def session_panel(rows: list, spec: dict) -> dict:
+def session_panel(rows: list, spec: dict, allowed_dates: set | None = None) -> dict:
     """Open hour versus the other one-hour cash bars that same day.
 
     The rest-of-day cumulative move is a different horizon and is not the baseline.
     A day with no other one-hour bars is not a unit.
+    allowed_dates, when set, is the frozen regime filter. Missing dates are dropped, not imputed.
     """
     cost = trade_cost_bps(spec)
     by_day: dict = {}
@@ -87,7 +88,9 @@ def session_panel(rows: list, spec: dict) -> dict:
     reversal: list[float] = []
     baseline: list[float] = []
     target, peer_hours, mechanism = _session_target(spec)
-    for _day, items in sorted(by_day.items()):
+    for day, items in sorted(by_day.items()):
+        if allowed_dates is not None and day not in allowed_dates:
+            continue
         items.sort(key=lambda item: item[0])
         open_at = next((i for i, item in enumerate(items) if item[0].hour == target), None)
         if open_at is None:
@@ -268,6 +271,30 @@ def lead_panel(traded_rows: list, leader_rows: list, spec: dict) -> dict:
     return _panel(ids, {"follow": follow, "fade": fade}, [0.0] * len(ids), "prior_hour_leads_cash_open")
 
 
+def _regime_dates(regime: dict) -> set:
+    raw = regime.get("inverted_dates") if isinstance(regime, dict) else None
+    dates = set()
+    for item in raw or []:
+        text = str(item)[:10]
+        try:
+            dates.add(datetime.fromisoformat(text).date())
+        except ValueError:
+            continue
+    return dates
+
+
+def regime_session_panel(rows: list, spec: dict, regime: dict) -> dict:
+    """Same cash-hour unit as session_timing, restricted to frozen inverted dates.
+
+    Dates are not invented. An empty inverted set is an empty panel.
+    """
+    panel = session_panel(rows, spec, allowed_dates=_regime_dates(regime))
+    panel["mechanism"] = "cash_open_when_treasury_2s10s_inverted"
+    if spec.get("session_hour") == 15:
+        panel["mechanism"] = "cash_close_when_treasury_2s10s_inverted"
+    return panel
+
+
 def build_panel(spec: dict, snapshot: dict) -> dict:
     if not spec.get("costs"):
         return _panel([], {}, [], "missing_cost")
@@ -280,6 +307,8 @@ def build_panel(spec: dict, snapshot: dict) -> dict:
         return execution_panel(snapshot.get("rows") or [], spec)
     if family == "session_timing":
         return session_panel(snapshot.get("rows") or [], spec)
+    if family == "macro_regime":
+        return regime_session_panel(snapshot.get("rows") or [], spec, snapshot.get("regime") or {})
     if family == "basis_convergence":
         return basis_panel(snapshot.get("rows") or [], snapshot.get("spot_rows") or [], spec)
     if family == "lead_lag":

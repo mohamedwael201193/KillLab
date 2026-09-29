@@ -397,6 +397,7 @@ function familyDetail(family: string, sessionHour: number | undefined, leader?: 
   if (family === "basis_convergence") return "One calendar day of perp-versus-spot basis fade. Data stays unloaded until freeze.";
   if (family === "execution_venue_time") return "Weekend now versus wait, marked to the same exit. Data stays unloaded until freeze.";
   if (family === "lead_lag") return `The hour before the cash open signs that open hour. ${leader || "The leader"} is not traded. Data stays unloaded until freeze.`;
+  if (family === "macro_regime") return "Cash-hour unit, only on days the frozen 10-year minus 2-year print is inverted. Missing dates are dropped. Data stays unloaded until freeze.";
   return "This wording is outside the scored families. Data stays unloaded until freeze.";
 }
 

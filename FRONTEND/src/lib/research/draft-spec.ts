@@ -7,6 +7,7 @@ const VARIANTS: Record<string, { code: string }[]> = {
   basis_convergence: [{ code: "fade" }],
   execution_venue_time: [{ code: "NOW" }, { code: "WAIT" }],
   lead_lag: [{ code: "follow" }, { code: "fade" }],
+  macro_regime: [{ code: "continuation" }, { code: "reversal" }],
 };
 
 export const COMPILED_KEYS = [
@@ -29,6 +30,7 @@ export const COMPILED_KEYS = [
   "event_kind",
   "session_hour",
   "leader",
+  "regime",
 ] as const;
 
 export function familyFromText(text: string): string {
@@ -37,6 +39,7 @@ export function familyFromText(text: string): string {
   if (/earn|after[- ]hours/i.test(text)) return "event_earnings";
   if (/\bfunding\b|\bcarry\b/i.test(text)) return "carry_basis";
   if (/basis|converge|perp versus spot|perp vs spot/i.test(text)) return "basis_convergence";
+  if (/invert|inverted|yield curve|2s10s|2s-10s|10y-2y|10-year minus 2/i.test(text)) return "macro_regime";
   if (/cash close|closing hour|last cash hour|session|first cash hour|first hour|cash open|ny open|new york open/i.test(text)) return "session_timing";
   return "unsupported";
 }
@@ -69,6 +72,7 @@ export type DraftSpec = {
   event_kind: string;
   session_hour?: number;
   leader?: string;
+  regime?: { source: string; spread: string; op: string; threshold: number; align: string };
 };
 
 function tickersInText(text: string): string[] {
@@ -110,6 +114,16 @@ export function draftSpec(text: string): DraftSpec {
     event_kind: "none",
   };
   if (family === "session_timing" && cashClose(text) && !cashOpen(text)) spec.session_hour = 15;
+  if (family === "macro_regime") {
+    spec.regime = {
+      source: "us_treasury_par_yield_curve",
+      spread: "t10y_minus_t2y",
+      op: "lt",
+      threshold: 0,
+      align: "session_date",
+    };
+    if (cashClose(text) && !cashOpen(text)) spec.session_hour = 15;
+  }
   if (family === "lead_lag") spec.leader = coins[0] || "BTCUSDT";
   return spec;
 }
