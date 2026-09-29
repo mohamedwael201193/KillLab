@@ -349,4 +349,12 @@ This file is append-only.
 - `news_feed` with feed `blockbeats` returned an empty item list. `dex_market` action `trending` returned an empty error and a URL, with no token rows. `derivatives_sentiment` action `reddit_trending` returned an empty error. No article or ratio from those calls was stored as a reading.
 - Bitget public `GET /api/v2/mix/market/open-interest` for BTCUSDT returned one current size and a timestamp, not a history. `account-long-short` returned 30 rows at 5m, 15m, and 1h, and 24 rows at 4h. `taker-buy-sell` returned 30 rows at those periods, including 30 daily rows. `1d` is not a valid period for `account-long-short`. None of these series reaches 60 points. No family was added and no floor was lowered.
 
+## 2026-09-29 Cash-close hour on the same tape
+
+- Decision: engine `killlab-0.12.2`. A frozen question about the last cash hour scores hour 15 Eastern against the other cash hours that day. The open question stays hour 9 and does not gain a `session_hour` field. The two questions do not share a research fingerprint. The family minimum stays 60. Any other hour value is scored as the open.
+- Why: the hourly Bitget tape already contains both hours. The close is the same kind of unit as the open, not a new data source.
+- Files: `backend/killlab/engine/mechanisms.py`, `engine/review.py`, `ai/compile.py`, `ai/boundary.py`, `models.py`, `tests/test_engine.py`, `tests/test_information.py`.
+- Test: `python -m pytest -q` → 66 passed.
+- Production `GET /health` returned `killlab-0.12.2`. Run `426629e7-6dc8-438e-89e1-133e1b1b5fd5`: `UNTESTABLE`, 38 of 60, mechanism `cash_close_hour_vs_other_cash_hours`, engine `killlab-0.12.2`. Book historical false, spread 0.437 bps. Official US-stock `do_query` returned NVDA `last_price` 228.61, freshness `current`, source clock `2026-09-30T01:44:39.000344`, retrieved `2026-09-29T17:44:39+00:00`. `technical_analysis` returned undated rsi 56.87. `usable_for_verdict` false on both context rows.
+
 
