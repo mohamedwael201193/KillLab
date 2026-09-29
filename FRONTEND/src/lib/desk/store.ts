@@ -405,7 +405,11 @@ function scenarioFrom(text: string, spec: ReturnType<typeof draftSpec>, hash: st
     hypothesisText: text,
     family: spec.family,
     familyDetail: "Taken from your words. Data is not loaded until you freeze.",
-    instruments: spec.instruments.map((symbol) => ({ symbol, kind: "perp" as const, venue: "Bitget" })),
+    instruments: spec.instruments.map((symbol) => ({
+      symbol,
+      kind: symbol.toUpperCase().startsWith("R") ? ("spot" as const) : ("perp" as const),
+      venue: "Bitget",
+    })),
     testingWindow: { from: spec.test_start, to: spec.test_end, label: "Bitget tape" },
     variants: spec.variants.map((variant) => ({
       id: variant.code,
