@@ -22,7 +22,7 @@
       "expected_fields": ["percentRate", "effectiveDate"],
       "timestamp_support": "effectiveDate",
       "historical_support": false,
-      "production_verified": false
+      "production_verified": true
     },
     {
       "skill": "sentiment-analyst",
@@ -33,7 +33,7 @@
       "expected_fields": ["longShortAccountRatio", "buyVolume"],
       "timestamp_support": "print ts",
       "historical_support": false,
-      "production_verified": false
+      "production_verified": true
     },
     {
       "skill": "news-briefing",
@@ -44,7 +44,7 @@
       "expected_fields": ["title", "published", "guid"],
       "timestamp_support": "pubDate",
       "historical_support": false,
-      "production_verified": false
+      "production_verified": true
     },
     {
       "skill": "market-intel",
@@ -55,7 +55,7 @@
       "expected_fields": ["open_interest"],
       "timestamp_support": "ts",
       "historical_support": false,
-      "production_verified": false
+      "production_verified": true
     }
   ]
 }

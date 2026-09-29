@@ -472,5 +472,21 @@ This file is append-only.
 - Tests: `python -m pytest -q` → 89 passed. `node --experimental-strip-types src/lib/research/draft-spec.test.ts` printed `draft-spec ok`. `npx tsc --noEmit` and `npm run build` succeeded.
 - Production verification of the four fallback skills is not in this entry. It follows this commit.
 
+## 2026-09-30 Production proof of the four remaining skills
+
+- Commit `95d9e14`. Render `GET /health` returned `killlab-0.13.0`. Vercel project `prj_ifpQLPYH5GSwa982aZ5QXlR9qfSL` deploy `dpl_8xqbzG26DuH4UF17Yru8kamVJWF3` for that commit was `READY`.
+- Official US-stock MCP stayed live: `do_query` NVDA last_price around 227.9, freshness `current`, host `agent.bitget.com/mcp`, `usable_for_verdict` false.
+- Official Signal MCP canonical recipes stayed empty or undated except `technical-analysis`. Failures were kept as `empty_result` and not rewritten.
+- Production API freeze-to-run, engine `killlab-0.13.0`, context unused for the verdict:
+  - macro: run `7e01b481-ad78-4f09-94a1-72a2a158b6f0`, family `session_timing`, `INCONCLUSIVE`, 87 units. Official `rates_yields` `empty_result`. NY Fed fallback `authoritative_fallback` `valid_data`: EFFR 3.88, SOFR 3.9, effective_date 2026-09-28, URL `https://markets.newyorkfed.org/api/rates/all/latest.json`.
+  - sentiment: run `72e8953e-eb52-408b-a18b-2b53182a0d1b`, family `carry_basis`, `UNTESTABLE`, 1 of 60 units. Official `sentiment_index` `empty_result`. Bitget public REST `long_short_account_ratio` 1.6455, taker buy 164.1309 sell 377.2527, `current`, URL `https://api.bitget.com/api/v2/mix/market/account-long-short`.
+  - news: run `8cb181c5-ca9b-4ea0-a992-7b678f049839`, family `event_earnings`, `UNTESTABLE`, 38 of 100 units. Official `news_feed` `empty_result`. Fed RSS fallback `authoritative_fallback` `valid_data` but `stale`: FOMC statement published 2026-09-16, URL `https://www.federalreserve.gov/feeds/press_monetary.xml`.
+  - market-intel: run `6952683d-1a4e-426c-8c0b-6f0e23c9ac31`, family `basis_convergence`, `KILLED`, 117 units. Official `derivatives_sentiment` `empty_result`. Bitget open interest 52073.86 `current`. CoinDesk RSS as the documented news proxy, not as ETF flow.
+  - technical: run `7a60406f-aca4-41d4-8259-1b73dd32561a`, `INCONCLUSIVE`, 87 units. Official rsi/macd/atr/ema/bollinger/ma readings, undated.
+- Chrome on `https://killlab.vercel.app/?v=95d9e14`, isolated context `killlab-013`: write view lists the four context chips. Fed backdrop compiled to `session_timing` with data unloaded. Network before freeze was only same-origin `/api/killlab` hypothesis, compile, and spec. Freeze hash `2777a04c3c51d2db6166627ee2dd5a372f645e27b3209ef650151cdd5325082b`. Run `e9f58735-eb18-4d01-9d1b-664ceb28fa56`: `INCONCLUSIVE`, 87 units, engine `killlab-0.13.0`, research skill `macro-analyst + technical-analysis`, context changes the verdict `no`. Official rates row `empty_result`. NY Fed row `authoritative_fallback` `valid_data` SOFR 3.9. Book forward-recorded, spread 0.438 bps, $10,000 walk 4.083 bps, not a past book. After freeze the browser called only `/api/killlab` freeze, runs, verdict, results, traps, evidence, and ledger.
+- No new scored family. Snapshot fallbacks are not a 60-unit history. The Fed RSS item is dated 2026-09-16 and is labeled stale. Direct ETF flow is not claimed.
+- Existing AUTO_RUN and prior family proofs were not re-run in this entry. Health still reports `killlab-0.13.0`.
+
+
 
 
