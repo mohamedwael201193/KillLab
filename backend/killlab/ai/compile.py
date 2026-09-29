@@ -149,6 +149,7 @@ def compile_text(raw_text: str, timeout_s: float = 30) -> dict:
                 continue
             content = response.json()["choices"][0]["message"]["content"]
             draft = normalize_draft(raw_text, _extract_json(content))
+            draft.pop("kill_floor", None)
             return draft
         except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
             last_error = type(exc).__name__

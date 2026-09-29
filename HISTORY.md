@@ -232,6 +232,7 @@ This file is append-only.
 - Production verification: `GET /health` returned `killlab-0.6.0` after deploy `7d80f71`.
 - Fresh runs on that engine, real Bitget candles, recorded in `docs/evidence/engine_0_6_0_runs.json`: session timing `6d4a61a2-5ca4-4365-b378-db65e63cd733` is `UNTESTABLE` at 38 units (floor 60) even though the interval is negative; earnings `a51d529b-a0ab-417b-8178-bb381aebf271` is `UNTESTABLE` at 20 events and counted 1 prior trial; weekend choice `04f0e240-e17f-4b63-82f6-f7fd50754a32` is `INCONCLUSIVE` at 8 weekends.
 - The production desk, in a clean Chrome context, called only `https://killlab.vercel.app/api/killlab/...` and compiled the open-hour sentence to `session_timing`. A model-supplied variant code is no longer frozen; the server writes the family's canonical variant pair.
+- Chrome freeze returned 422 because the compiler echoed `kill_floor`, which the spec schema forbids. The client now keeps only spec fields, and the compiler response drops `kill_floor` so the server can apply it on save.
 
 
 ## 2026-09-29 Frontend connected to the live API
