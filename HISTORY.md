@@ -365,4 +365,21 @@ This file is append-only.
 - Production run `66e3df89-ab41-4ffd-bb03-397121504029`: `UNTESTABLE`, 55 of 60, mechanism `ny_open_hour_vs_other_cash_hours`, engine `killlab-0.12.3`. Oldest bar `2026-07-01T00:00:00Z`, last bar `2026-09-28T23:00:00Z`, stop `window_start`, pages requested 16, venue floor false. DSR `0.022858876490157776`. Official quote NVDA `last_price` 228.1, retrieved `2026-09-29T17:56:14+00:00`.
 - `POST /v1/internal/forward-sweep` for UTC day `2026-09-29` returned 26 `below_floor` actions and no `AUTO_RUN`. The full frozen window still does not reach 60. The floor was not changed.
 
+## 2026-09-29 The basis freeze did reach its floor
+
+- The sentence above is wrong about `AUTO_RUN`. `killlab.research_ledger_entries` has one `AUTO_RUN` row for UTC day `2026-09-29`, preregistration `e1dc9dd6-9849-4442-a2fe-7c8a027488d2`, spec `8802daebefe207d6b87469b5d68a2c5e7230115c229540235bde9b9b58af6717`.
+- That freeze was first scored as run `6ddbe0c8-43fa-4067-bbd4-2bf53c4c818e`: `UNTESTABLE`, 59 of 60, stop `page_cap`, oldest bar `2026-07-24T02:00:00Z`, engine `killlab-0.7.0`.
+- The automatic run is `e42bf46e-e7c5-4a1e-969b-dafda40f4609`, created `2026-09-29T17:56:18Z`, engine `killlab-0.12.3`, `run_origin` `automatic`. Family `basis_convergence`, window `2026-07-01` through `2026-09-28`, mechanism `daily_basis_fade_versus_cash`. Label `KILLED`, trap `contradicted`, 81 units. Interval `-28.478612655196805` to `-20.505593879184943`. DSR `1.1393441419205175e-06`. Stop `window_start`, oldest bar `2026-07-01T00:00:00Z`, last bar `2026-09-28T23:00:00Z`, pages requested 16, venue floor false. The floor stayed 60. The freeze hash was not edited.
+
+## 2026-09-29 New specs start at the oldest page the pager can read
+
+- Decision: engine `killlab-0.12.4`, commit `3b44df4`. A newly compiled spec uses `test_start` `2026-05-18` and `test_end` `2026-09-28`. Already frozen specs were not rewritten. The session floor stays 60.
+- Why: 16 hourly pages are still full through `2026-05-18`. A July start cannot grow, and those frozen specs stayed under 60.
+- Test: `python -m pytest -q` → 68 passed.
+- Production `GET /health` returned `killlab-0.12.4`. The first run of the new window, `93c2dfd8-348a-4465-b3c2-a071b3e83c0b`, failed with `bitget_unavailable` and stored no verdict. A second run of the same freeze, `6ae82011-c904-491e-bec2-48e3726a1d58`, succeeded. Label `INCONCLUSIVE`, trap `underpowered`, 87 units, mechanism `ny_open_hour_vs_other_cash_hours`, origin `manual`. Interval `-13.867991227980879` to `14.696951657570361`. DSR `0.04176221638989308`. Stop `page_cap`, pages requested 16, oldest bar `2026-05-18T19:00:00Z`, last bar `2026-09-28T23:00:00Z`, venue floor false. The page cap still ends before midnight on the frozen start.
+- Book on that run: historical false, provenance `forward_recorded`, spread `0.4375697376765443` bps, depth imbalance `-0.2244404595869031`.
+- Official US-stock `do_query` on `https://agent.bitget.com/mcp`: NVDA `last_price` 228.25, freshness `current`, source clock `2026-09-30T02:15:57.455813`, retrieved `2026-09-29T18:15:58+00:00`, `usable_for_verdict` false.
+- `technical-analysis` / `technical_analysis`: undated rsi 55.3, timeframe 4h, period 14, signal neutral, retrieved `2026-09-29T18:15:56+00:00`, `usable_for_verdict` false.
+- `POST /v1/internal/forward-sweep` for UTC day `2026-09-29` then returned 27 `below_floor` actions and no new `AUTO_RUN`. The scored basis freeze was already automatic, so it was not armed again. The new session freeze was a manual run and was not armed. Floors were not changed.
+
 
