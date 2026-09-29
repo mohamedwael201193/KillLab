@@ -274,5 +274,6 @@ This file is append-only.
 - Reason: the model may phrase a spec, an explanation, the next question, and a fill review. `normalize_draft` still owns the family, the cost, and the split. `filter_explanation` removes any number that is not already in the engine document. A sweep below the family floor writes `FORWARD_CHECK` and does not add a scored run. Reaching the floor writes `AUTO_RUN` on the same freeze hash. A changed hash is refused. A venue failure does not consume the day.
 - Impact: engine `killlab-0.8.0`. Migration `0002_book_captures` adds `killlab.book_captures` with provenance `forward_recorded` and `historical` false. The key lives in the gitignored env and the Render runtime. It is not in git, the browser, or this file.
 - Test: `python -m pytest -q` → 34 passed. Frontend `tsc --noEmit` and `next build` passed. A tracked-file scan found the key in 0 files. A live compile of an NVDA open-hour sentence returned `session_timing`, cost 6, and no verdict field. A narrated sentence that invented 9.99 was locked.
+- The first production sweep could write more than one `FORWARD_CHECK` for the same spec when two processes started together. The sweep now inserts an idempotency key for `preregistration + UTC day` before it pulls data. A losing process records a duplicate and does not pull. A venue failure deletes that key so a later pass can retry.
 
 

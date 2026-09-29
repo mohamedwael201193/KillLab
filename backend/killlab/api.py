@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from killlab.ai.boundary import enforce_kill_floor, reject_forbidden
@@ -147,6 +148,18 @@ def _forward_sweep(session: Session, settings: Settings) -> dict:
         prior, related = _trial_counts(session, canonical)
         return execute(canonical, snapshot, prior_trials=prior, related_trials=related)
 
+    for item in list(items):
+        pre_id = str(item["preregistration_id"])
+        if item["spec_sha256"] != item["frozen_sha256"] or (pre_id, window) in seen:
+            continue
+        lock = f"forward:{pre_id}:{window}"
+        try:
+            with session.begin_nested():
+                session.add(IdempotencyKey(key=lock, response_json={"status": "reserved"}, status_code=202))
+                session.flush()
+        except IntegrityError:
+            seen.add((pre_id, window))
+            continue
     actions = sweep_forward(items=items, seen=seen, now=now, pull=pull, execute_fn=execute_fn)
     public = []
     for action in actions:
@@ -192,6 +205,10 @@ def _forward_sweep(session: Session, settings: Settings) -> dict:
                 },
             ))
             action["test_run_id"] = str(created.id)
+        if action["action"] == "provider_failure":
+            lock = session.get(IdempotencyKey, f"forward:{pre_id}:{window}")
+            if lock is not None:
+                session.delete(lock)
         public.append({key: value for key, value in action.items() if key not in {"card", "snapshot"}})
     session.commit()
     return {"window": window, "actions": public}
