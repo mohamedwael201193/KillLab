@@ -46,6 +46,24 @@
       "ci_low": 0.0,
       "ci_high": 0.0,
       "dsr": 0.22022310414625473
+    },
+    {
+      "case": "execution_venue_time NVDA weekend, repeated in Chrome",
+      "run_id": "d975959f-ec20-47f9-8123-b1e37bcdbd3d",
+      "label": "INCONCLUSIVE",
+      "n_units": 8,
+      "n_events": 10,
+      "n_eff": 8,
+      "n_trials": 3,
+      "prior_trials": 1,
+      "dsr": 0.1340203495482135,
+      "ci_low": 0.0,
+      "ci_high": 0.0,
+      "engine_version": "killlab-0.6.0",
+      "mechanism": "weekend_choice_same_exit",
+      "spec_sha256": "2d636b72e6b90c3d319bb346cf2b2a91228e45a8747821ac9807a2eeb8d5c6e2",
+      "snapshot_sha256": "10dbb1b098dbfce44080d17b879526bfb1c00f7f8f5edec2b9a7dd5f1db0ce5d",
+      "ui_matched_results_json": true
     }
   ]
 }
