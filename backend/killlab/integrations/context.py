@@ -76,12 +76,14 @@ def enrich_context(
             if quote:
                 items.append(quote)
         try:
-            skills = skill_job.result(timeout=timeout + 2)
+            skills = skill_job.result(timeout=max(timeout * 4, timeout + 2))
         except Exception as exc:
             skills = []
             items.append({
                 "source_type": "SKILL_CONTEXT",
                 "source_url": "https://datahub.noxiaohao.com/mcp",
+                "skill": routing["skill"],
+                "tool_name": None,
                 "usable_for_verdict": False,
                 "failure_reason": type(exc).__name__,
                 "summary": type(exc).__name__,

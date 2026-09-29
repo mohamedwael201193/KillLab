@@ -489,6 +489,28 @@ def test_forward_depth_imbalance_is_not_a_return():
     assert _depth_imbalance(None, 1) is None
 
 
+def test_a_skill_that_does_not_finish_keeps_its_name():
+    import time
+
+    def slow(name, arguments):
+        time.sleep(3)
+        return _sse({"rsi": 1})
+
+    context = enrich_context(
+        frozen=True,
+        family="session_timing",
+        instruments=["BTCUSDT"],
+        text="session",
+        timeout=0.2,
+        send=_transport(slow),
+    )
+    failed = context["items"][-1]
+    assert failed["skill"] == "technical-analysis"
+    assert failed["failure_reason"] == "TimeoutError"
+    assert failed["usable_for_verdict"] is False
+    assert context["routing"]["skill"] == "technical-analysis"
+
+
 def test_compiler_module_does_not_call_the_information_layer():
     source = (Path(__file__).resolve().parents[1] / "killlab" / "ai" / "compile.py").read_text(encoding="utf-8")
     assert "enrich_context" not in source
