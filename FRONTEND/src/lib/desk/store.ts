@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { create } from "zustand";
-import { draftSpec, killlab } from "@/lib/research/live";
+import { draftSpec, killlab, mergeCompiledDraft } from "@/lib/research/live";
 import { mapVerdict } from "@/lib/research/map-verdict";
 import type { ScenarioFixture } from "@/lib/research/types";
 import type {
@@ -118,22 +118,7 @@ export const useDesk = create<DeskState>((set, get) => ({
       let spec = local;
       try {
         const compiled = await killlab("POST", `/v1/hypotheses/${created.id}/compile`);
-        if (compiled.draft?.family && Array.isArray(compiled.draft.instruments)) {
-          const allowed = ["family", "instruments", "venue", "test_start", "test_end", "grain", "costs", "baselines", "variants", "selection", "target_metric", "notional_usd", "seed", "transforms", "risk", "claims_alpha", "event_kind"];
-          const merged: Record<string, unknown> = { ...local };
-          for (const key of allowed) {
-            if (compiled.draft[key] !== undefined) merged[key] = compiled.draft[key];
-          }
-          spec = merged as typeof local;
-          if (/weekend|stockroute/i.test(text)) {
-            spec = {
-              ...spec,
-              family: "execution_venue_time",
-              variants: [{ code: "NOW" }, { code: "WAIT" }],
-              risk: { sigma_span: "until_sunday_switch", horizon_span: "until_sunday_switch", alternatives: ["NOW", "WAIT"], lambda_grid: [0.5] },
-            };
-          }
-        }
+        spec = mergeCompiledDraft(local, compiled.draft, text);
       } catch {
         spec = local;
       }
@@ -400,6 +385,20 @@ export function useActiveScenario() {
   return useDesk((s) => s.liveScenario);
 }
 
+function familyDetail(family: string, sessionHour: number | undefined): string {
+  if (family === "session_timing" && sessionHour === 15) {
+    return "Cash close. Hour 15 Eastern versus the other cash hours that day. Data stays unloaded until freeze.";
+  }
+  if (family === "session_timing") {
+    return "Cash open. Hour 9 Eastern versus the other cash hours that day. Data stays unloaded until freeze.";
+  }
+  if (family === "event_earnings") return "Earnings impulse, then the hold. Data stays unloaded until freeze.";
+  if (family === "carry_basis") return "One continuous funding hold versus cash. Data stays unloaded until freeze.";
+  if (family === "basis_convergence") return "One calendar day of perp-versus-spot basis fade. Data stays unloaded until freeze.";
+  if (family === "execution_venue_time") return "Weekend now versus wait, marked to the same exit. Data stays unloaded until freeze.";
+  return "This wording is outside the scored families. Data stays unloaded until freeze.";
+}
+
 function scenarioFrom(text: string, spec: ReturnType<typeof draftSpec>, hash: string | null): ScenarioFixture {
   const now = new Date().toISOString();
   const researchSpec = {
@@ -407,7 +406,7 @@ function scenarioFrom(text: string, spec: ReturnType<typeof draftSpec>, hash: st
     scenarioKey: "earnings-momentum" as const,
     hypothesisText: text,
     family: spec.family,
-    familyDetail: "Taken from your words. Data is not loaded until you freeze.",
+    familyDetail: familyDetail(spec.family, spec.session_hour),
     instruments: spec.instruments.map((symbol) => ({
       symbol,
       kind: symbol.toUpperCase().startsWith("R") ? ("spot" as const) : ("perp" as const),

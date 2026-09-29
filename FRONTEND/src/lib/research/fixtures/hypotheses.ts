@@ -14,13 +14,37 @@ export const EXAMPLE_HYPOTHESES: ExampleHypothesis[] = [
   {
     scenarioKey: "funding-carry",
     chip: "Funding carry",
-    text: "Short BTC and ETH perps when funding exceeds +0.10% and hold for 48 hours.",
-    note: "Carry family. No result is assumed.",
+    text: "Hold BTC perp funding against cash.",
+    note: "Carry family. One continuous funding hold is the unit.",
+  },
+  {
+    scenarioKey: "session-open",
+    chip: "Cash open",
+    text: "Trade NVDA in the first hour of the cash session.",
+    note: "Session family. Hour 9 Eastern versus the other cash hours.",
+  },
+  {
+    scenarioKey: "cash-close",
+    chip: "Cash close",
+    text: "Trade NVDA in the last cash hour.",
+    note: "Session family. Hour 15 Eastern versus the other cash hours.",
+  },
+  {
+    scenarioKey: "weekend-choice",
+    chip: "Weekend choice",
+    text: "Trade NVDA over the weekend instead of waiting for StockRoute.",
+    note: "Execution family. Now versus wait, same exit.",
+  },
+  {
+    scenarioKey: "basis-fade",
+    chip: "Basis fade",
+    text: "Fade the NVDA perp versus spot basis.",
+    note: "Basis family. One calendar day is the unit.",
   },
   {
     scenarioKey: "range-rotation",
-    chip: "Range rotation",
+    chip: "Outside the tape",
     text: "When BTC breaks its 20-day range, rotate into majors' alts perps within 48 hours.",
-    note: "May fall outside the four supported families.",
+    note: "This wording is outside the scored families.",
   },
 ];

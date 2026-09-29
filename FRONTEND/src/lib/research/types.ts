@@ -18,7 +18,14 @@ export type TrapSeverity = "low" | "medium" | "high";
 export type TrapCategory = "statistical" | "execution" | "data";
 
 /** Identifiers for the fully-specified research scenarios shipped with the simulation. */
-export type ScenarioKey = "earnings-momentum" | "funding-carry" | "range-rotation";
+export type ScenarioKey =
+  | "earnings-momentum"
+  | "funding-carry"
+  | "range-rotation"
+  | "session-open"
+  | "cash-close"
+  | "weekend-choice"
+  | "basis-fade";
 
 /* ------------------------------------------------------------------ */
 /* Specification (pre-freeze)                                          */

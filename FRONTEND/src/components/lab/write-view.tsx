@@ -123,7 +123,7 @@ export function WriteView() {
               const selected = trimmed === ex.text;
               return (
                 <button
-                  key={ex.scenarioKey}
+                  key={ex.text}
                   onClick={() => {
                     setText(ex.text);
                     writeHypothesis(ex.text);
