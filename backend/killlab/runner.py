@@ -30,6 +30,7 @@ def _predictive(values: list[float]) -> tuple[float | None, float | None]:
 
 
 def execute(spec: dict, snapshot: dict, prior_trials: int = 0, related_trials: int = 0) -> dict:
+    spec = {key: value for key, value in spec.items() if key != "thesis"}
     panel = build_panel(spec, snapshot)
     series_ids = panel["unit_ids"]
     n_events = len(series_ids)
@@ -76,6 +77,7 @@ def execute(spec: dict, snapshot: dict, prior_trials: int = 0, related_trials: i
         "ci_low": ci.get("ci_low"),
         "ci_high": ci.get("ci_high"),
         "n_trials": n_trials,
+        "book_capture": snapshot.get("book_capture"),
         "bar_straddle": spec.get("family") == "session_timing" and spec.get("grain") in {"1H", "1h"},
     }
     if beats is not None:
@@ -130,4 +132,7 @@ def execute(spec: dict, snapshot: dict, prior_trials: int = 0, related_trials: i
     card["n_events"] = n_events
     card["mechanism"] = panel["mechanism"]
     card["selected_variant"] = selected["selected"]
+    from killlab.engine.review import evolution_state
+
+    card["next_question"] = evolution_state(card, card.get("primary_trap")).get("proposed_raw_text")
     return card

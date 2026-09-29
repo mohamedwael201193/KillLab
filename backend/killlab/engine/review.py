@@ -44,7 +44,7 @@ def next_hypothesis(primary_trap: str | None) -> dict:
     }
 
 
-def evolution_state(card: dict, primary_trap: str | None) -> dict:
+def evolution_state(card: dict, primary_trap: str | None, review: dict | None = None) -> dict:
     """The next test inherits the stored fingerprint. The frozen card is not edited."""
     proposal = next_hypothesis(primary_trap)
     proposal["fingerprint"] = card.get("fingerprint")
@@ -58,6 +58,12 @@ def evolution_state(card: dict, primary_trap: str | None) -> dict:
         proposal["proposed_raw_text"] = (
             f"Keep this frozen spec. It still needs {int(card['units_short'])} more independent units on the Bitget tape. Do not rewrite the claim."
         )
+    if isinstance(review, dict) and review.get("object") == "unit" and "inside_predictive" in review:
+        proposal["inside_predictive"] = bool(review.get("inside_predictive"))
+        if review.get("inside_predictive") is False:
+            proposal["proposed_raw_text"] = (
+                "The pasted fill sat outside the one-trade range. Keep the frozen result. Ask whether the live trade is the same decision this test scored."
+            )
     return proposal
 
 

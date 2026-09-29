@@ -61,7 +61,7 @@ export function MonoChip({
   className,
 }: {
   children: React.ReactNode;
-  tone?: "neutral" | "ice" | "alive" | "killed" | "untestable";
+  tone?: "neutral" | "ice" | "alive" | "killed" | "untestable" | "inconclusive";
   className?: string;
 }) {
   const tones: Record<string, string> = {
@@ -70,6 +70,7 @@ export function MonoChip({
     alive: "border-verdict-alive/30 bg-verdict-alive/10 text-verdict-alive",
     killed: "border-verdict-killed/30 bg-verdict-killed/10 text-verdict-killed",
     untestable: "border-verdict-untestable/30 bg-verdict-untestable/10 text-verdict-untestable",
+    inconclusive: "border-verdict-inconclusive/30 bg-verdict-inconclusive/10 text-verdict-inconclusive",
   };
   return (
     <span

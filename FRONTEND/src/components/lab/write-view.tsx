@@ -19,6 +19,7 @@ export function WriteView() {
   const writeHypothesis = useDesk((s) => s.writeHypothesis);
   const submitHypothesis = useDesk((s) => s.submitHypothesis);
   const [text, setText] = React.useState("");
+  const [thesis, setThesis] = React.useState("");
   const examples = React.useMemo(() => researchData.listExampleHypotheses(), []);
   const error = useDesk((s) => s.error);
   const reduce = useReducedMotion();
@@ -28,8 +29,8 @@ export function WriteView() {
   const canSubmit = trimmed.length > 8;
 
   const submit = React.useCallback(() => {
-    if (canSubmit) submitHypothesis(trimmed);
-  }, [canSubmit, submitHypothesis, trimmed]);
+    if (canSubmit) submitHypothesis(trimmed, thesis.trim());
+  }, [canSubmit, submitHypothesis, thesis, trimmed]);
 
   // Keyboard: Cmd/Ctrl+Enter submits from the textarea.
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -82,6 +83,14 @@ export function WriteView() {
             maxLength={400}
             placeholder="e.g. Trade NVDA and TSLA perps after earnings in the direction of the after-hours move."
             className="w-full resize-none rounded-t-2xl bg-transparent px-5 pt-5 text-[15.5px] leading-relaxed text-foreground placeholder:text-muted-foreground/40 focus:outline-none sm:px-6 sm:text-base"
+          />
+          <input
+            id="thesis"
+            value={thesis}
+            onChange={(e) => setThesis(e.target.value.slice(0, 280))}
+            maxLength={280}
+            placeholder="Optional thesis. Stored with the claim. It does not change the test."
+            className="w-full border-t border-hairline bg-transparent px-5 py-3 text-[13px] text-foreground/80 placeholder:text-muted-foreground/40 focus:outline-none sm:px-6"
           />
           <div className="flex items-center justify-between border-t border-hairline px-5 py-3 sm:px-6">
             <span className="font-mono text-[10.5px] text-muted-foreground/50">

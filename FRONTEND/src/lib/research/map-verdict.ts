@@ -22,6 +22,10 @@ type VerdictJson = {
   snapshot_sha256?: string;
   engine_version?: string;
   mechanism?: string;
+  prior_trials?: number;
+  related_trials?: number;
+  next_question?: string;
+  thesis?: string;
   book_capture?: { provenance?: string; historical?: boolean; spread_bps?: number | null; payload_sha256?: string };
   findings?: { code: string; severity: string; detail?: Record<string, unknown> }[];
 };
@@ -57,7 +61,11 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
     { label: "Requested start", value: raw.requested_start || "—", status: "info" },
     { label: "Oldest fetched bar", value: raw.actual_first || "—", status: "info" },
     { label: "Fetch stop", value: raw.pagination_stop || "—", status: raw.venue_floor ? "pass" : "warn" },
+    { label: "Venue floor", value: raw.venue_floor ? "yes" : "no", status: raw.venue_floor ? "pass" : "warn" },
+    { label: "Prior trials", value: raw.prior_trials === undefined ? "—" : String(raw.prior_trials), status: "info" },
+    { label: "Related trials", value: raw.related_trials === undefined ? "—" : String(raw.related_trials), status: "info" },
     { label: "Spec hash", value: raw.spec_sha256 ? raw.spec_sha256.slice(0, 16) : "—", status: "info" },
+    { label: "Snapshot hash", value: raw.snapshot_sha256 ? raw.snapshot_sha256.slice(0, 16) : "—", status: "info" },
     { label: "Engine", value: raw.engine_version || "—", status: "info" },
     { label: "Mechanism", value: raw.mechanism || "—", status: "info" },
     {
@@ -65,6 +73,8 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
       value: raw.book_capture?.provenance === "forward_recorded" && raw.book_capture.historical === false ? "forward-recorded" : "—",
       status: "info",
     },
+    { label: "Thesis", value: raw.thesis || "—", status: "info" },
+    { label: "Next question", value: raw.next_question || "—", status: "info" },
   ];
   const traps: TrapCheckResult[] = (raw.findings || []).map((finding, index) => ({
     id: finding.code || String(index),
@@ -76,7 +86,9 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
     finding: JSON.stringify(finding.detail || {}),
   }));
   const summary =
-    verdict === "UNTESTABLE"
+    verdict === "UNTESTABLE" && raw.primary_trap === "book_unusable"
+      ? "The current forward book cannot support this execution claim. It is not historical depth."
+      : verdict === "UNTESTABLE"
       ? `Not enough independent Bitget history. Observed ${n ?? "unknown"} of ${raw.required_units ?? "the family minimum"}. Oldest fetched bar ${raw.actual_first || "unknown"} (${raw.pagination_stop === "page_cap" ? "page cap, not a venue floor" : raw.pagination_stop || "fetch boundary"}).`
       : verdict === "INCONCLUSIVE"
         ? "The interval still covers both a real edge and no edge. That is not a kill and it is not a pass."

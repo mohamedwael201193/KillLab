@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
  * reviewable rows. One obvious action: FREEZE TEST.
  */
 export function ReviewView() {
+  const thesisText = useDesk((s) => s.thesisText);
   const scenario = useActiveScenario();
   const startFreeze = useDesk((s) => s.startFreeze);
   const goWrite = useDesk((s) => s.goWrite);
@@ -56,6 +57,9 @@ export function ReviewView() {
           <p className="mt-2.5 text-[16px] leading-relaxed text-foreground/90">
             “{spec.hypothesisText}”
           </p>
+          {thesisText ? (
+            <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">Thesis, not a number: {thesisText}</p>
+          ) : null}
           <div className="mt-4 flex items-start gap-3 rounded-xl border border-ice/15 bg-ice/[0.04] p-4">
             <Brain className="mt-0.5 h-4 w-4 shrink-0 text-ice" aria-hidden="true" />
             <div>

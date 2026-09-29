@@ -38,7 +38,7 @@ export function LandingEvidence() {
     {
       key: "verdict",
       label: "Verdict",
-      caption: "KILLED, ALIVE, or UNTESTABLE — whichever the engine returns",
+      caption: "KILLED, ALIVE, INCONCLUSIVE, or UNTESTABLE — whichever the engine returns",
       note: "sealed · reproducible from the frozen hash",
     },
   ];

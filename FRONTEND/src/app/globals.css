@@ -36,6 +36,7 @@
   --color-verdict-alive: var(--verdict-alive);
   --color-verdict-killed: var(--verdict-killed);
   --color-verdict-untestable: var(--verdict-untestable);
+  --color-verdict-inconclusive: var(--verdict-inconclusive);
   --color-panel: var(--panel);
   --color-panel-2: var(--panel-2);
   --color-hairline: var(--hairline);
@@ -75,6 +76,7 @@
   --verdict-alive: oklch(0.8 0.12 160);
   --verdict-killed: oklch(0.66 0.19 25);
   --verdict-untestable: oklch(0.75 0.06 250);
+  --verdict-inconclusive: oklch(0.78 0.11 85);
   --panel: oklch(0.155 0.006 250);
   --panel-2: oklch(0.185 0.007 250);
   --hairline: oklch(1 0 0 / 8%);

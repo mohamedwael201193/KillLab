@@ -58,8 +58,8 @@ const STEPS = [
   {
     id: "verdict",
     label: "The verdict",
-    text: "KILLED, ALIVE, or UNTESTABLE — assembled from evidence, owned by the engine, never by the AI.",
-    detail: "KILLED, ALIVE, or UNTESTABLE",
+    text: "KILLED, ALIVE, INCONCLUSIVE, or UNTESTABLE — assembled from evidence, owned by the engine, never by the AI.",
+    detail: "KILLED, ALIVE, INCONCLUSIVE, or UNTESTABLE",
     side: "engine" as const,
   },
 ];

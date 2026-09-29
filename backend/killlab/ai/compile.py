@@ -133,7 +133,7 @@ def normalize_draft(raw_text: str, proposed: dict) -> dict:
         "notional_usd": 10000,
         "seed": 1,
         "transforms": [],
-        "risk": {"sigma_span": "until_sunday_switch", "horizon_span": "until_sunday_switch", "alternatives": ["NOW", "WAIT"], "lambda_grid": [0.5]} if family == "execution_venue_time" else {},
+        "risk": {"sigma_span": "until_sunday_switch", "horizon_span": "until_sunday_switch", "alternatives": ["NOW", "WAIT"], "lambda_grid": [0.5], "book_max_spread_bps": 50} if family == "execution_venue_time" else {},
         "claims_alpha": False,
         "event_kind": "none",
     }

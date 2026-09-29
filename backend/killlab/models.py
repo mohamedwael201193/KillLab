@@ -21,6 +21,7 @@ class Hypothesis(Base):
     __table_args__ = {"schema": "killlab"}
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
     raw_text: Mapped[str] = mapped_column(Text)
+    thesis: Mapped[str | None] = mapped_column(Text, nullable=True)
     family: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
@@ -102,5 +103,5 @@ class IdempotencyKey(Base):
     status_code: Mapped[int] = mapped_column(Integer)
 
 
-ENGINE_VERSION = "killlab-0.8.0"
+ENGINE_VERSION = "killlab-0.9.0"
 SCHEMA_READY = text("SELECT 1")

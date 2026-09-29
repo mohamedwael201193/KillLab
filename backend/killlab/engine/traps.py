@@ -11,6 +11,8 @@ FAMILY_MIN_UNITS = {
     "unsupported": 10**9,
 }
 
+BOOK_MAX_SPREAD_BPS = 50.0
+
 KILL_FLOOR = {
     "oos_mean_bps_gt": 0.0,
     "oos_sharpe_gte": 1.0,
@@ -106,6 +108,27 @@ def trap_waiting_risk(family: str, alternatives: list[str], sigma_h_present: boo
     return out
 
 
+def trap_forward_book(family: str, capture, bound: float) -> list[dict]:
+    """A current book can stop an execution claim. It is never a historical tape."""
+    if family != "execution_venue_time":
+        return []
+    if not isinstance(capture, dict):
+        return [_finding("book_unusable", "invalidate", {"reason": "missing_capture"})]
+    if capture.get("historical") is True or capture.get("provenance") != "forward_recorded":
+        return [_finding("book_unusable", "invalidate", {"reason": "not_forward", "historical": capture.get("historical")})]
+    try:
+        bid = float(capture.get("bid_depth"))
+        ask = float(capture.get("ask_depth"))
+        spread = float(capture.get("spread_bps"))
+    except (TypeError, ValueError):
+        return [_finding("book_unusable", "invalidate", {"reason": "empty_side"})]
+    if bid <= 0 or ask <= 0 or spread != spread:
+        return [_finding("book_unusable", "invalidate", {"reason": "empty_side", "bid_depth": bid, "ask_depth": ask})]
+    if spread > bound:
+        return [_finding("book_unusable", "invalidate", {"reason": "spread", "spread_bps": spread, "bound_bps": bound})]
+    return []
+
+
 def scan(spec: dict, measured: dict) -> list[dict]:
     findings: list[dict] = []
     findings += trap_multiple_testing(spec, measured.get("dsr"), measured.get("n_trials"))
@@ -127,6 +150,11 @@ def scan(spec: dict, measured: dict) -> list[dict]:
         bool(spec.get("costs")),
         measured.get("net_apr"),
         measured.get("baseline_apr"),
+    )
+    findings += trap_forward_book(
+        str(spec.get("family")),
+        measured.get("book_capture"),
+        min(float((spec.get("risk") or {}).get("book_max_spread_bps") or BOOK_MAX_SPREAD_BPS), BOOK_MAX_SPREAD_BPS),
     )
     findings += trap_waiting_risk(
         str(spec.get("family")),

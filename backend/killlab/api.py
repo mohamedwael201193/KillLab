@@ -52,6 +52,7 @@ _HITS: dict[str, list[float]] = defaultdict(list)
 class HypothesisIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     raw_text: str = Field(min_length=1, max_length=4000)
+    thesis: str | None = Field(default=None, max_length=280)
 
 
 class FreezeIn(BaseModel):
@@ -276,7 +277,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/v1/hypotheses", status_code=201)
     def create_hypothesis(body: HypothesisIn, session: Session = Depends(db), _: None = Depends(auth)):
         hid = uuid.uuid4()
-        row = Hypothesis(id=hid, raw_text=body.raw_text, family=None)
+        thesis = (body.thesis or "").strip() or None
+        row = Hypothesis(id=hid, raw_text=body.raw_text, thesis=thesis, family=None)
         session.add(row)
         session.add(LedgerEntry(hypothesis_id=hid, stage="KNOWN", body={"raw_text": body.raw_text}))
         session.commit()
@@ -412,6 +414,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 related_trials=related,
             )
             card["fingerprint"] = fingerprint
+            owner = session.get(Hypothesis, spec.hypothesis_id)
+            if owner is not None and owner.thesis:
+                card["thesis"] = owner.thesis
             log_event("verdict", label=card.get("label"), primary_trap=card.get("primary_trap"), run_id=str(run.id))
             run.status = "untestable" if card["label"] == "UNTESTABLE" else "succeeded"
             run.result_json = card
@@ -486,7 +491,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if row.test_run_id:
             run = session.get(TestRun, row.test_run_id)
             card = dict(run.result_json or {}) if run else {}
-        proposal = evolution_state(card, trap)
+        review = None
+        if row.test_run_id:
+            reviews = session.scalars(
+                select(LedgerEntry).where(LedgerEntry.test_run_id == row.test_run_id, LedgerEntry.stage == "REVIEW").order_by(LedgerEntry.created_at)
+            ).all()
+            if reviews:
+                review = reviews[-1].body
+        proposal = evolution_state(card, trap, review)
         facts = {
             "label": card.get("label"),
             "primary_trap": card.get("primary_trap"),

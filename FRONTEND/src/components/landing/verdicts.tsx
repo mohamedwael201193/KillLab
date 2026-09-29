@@ -7,7 +7,7 @@ import { SectionHeading, MonoChip } from "@/components/kl/atoms";
 import { cn } from "@/lib/utils";
 
 /**
- * THE VERDICT — three endings, one visual grammar:
+ * THE VERDICT — four endings, one visual grammar:
  * the aperture. The same signal passes through the same frame;
  * only the outcome geometry differs.
  */
@@ -23,17 +23,18 @@ export function LandingVerdicts() {
               <>
                 Every frozen test ends
                 <br />
-                <span className="text-muted-foreground">in exactly one of three places.</span>
+                <span className="text-muted-foreground">in exactly one of four places.</span>
               </>
             }
-            lead="No score out of ten. No star rating. The engine states which of three worlds you are in — and every number behind that statement is reproducible from the frozen spec."
+            lead="No score out of ten. No star rating. The engine states which of four worlds you are in — and every number behind that statement is reproducible from the frozen spec."
             align="center"
           />
         </Reveal>
 
-        <div className="mt-14 grid gap-5 md:grid-cols-3">
+        <div className="mt-14 grid gap-5 md:grid-cols-2">
           <VerdictCard verdict="KILLED" delay={0} />
           <VerdictCard verdict="ALIVE" delay={0.1} />
+          <VerdictCard verdict="INCONCLUSIVE" delay={0.15} />
           <VerdictCard verdict="UNTESTABLE" delay={0.2} />
         </div>
 
@@ -71,6 +72,17 @@ const VERDICT_META = {
       ["Fills get reviewed", "After trading, real executions are compared against the frozen forecast. That's where thin edges tell the truth."],
     ],
     signal: "pass" as const,
+  },
+  INCONCLUSIVE: {
+    color: "var(--verdict-inconclusive)",
+    chip: "inconclusive" as const,
+    title: "The sample was large enough, and it still did not decide.",
+    points: [
+      ["The interval covers both sides", "The out-of-sample range includes a gain and a loss, or Deflated Sharpe is below 0.95."],
+      ["Not a kill", "Failure to prove the edge is not the same as evidence against it."],
+      ["Not a pass", "INCONCLUSIVE does not clear the frozen kill floor."],
+    ],
+    signal: "split" as const,
   },
   UNTESTABLE: {
     color: "var(--verdict-untestable)",
@@ -126,7 +138,7 @@ function VerdictCard({ verdict, delay }: { verdict: keyof typeof VERDICT_META; d
 }
 
 /** The verdict aperture — one geometry, three outcomes. */
-function VerdictAperture({ signal, color, reduce }: { signal: "cut" | "pass" | "withhold"; color: string; reduce: boolean | null }) {
+function VerdictAperture({ signal, color, reduce }: { signal: "cut" | "pass" | "withhold" | "split"; color: string; reduce: boolean | null }) {
   return (
     <div className="flex h-24 items-center justify-center">
       <svg viewBox="0 0 160 96" fill="none" className="h-full w-auto" aria-hidden="true">
@@ -181,6 +193,13 @@ function VerdictAperture({ signal, color, reduce }: { signal: "cut" | "pass" | "
               transition={{ duration: 0.45, delay: 0.85 }}
               style={{ transformOrigin: "111px 48px" }}
             />
+          </>
+        )}
+        {signal === "split" && (
+          <>
+            <motion.path d="M84 48 H 110" stroke={color} strokeWidth="2.2" strokeLinecap="round" initial={reduce ? false : { pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }} transition={{ duration: 0.45, delay: 0.45 }} />
+            <motion.path d="M110 48 L 146 32" stroke={color} strokeWidth="2" strokeLinecap="round" initial={reduce ? false : { pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }} transition={{ duration: 0.45, delay: 0.7 }} />
+            <motion.path d="M110 48 L 146 64" stroke={color} strokeWidth="2" strokeLinecap="round" initial={reduce ? false : { pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }} transition={{ duration: 0.45, delay: 0.7 }} />
           </>
         )}
         {signal === "withhold" && (

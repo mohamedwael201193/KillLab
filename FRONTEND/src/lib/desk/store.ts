@@ -60,7 +60,8 @@ interface DeskState {
   /** Fields set once per lab session. */
   setTab: (tab: DeskTab) => void;
   writeHypothesis: (text: string) => void;
-  submitHypothesis: (text: string) => void;
+  thesisText: string;
+  submitHypothesis: (text: string, thesis?: string) => void;
   goReview: () => void;
   goWrite: () => void;
   updateWindow: (start: string, end: string) => void;
@@ -81,6 +82,7 @@ const initial = {
   tab: "research" as DeskTab,
   screen: { kind: "write" } as DeskScreen,
   hypothesisText: "",
+  thesisText: "",
   scenarioKey: null as ScenarioKey | null,
   report: null as VerdictReport | null,
   runProgram: [] as RunStageDef[],
@@ -107,10 +109,11 @@ export const useDesk = create<DeskState>((set, get) => ({
 
   writeHypothesis: (text) => set({ hypothesisText: text }),
 
-  submitHypothesis: async (text) => {
-    set({ error: null, hypothesisText: text });
+  submitHypothesis: async (text, thesis) => {
+    const thesisText = (thesis || "").trim();
+    set({ error: null, hypothesisText: text, thesisText });
     try {
-      const created = await killlab("POST", "/v1/hypotheses", { raw_text: text });
+      const created = await killlab("POST", "/v1/hypotheses", { raw_text: text, thesis: thesisText || null });
       const local = draftSpec(text);
       let spec = local;
       try {
