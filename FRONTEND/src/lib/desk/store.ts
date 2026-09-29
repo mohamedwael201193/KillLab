@@ -116,11 +116,12 @@ export const useDesk = create<DeskState>((set, get) => ({
       try {
         const compiled = await killlab("POST", `/v1/hypotheses/${created.id}/compile`);
         if (compiled.draft?.family && Array.isArray(compiled.draft.instruments)) {
-          const allowed = ["family", "instruments", "venue", "test_start", "test_end", "grain", "costs", "baselines", "variants", "selection", "target_metric", "notional_usd", "seed", "transforms", "risk", "claims_alpha", "event_kind"] as const;
-          spec = { ...local };
+          const allowed = ["family", "instruments", "venue", "test_start", "test_end", "grain", "costs", "baselines", "variants", "selection", "target_metric", "notional_usd", "seed", "transforms", "risk", "claims_alpha", "event_kind"];
+          const merged: Record<string, unknown> = { ...local };
           for (const key of allowed) {
-            if (compiled.draft[key] !== undefined) spec[key] = compiled.draft[key];
+            if (compiled.draft[key] !== undefined) merged[key] = compiled.draft[key];
           }
+          spec = merged as typeof local;
         }
       } catch {
         spec = local;
