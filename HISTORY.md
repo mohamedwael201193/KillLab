@@ -279,5 +279,6 @@ This file is append-only.
 ## 2026-09-29 Qwen timeout on the production narration path
 
 - The first production next-question call fell through to the temporary Groq model because Qwen did not answer inside 30 seconds. Narration and explanation now use `LLM_TIMEOUT_S`, set to 60 on the runtime. A local narration with that budget returned model `qwen3.8-max` and `numbers_locked` true.
+- Production after `72bf477`: `GET /health` returned `killlab-0.8.0`. Chrome on `https://killlab.vercel.app` compiled “Trade NVDA perp in the first hour of the cash session.” to `session_timing` with variants continuation and reversal. The browser called only that host. `POST /v1/runs/6ddbe0c8-43fa-4067-bbd4-2bf53c4c818e/explain` returned `numbers_locked` true. `POST /v1/ledger/{decision}/next` returned model `qwen3.8-max`, `stored` false, `units_short` 80, `forward_armed` true, and the key was not in the narrative. The scheduler wrote `FORWARD_CHECK` rows with `automatic` true, including spec `8802daebefe207d6` at 59 units, 1 still needed. A second sweep the same UTC day returned four `duplicate` actions and the `FORWARD_CHECK` count stayed 4. `killlab.book_captures` has one row, provenance `forward_recorded`, and `historical` is false. No `AUTO_RUN` was created, because no armed spec had reached its family floor.
 
 
