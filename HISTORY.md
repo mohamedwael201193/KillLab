@@ -276,4 +276,8 @@ This file is append-only.
 - Test: `python -m pytest -q` → 34 passed. Frontend `tsc --noEmit` and `next build` passed. A tracked-file scan found the key in 0 files. A live compile of an NVDA open-hour sentence returned `session_timing`, cost 6, and no verdict field. A narrated sentence that invented 9.99 was locked.
 - The first production sweep could write more than one `FORWARD_CHECK` for the same spec when two processes started together. The sweep now inserts an idempotency key for `preregistration + UTC day` before it pulls data. A losing process records a duplicate and does not pull. A venue failure deletes that key so a later pass can retry.
 
+## 2026-09-29 Qwen timeout on the production narration path
+
+- The first production next-question call fell through to the temporary Groq model because Qwen did not answer inside 30 seconds. Narration and explanation now use `LLM_TIMEOUT_S`, set to 60 on the runtime. A local narration with that budget returned model `qwen3.8-max` and `numbers_locked` true.
+
 

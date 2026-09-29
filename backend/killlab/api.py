@@ -495,7 +495,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "forward_armed": card.get("forward_armed"),
             "proposed_raw_text": proposal.get("proposed_raw_text"),
         }
-        words = narrate("Phrase the next research question using only these facts.", facts)
+        words = narrate("Phrase the next research question using only these facts.", facts, timeout_s=settings.llm_timeout_s)
         proposal["narrative"] = words["text"]
         proposal["model"] = words["model"]
         proposal["stored"] = False
@@ -541,7 +541,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if spec_row is not None:
             session.add(LedgerEntry(hypothesis_id=spec_row.hypothesis_id, test_run_id=run.id, stage="REVIEW", body={"fingerprint": before.get("fingerprint"), "object": "unit", "inside_predictive": review.get("inside_predictive")}))
             session.commit()
-        words = narrate("Describe this one-trade review. Do not change the comparison.", review)
+        words = narrate("Describe this one-trade review. Do not change the comparison.", review, timeout_s=settings.llm_timeout_s)
         review = dict(review)
         review["narrative"] = words["text"]
         review["model"] = words["model"]
@@ -561,7 +561,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "ci_low": row.result_json.get("ci_low"),
             "ci_high": row.result_json.get("ci_high"),
         }
-        words = narrate("Explain this frozen result in plain language.", facts)
+        words = narrate("Explain this frozen result in plain language.", facts, timeout_s=settings.llm_timeout_s)
         return {"summary": words["text"], "model": words["model"], "numbers_locked": True}
 
     @app.post("/v1/internal/forward-sweep")
