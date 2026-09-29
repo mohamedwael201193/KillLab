@@ -49,8 +49,29 @@ def evolution_state(card: dict, primary_trap: str | None) -> dict:
     proposal = next_hypothesis(primary_trap)
     proposal["fingerprint"] = card.get("fingerprint")
     proposal["prior_trials"] = card.get("prior_trials")
+    proposal["related_trials"] = card.get("related_trials")
     proposal["next_prior_trials"] = int(card.get("prior_trials") or 0) + 1
+    proposal["units_short"] = card.get("units_short")
+    proposal["forward_armed"] = bool(card.get("forward_armed"))
+    proposal["pagination_stop"] = card.get("pagination_stop")
+    if card.get("forward_armed") and card.get("units_short"):
+        proposal["proposed_raw_text"] = (
+            f"Keep this frozen spec. It still needs {int(card['units_short'])} more independent units on the Bitget tape. Do not rewrite the claim."
+        )
     return proposal
+
+
+def is_related_research(left: dict, right: dict) -> bool:
+    """Same family and grain, and at least half the instrument set overlaps. Exact fingerprints are counted separately."""
+    if research_fingerprint(left) == research_fingerprint(right):
+        return False
+    if left.get("family") != right.get("family") or left.get("grain") != right.get("grain"):
+        return False
+    a = {str(item) for item in (left.get("instruments") or [])}
+    b = {str(item) for item in (right.get("instruments") or [])}
+    if not a or not b:
+        return False
+    return len(a & b) / len(a | b) >= 0.5
 
 
 def reconcile_point(realized_bps: float, ci_low: float | None, ci_high: float | None) -> dict:

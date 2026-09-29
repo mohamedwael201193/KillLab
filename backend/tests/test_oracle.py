@@ -88,17 +88,25 @@ def test_bootstrap_interval_covers_a_known_normal_mean():
 
 def test_calibration_curve_rejects_a_null_and_accepts_a_large_planted_edge():
     curve = {str(edge): _run(edge, 11) for edge in (0, 5, 20, 40)}
+    nulls = [_run(0, seed) for seed in range(11, 16)]
+    strong = [_run(40, seed) for seed in range(11, 16)]
     assert curve["0"] != "ALIVE"
     assert curve["5"] != "ALIVE"
     assert curve["40"] == "ALIVE"
+    assert all(label != "ALIVE" for label in nulls)
+    assert all(label == "ALIVE" for label in strong)
     report = {
         "engine_version": ENGINE_VERSION,
         "protocol": "session_timing",
         "seed": 11,
+        "seeds_for_rates": [11, 12, 13, 14, 15],
         "days": 80,
         "round_trip_bps": 12,
         "labels_by_open_hour_edge_bps": curve,
-        "false_alive_on_zero_edge": curve["0"] == "ALIVE",
+        "false_alive_on_zero_edge": any(label == "ALIVE" for label in nulls),
+        "false_kill_on_40bps": any(label == "KILLED" for label in strong),
+        "null_labels": nulls,
+        "strong_labels": strong,
         "note": "Gross open-hour edge. A 12 bps round trip is charged on the excess over other cash hours.",
     }
     REPORT.parent.mkdir(parents=True, exist_ok=True)

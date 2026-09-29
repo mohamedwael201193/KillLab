@@ -7,6 +7,14 @@ type VerdictJson = {
   pbo?: number | null;
   n_units?: { n?: number };
   n_events?: number;
+  units_short?: number;
+  required_units?: number;
+  pagination_stop?: string | null;
+  venue_floor?: boolean;
+  requested_start?: string | null;
+  mde_bps?: number | null;
+  events_in_tape?: number | null;
+  events_outside_tape?: number | null;
   actual_first?: string | null;
   ci_low?: number | null;
   ci_high?: number | null;
@@ -38,9 +46,16 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
   const evidence: EvidenceRow[] = [
     { label: "Verdict", value: verdict, status: verdict === "ALIVE" ? "pass" : verdict === "KILLED" ? "fail" : "warn" },
     { label: "Out-of-sample units", value: n === undefined ? "—" : String(n), status: "info" },
+    { label: "Units required", value: raw.required_units === undefined ? "—" : String(raw.required_units), status: "info" },
+    { label: "Units still needed", value: raw.units_short === undefined ? "—" : String(raw.units_short), status: "info" },
     { label: "Raw events", value: raw.n_events === undefined ? "—" : String(raw.n_events), status: "info" },
+    { label: "Events inside tape", value: raw.events_in_tape === undefined || raw.events_in_tape === null ? "—" : String(raw.events_in_tape), status: "info" },
+    { label: "Events outside tape", value: raw.events_outside_tape === undefined || raw.events_outside_tape === null ? "—" : String(raw.events_outside_tape), status: "info" },
+    { label: "Detectable edge bps", value: raw.mde_bps === undefined || raw.mde_bps === null ? "—" : num(raw.mde_bps), status: "info" },
     ...scores,
-    { label: "First Bitget bar", value: raw.actual_first || "—", status: "info" },
+    { label: "Requested start", value: raw.requested_start || "—", status: "info" },
+    { label: "Oldest fetched bar", value: raw.actual_first || "—", status: "info" },
+    { label: "Fetch stop", value: raw.pagination_stop || "—", status: raw.venue_floor ? "pass" : "warn" },
     { label: "Spec hash", value: raw.spec_sha256 ? raw.spec_sha256.slice(0, 16) : "—", status: "info" },
     { label: "Engine", value: raw.engine_version || "—", status: "info" },
     { label: "Mechanism", value: raw.mechanism || "—", status: "info" },
@@ -56,7 +71,7 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
   }));
   const summary =
     verdict === "UNTESTABLE"
-      ? `Not enough independent Bitget history to score this idea. First bar ${raw.actual_first || "unknown"}. Sample ${n ?? "unknown"}.`
+      ? `Not enough independent Bitget history. Observed ${n ?? "unknown"} of ${raw.required_units ?? "the family minimum"}. Oldest fetched bar ${raw.actual_first || "unknown"} (${raw.pagination_stop === "page_cap" ? "page cap, not a venue floor" : raw.pagination_stop || "fetch boundary"}).`
       : verdict === "INCONCLUSIVE"
         ? "The interval still covers both a real edge and no edge. That is not a kill and it is not a pass."
       : verdict === "KILLED"

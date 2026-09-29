@@ -20,9 +20,9 @@ from killlab.ai.boundary import enforce_kill_floor, filter_explanation, reject_f
 from killlab.ai.compile import LLMUnavailable, compile_text
 from killlab.config import Settings, settings_from_environ
 from killlab.data.bitget import BitgetError, BitgetRest, NotFrozen
-from killlab.data.earnings import align_events, earnings_timestamps_ms, symbol_for, tag_events
+from killlab.data.earnings import align_events, classify_event_times, earnings_timestamps_ms, symbol_for, tag_events
 from killlab.db import session_factory
-from killlab.engine.review import evolution_state, killed_decision, reconcile_unit, research_fingerprint, realized_from_fills
+from killlab.engine.review import evolution_state, is_related_research, killed_decision, reconcile_unit, research_fingerprint, realized_from_fills
 from killlab.guard import fixtures_loaded
 from killlab.hashutil import sha256_canonical
 from killlab.logjson import log_event
@@ -257,25 +257,49 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             client = BitgetRest(settings)
             venue = spec.canonical_json.get("venue")
             product = "USDT-FUTURES" if venue == "bitget_perp" else "SPOT"
-            pages = 8 if spec.canonical_json.get("family") in {"event_earnings", "execution_venue_time", "carry_basis", "session_timing"} else 3
+            pages = 8 if spec.canonical_json.get("family") in {"event_earnings", "execution_venue_time", "carry_basis", "basis_convergence", "session_timing"} else 3
             snapshot = None
             events = []
             failures = 0
             for instrument in spec.canonical_json["instruments"]:
                 symbol = symbol_for(instrument, venue or "")
+                leg_product = product
+                if spec.canonical_json.get("family") == "basis_convergence" and symbol.upper().startswith("R"):
+                    leg_product = "SPOT"
                 try:
-                    pulled = client.history_candles(frozen=True, product=product, symbol=symbol, pages=pages)
+                    pulled = client.history_candles(frozen=True, product=leg_product, symbol=symbol, pages=pages)
                 except BitgetError:
                     failures += 1
                     continue
                 if snapshot is None:
                     snapshot = pulled
-                elif pulled.get("actual_first") and (
-                    snapshot.get("actual_first") is None or pulled["actual_first"] < snapshot["actual_first"]
-                ):
-                    snapshot["actual_first"] = pulled["actual_first"]
+                else:
+                    if pulled.get("actual_first") and (
+                        snapshot.get("actual_first") is None or pulled["actual_first"] < snapshot["actual_first"]
+                    ):
+                        snapshot["actual_first"] = pulled["actual_first"]
+                    if pulled.get("actual_last") and (
+                        snapshot.get("actual_last") is None or pulled["actual_last"] > snapshot["actual_last"]
+                    ):
+                        snapshot["actual_last"] = pulled["actual_last"]
+                    rank = {"short_page": 0, "empty_page": 1, "page_cap": 2}
+                    if rank.get(pulled.get("pagination_stop"), 0) > rank.get(snapshot.get("pagination_stop"), 0):
+                        snapshot["pagination_stop"] = pulled["pagination_stop"]
+                        snapshot["pages_requested"] = pulled.get("pages_requested")
+                        snapshot["pages_fetched"] = pulled.get("pages_fetched")
                 if spec.canonical_json.get("family") == "event_earnings":
-                    events.extend(tag_events(align_events(pulled.get("rows") or [], earnings_timestamps_ms(symbol)), symbol))
+                    stamps = earnings_timestamps_ms(symbol)
+                    classified = classify_event_times(pulled.get("rows") or [], stamps)
+                    snapshot["events_outside_tape"] = int(snapshot.get("events_outside_tape") or 0) + classified["outside"]
+                    snapshot["events_short_horizon"] = int(snapshot.get("events_short_horizon") or 0) + classified["short_horizon"]
+                    snapshot["events_aligned"] = int(snapshot.get("events_aligned") or 0) + classified["aligned"]
+                    events.extend(tag_events(align_events(pulled.get("rows") or [], stamps), symbol))
+                if spec.canonical_json.get("family") == "basis_convergence" and leg_product == "SPOT":
+                    snapshot["spot_rows"] = list(pulled.get("rows") or [])
+                    if snapshot.get("rows") is pulled.get("rows"):
+                        snapshot["rows"] = []
+                elif spec.canonical_json.get("family") == "basis_convergence":
+                    snapshot["rows"] = list(pulled.get("rows") or [])
                 if spec.canonical_json.get("family") == "carry_basis":
                     try:
                         funding = client.history_funding(frozen=True, symbol=symbol)
@@ -285,14 +309,35 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     snapshot["funding"].extend(funding.get("rows") or [])
             if snapshot is None:
                 raise BitgetError(f"no symbol ({failures} failed)")
+            try:
+                book = client.ticker(frozen=True, symbol=symbol_for(spec.canonical_json["instruments"][0], venue or ""))
+            except (BitgetError, IndexError):
+                book = None
+            if book:
+                snapshot["book_observation"] = book
             if spec.canonical_json.get("family") == "event_earnings":
                 snapshot["events"] = events
             fingerprint = research_fingerprint(spec.canonical_json)
             prior = 0
+            related = 0
+            specs_by_hash: dict = {}
             for previous in session.scalars(select(TestRun).where(TestRun.result_json.is_not(None))):
                 if (previous.result_json or {}).get("fingerprint") == fingerprint:
                     prior += 1
-            card = execute({**spec.canonical_json, "content_sha256": spec.content_sha256}, snapshot, prior_trials=prior)
+                    continue
+                prev_spec = specs_by_hash.get(previous.spec_sha256)
+                if prev_spec is None and previous.spec_sha256:
+                    prev_spec = session.scalar(select(TestSpec).where(TestSpec.content_sha256 == previous.spec_sha256))
+                    specs_by_hash[previous.spec_sha256] = prev_spec
+                if prev_spec is not None and is_related_research(spec.canonical_json, prev_spec.canonical_json):
+                    related += 1
+            snapshot["requested_start"] = spec.canonical_json.get("test_start")
+            card = execute(
+                {**spec.canonical_json, "content_sha256": spec.content_sha256},
+                snapshot,
+                prior_trials=prior,
+                related_trials=related,
+            )
             card["fingerprint"] = fingerprint
             log_event("verdict", label=card.get("label"), primary_trap=card.get("primary_trap"), run_id=str(run.id))
             run.status = "untestable" if card["label"] == "UNTESTABLE" else "succeeded"

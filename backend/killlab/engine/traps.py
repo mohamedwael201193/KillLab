@@ -7,6 +7,7 @@ FAMILY_MIN_UNITS = {
     "event_earnings": 100,
     "carry_basis": 60,
     "execution_venue_time": 8,
+    "basis_convergence": 60,
     "unsupported": 10**9,
 }
 
@@ -23,7 +24,7 @@ def _finding(code: str, severity: str, detail: dict) -> dict:
     return {"code": code, "severity": severity, "detail": detail}
 
 
-def trap_multiple_testing(spec: dict, dsr: float | None) -> list[dict]:
+def trap_multiple_testing(spec: dict, dsr: float | None, n_trials: int | None = None) -> list[dict]:
     out = []
     selection = spec.get("selection") or {}
     if selection.get("split") != "IS":
@@ -31,8 +32,9 @@ def trap_multiple_testing(spec: dict, dsr: float | None) -> list[dict]:
     n = len(spec.get("variants") or [])
     if n < 1:
         out.append(_finding("MULTIPLE_TESTING", "invalidate", {"reason": "no_variants"}))
+    accounted = n if n_trials is None else int(n_trials)
     if dsr is not None and dsr == dsr and dsr < KILL_FLOOR["dsr_gte"]:
-        out.append(_finding("MULTIPLE_TESTING", "hold", {"dsr": dsr, "bar": KILL_FLOOR["dsr_gte"], "n_trials": n}))
+        out.append(_finding("MULTIPLE_TESTING", "hold", {"dsr": dsr, "bar": KILL_FLOOR["dsr_gte"], "n_trials": accounted}))
     return out
 
 
@@ -106,7 +108,7 @@ def trap_waiting_risk(family: str, alternatives: list[str], sigma_h_present: boo
 
 def scan(spec: dict, measured: dict) -> list[dict]:
     findings: list[dict] = []
-    findings += trap_multiple_testing(spec, measured.get("dsr"))
+    findings += trap_multiple_testing(spec, measured.get("dsr"), measured.get("n_trials"))
     findings += trap_beta_as_alpha(bool(spec.get("claims_alpha", True)), float(measured.get("alpha", 0.0)), float(measured.get("t_stat", 0.0)))
     findings += trap_bar_timing(int(measured.get("grain_seconds", 3600)), str(spec.get("event_kind", "none")), float(measured.get("bar_open_delta_s", 0.0)))
     risk = spec.get("risk") or {}

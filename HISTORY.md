@@ -249,4 +249,20 @@ This file is append-only.
 - Backend pytest: 16 passed. Frontend typecheck and `next build` passed. Git `0231428` pushed to `mohamedwael201193/KillLab` main.
 - Unused simulated report files were removed from `FRONTEND/src/lib/research/fixtures`. Trap explanations and example prompts remain. They are not run results.
 
+## 2026-09-29 BUG-007 — weekend interval collapsed to zero because the baseline was the selected action
+
+- Old behavior: `execution_panel` used NOW returns as the baseline. Walk-forward that selected NOW produced an excess of exactly zero on every weekend. Production run `d975959f-ec20-47f9-8123-b1e37bcdbd3d` showed interval 0 to 0 and `INCONCLUSIVE` on engine `killlab-0.6.0`. That interval is obsolete for the weekend comparison.
+- Why it was wrong: scoring an action against itself cannot be a gain, a loss, or a contradiction. The shared StockRoute exit was already correct. The baseline was not.
+- Correct behavior: both actions stay marked to the same exit, and the baseline is cash (zero). Selecting NOW can show a real net return after the 12 bps round trip. Engine `killlab-0.7.0`.
+- Provenance: a candle pull records `pages_requested`, `pages_fetched`, `pagination_stop` (`short_page`, `empty_page`, or `page_cap`), and `actual_last`. `actual_first` is the oldest fetched bar. A page cap is a fetch limit, not the start of venue history. Earnings stamps outside the first and last bar are `events_outside_tape` and are not trials. An underpowered family sets `units_short` and `forward_armed` without changing the freeze or the label.
+- Test: `tests/test_adversarial.py::test_weekend_baseline_is_cash_not_the_selected_action_itself`. `python -m pytest -q` → 26 passed. Frontend `tsc --noEmit` passed.
+
+## 2026-09-29 Research decision — provenance, related trials, and basis fade
+
+- Decision: keep the family floor. Record whether the oldest bar is a venue floor or a page cap. Count a prior test when the family, grain, and at least half the instrument set overlap, even if the fingerprint differs. Add `basis_convergence` only after a live Bitget pull showed aligned NVDA perp and RNVDA spot hours.
+- Source: public `/api/v2/mix/market/history-candles` and `/api/v2/spot/market/history-candles`. Eight pages produced 1597 aligned hours from 2026-07-24T03:00:00Z through 2026-09-29T01:00:00Z, 68 calendar days, basis from -135.94 bps to 291.75 bps. Spot history requires `endTime`; the first request now sends it.
+- Reason: a page cap must not be described as the listing date. Earnings stamps outside the tape are not trials. Exact wording was already ignored; overlapping names were not. The basis tape can support one daily fade. Hourly prints inside that day are not trials. A gap over 26 hours is dropped. The cost is the perp round trip plus the non-promo r-token round trip, 32 bps, from `COST_SCHEDULE`, not from the model.
+- Impact: engine `killlab-0.7.0`. Seeded session curve in `docs/calibration/verdict_curve.json`: zero-edge labels on seeds 11–15 are all `KILLED` (`false_alive_on_zero_edge` false). 40 bps labels are all `ALIVE` (`false_kill_on_40bps` false). A forward-armed card changes the next question to name `units_short` and does not edit `result_json`. Re-running `POST /v1/runs` on the same preregistration pulls a new snapshot and leaves the freeze hash unchanged. Unattended firing when the floor is later reached has no scheduler on the web service; that wait is external. A public ticker bid/ask is stored as `book_observation` and is not an input to the verdict. Historical order-book depth is not reconstructed. Qwen is still absent: `LLM_API_KEY` is empty, and the official credit path needs a KYC UID and Telegram handle that were not supplied.
+- Test: `python -m pytest -q` → 30 passed.
+
 

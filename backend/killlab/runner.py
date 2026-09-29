@@ -7,6 +7,7 @@ from killlab.engine.bootstrap import percentile_ci
 from killlab.engine.dsr import dsr_from_series
 from killlab.engine.mechanisms import build_panel, walk_forward_selected
 from killlab.engine.pbo import cscv_pbo
+from killlab.engine.traps import FAMILY_MIN_UNITS
 from killlab.engine.verdict import decide
 
 
@@ -28,7 +29,7 @@ def _predictive(values: list[float]) -> tuple[float | None, float | None]:
     return float(np.quantile(clean, 0.05)), float(np.quantile(clean, 0.95))
 
 
-def execute(spec: dict, snapshot: dict, prior_trials: int = 0) -> dict:
+def execute(spec: dict, snapshot: dict, prior_trials: int = 0, related_trials: int = 0) -> dict:
     panel = build_panel(spec, snapshot)
     series_ids = panel["unit_ids"]
     n_events = len(series_ids)
@@ -41,8 +42,9 @@ def execute(spec: dict, snapshot: dict, prior_trials: int = 0) -> dict:
     ci = {"ci_low": None, "ci_high": None}
     alpha, t_stat = mean_tstat(oos or [])
     variants = list(panel["variants"])
+    n_trials = max(1, len(variants)) + max(0, int(prior_trials)) + max(0, int(related_trials))
     if len(oos) >= 3 and variants:
-        dsr_doc = dsr_from_series(oos, n_trials=max(1, len(variants)) + max(0, int(prior_trials)))
+        dsr_doc = dsr_from_series(oos, n_trials=n_trials)
         dsr = dsr_doc.get("dsr")
         ci = percentile_ci(selected["excess"] or oos, seed=int(spec.get("seed") or 1), resamples=400)
         if ci["ci_low"] is not None:
@@ -73,6 +75,7 @@ def execute(spec: dict, snapshot: dict, prior_trials: int = 0) -> dict:
         "avoided_loss_bps": None,
         "ci_low": ci.get("ci_low"),
         "ci_high": ci.get("ci_high"),
+        "n_trials": n_trials,
         "bar_straddle": spec.get("family") == "session_timing" and spec.get("grain") in {"1H", "1h"},
     }
     if beats is not None:
@@ -94,7 +97,23 @@ def execute(spec: dict, snapshot: dict, prior_trials: int = 0) -> dict:
     card["unit_p95"] = unit_high
     card["n_eff"] = n_units
     card["prior_trials"] = max(0, int(prior_trials))
-    card["n_trials"] = max(1, len(variants)) + card["prior_trials"]
+    card["related_trials"] = max(0, int(related_trials))
+    card["n_trials"] = n_trials
+    card["requested_start"] = spec.get("test_start")
+    card["required_units"] = FAMILY_MIN_UNITS.get(spec.get("family"))
+    card["pages_requested"] = snapshot.get("pages_requested")
+    card["pagination_stop"] = snapshot.get("pagination_stop")
+    card["actual_last"] = snapshot.get("actual_last")
+    card["venue_floor"] = snapshot.get("pagination_stop") in {"short_page", "empty_page"}
+    card["events_outside_tape"] = snapshot.get("events_outside_tape")
+    card["events_short_horizon"] = snapshot.get("events_short_horizon")
+    card["events_in_tape"] = snapshot.get("events_aligned")
+    if snapshot.get("book_observation"):
+        card["book_observation"] = snapshot.get("book_observation")
+    short = FAMILY_MIN_UNITS.get(spec.get("family"), 60) - n_units
+    if card["label"] == "UNTESTABLE" and card.get("primary_trap") == "insufficient_units" and short > 0:
+        card["units_short"] = short
+        card["forward_armed"] = True
     card["n_events"] = n_events
     card["mechanism"] = panel["mechanism"]
     card["selected_variant"] = selected["selected"]

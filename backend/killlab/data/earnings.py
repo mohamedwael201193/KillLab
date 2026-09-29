@@ -20,6 +20,33 @@ def tag_events(events: list[dict], symbol: str) -> list[dict]:
     return tagged
 
 
+def classify_event_times(rows: list, event_times_ms: list[int], horizon_bars: int = 6) -> dict:
+    """Split stamps into outside the tape, inside but short of a hold, and aligned."""
+    stamps = sorted(int(row[0]) for row in rows if isinstance(row, list) and row)
+    outside = 0
+    short_horizon = 0
+    aligned = 0
+    if not stamps:
+        return {"outside": len(event_times_ms), "short_horizon": 0, "aligned": 0}
+    first, last = stamps[0], stamps[-1]
+    for item in event_times_ms:
+        stamp = int(item)
+        if stamp < first or stamp > last:
+            outside += 1
+            continue
+        index = next((i for i, bar in enumerate(stamps) if bar >= stamp), None)
+        if index is None or index + horizon_bars >= len(stamps):
+            short_horizon += 1
+            continue
+        aligned += 1
+    return {"outside": outside, "short_horizon": short_horizon, "aligned": aligned}
+
+
+def events_outside_tape(rows: list, event_times_ms: list[int]) -> int:
+    """Stamps before the first bar or after the last bar are not in-tape trials."""
+    return int(classify_event_times(rows, event_times_ms)["outside"])
+
+
 def align_events(rows: list, event_times_ms: list[int], horizon_bars: int = 6) -> list[dict]:
     bars = []
     for row in rows:

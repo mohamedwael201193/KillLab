@@ -179,7 +179,43 @@ def execution_panel(rows: list, spec: dict) -> dict:
         ids.append(str(start[2]))
         now_rets.append((exit_bar[1] / start[1] - 1.0) * 1e4 - cost)
         wait_rets.append((exit_bar[1] / switch[1] - 1.0) * 1e4 - cost)
-    return _panel(ids, {"NOW": now_rets, "WAIT": wait_rets}, now_rets, "weekend_choice_same_exit")
+    return _panel(ids, {"NOW": now_rets, "WAIT": wait_rets}, [0.0] * len(ids), "weekend_choice_same_exit")
+
+
+def basis_panel(perp_rows: list, spot_rows: list, spec: dict) -> dict:
+    """One calendar day, one fade of the perp-spot basis, marked to the next day's first aligned bar.
+
+    Hourly prints inside the day are not trials. A gap over 26 hours is dropped as stale.
+    The cost is a perp round trip plus a non-promo r-token round trip.
+    """
+    if not spec.get("costs"):
+        raise ValueError("missing cost model")
+    cost = round_trip_bps("bitget_perp") + round_trip_bps("bitget_rtoken", sensitivity=True)
+    perp = dict(_bars(perp_rows))
+    spot = dict(_bars(spot_rows))
+    by_day: dict = {}
+    for stamp in sorted(set(perp) & set(spot)):
+        if not perp[stamp] or not spot[stamp]:
+            continue
+        day = datetime.fromtimestamp(stamp / 1000, tz=timezone.utc).date()
+        by_day.setdefault(day, stamp)
+    days = sorted(by_day)
+    ids: list[str] = []
+    fade: list[float] = []
+    for index, day in enumerate(days[:-1]):
+        start = by_day[day]
+        end = by_day[days[index + 1]]
+        if end - start > 26 * 60 * 60 * 1000:
+            continue
+        basis = perp[start] / spot[start] - 1.0
+        if basis == 0:
+            continue
+        perp_ret = perp[end] / perp[start] - 1.0
+        spot_ret = spot[end] / spot[start] - 1.0
+        gross = ((-perp_ret + spot_ret) if basis > 0 else (perp_ret - spot_ret)) * 1e4
+        ids.append(str(start))
+        fade.append(gross - cost)
+    return _panel(ids, {"fade": fade}, [0.0] * len(ids), "daily_basis_fade_versus_cash")
 
 
 def build_panel(spec: dict, snapshot: dict) -> dict:
@@ -194,6 +230,8 @@ def build_panel(spec: dict, snapshot: dict) -> dict:
         return execution_panel(snapshot.get("rows") or [], spec)
     if family == "session_timing":
         return session_panel(snapshot.get("rows") or [], spec)
+    if family == "basis_convergence":
+        return basis_panel(snapshot.get("rows") or [], snapshot.get("spot_rows") or [], spec)
     return _panel([], {}, [], "unsupported")
 
 

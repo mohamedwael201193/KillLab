@@ -1,7 +1,14 @@
 {
-  "engine_version": "killlab-0.6.0",
+  "engine_version": "killlab-0.7.0",
   "protocol": "session_timing",
   "seed": 11,
+  "seeds_for_rates": [
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
   "days": 80,
   "round_trip_bps": 12,
   "labels_by_open_hour_edge_bps": {
@@ -11,5 +18,20 @@
     "40": "ALIVE"
   },
   "false_alive_on_zero_edge": false,
+  "false_kill_on_40bps": false,
+  "null_labels": [
+    "KILLED",
+    "KILLED",
+    "KILLED",
+    "KILLED",
+    "KILLED"
+  ],
+  "strong_labels": [
+    "ALIVE",
+    "ALIVE",
+    "ALIVE",
+    "ALIVE",
+    "ALIVE"
+  ],
   "note": "Gross open-hour edge. A 12 bps round trip is charged on the excess over other cash hours."
 }

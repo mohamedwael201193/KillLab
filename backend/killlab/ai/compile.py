@@ -17,7 +17,7 @@ from killlab.ai.boundary import FORBIDDEN_KEYS, enforce_kill_floor, reject_forbi
 
 SYSTEM = (
     "You compile a trading hypothesis into one JSON object and nothing else. "
-    "Allowed families: session_timing, event_earnings, carry_basis, execution_venue_time. "
+    "Allowed families: session_timing, event_earnings, carry_basis, basis_convergence, execution_venue_time. "
     "If the idea is none of those, use family unsupported. "
     "Do not include sharpe, dsr, pbo, bps, pnl, n, verdict, or avoided_loss_bps. "
     "selection.split must be IS. claims_alpha must be false unless the text explicitly claims alpha. "
@@ -79,7 +79,7 @@ def _extract_json(text: str) -> dict:
 
 
 _NAMES = ("NVDA", "TSLA", "AAPL", "MSFT", "AMZN", "META", "GOOGL", "COIN", "MSTR", "SPY", "QQQ", "BTC", "ETH")
-_FAMILIES = {"session_timing", "event_earnings", "carry_basis", "execution_venue_time", "unsupported"}
+_FAMILIES = {"session_timing", "event_earnings", "carry_basis", "basis_convergence", "execution_venue_time", "unsupported"}
 
 
 def family_from_text(raw_text: str, proposed_family: str | None) -> str:
@@ -88,8 +88,10 @@ def family_from_text(raw_text: str, proposed_family: str | None) -> str:
         return "execution_venue_time"
     if re.search(r"earn|after[- ]hours", raw_text, re.I):
         return "event_earnings"
-    if re.search(r"fund|carry|basis", raw_text, re.I):
+    if re.search(r"fund|carry", raw_text, re.I):
         return "carry_basis"
+    if re.search(r"basis|converge", raw_text, re.I):
+        return "basis_convergence"
     if re.search(r"session|first hour|cash open", raw_text, re.I):
         return "session_timing"
     if proposed_family in _FAMILIES:
@@ -112,12 +114,13 @@ def normalize_draft(raw_text: str, proposed: dict) -> dict:
         "session_timing": [{"code": "continuation"}, {"code": "reversal"}],
         "event_earnings": [{"code": "continuation"}, {"code": "reversal"}],
         "carry_basis": [{"code": "receive"}],
+        "basis_convergence": [{"code": "fade"}],
         "execution_venue_time": [{"code": "NOW"}, {"code": "WAIT"}],
     }.get(family, [{"code": "none"}])
     from killlab.engine.costs import COST_SCHEDULE
     draft = {
         "family": family,
-        "instruments": instruments,
+        "instruments": ["NVDAUSDT", "RNVDAUSDT"] if family == "basis_convergence" else instruments,
         "venue": "bitget_perp",
         "test_start": "2026-07-01",
         "test_end": "2026-09-28",

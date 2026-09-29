@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from datetime import datetime, timezone
 
 import httpx
@@ -49,31 +50,42 @@ class BitgetRest:
         else:
             raise BitgetError(f"unsupported product {product}")
         rows: list = []
-        end = None
+        end = str(int(time.time() * 1000))
+        pages_fetched = 0
+        stopped = "page_cap"
         with httpx.Client(timeout=self.settings.bitget_timeout_s, headers={"User-Agent": "curl/8.0"}) as client:
             for _ in range(pages):
                 params = dict(params_base)
-                if end is not None:
-                    params["endTime"] = str(end)
+                params["endTime"] = str(end)
                 response = client.get(self.settings.bitget_rest_base + path, params=params)
                 if response.status_code >= 400:
                     raise BitgetError(f"http {response.status_code}")
                 payload = response.json()
                 batch = payload.get("data") or []
+                pages_fetched += 1
                 if not batch:
+                    stopped = "empty_page"
                     break
                 rows.extend(batch)
                 oldest = min(int(row[0]) for row in batch)
                 end = oldest - 1
                 if len(batch) < 200:
+                    stopped = "short_page"
                     break
         blob = json.dumps(rows, separators=(",", ":")).encode()
+        last = None
+        if rows:
+            last = datetime.fromtimestamp(max(int(row[0]) for row in rows) / 1000, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         return {
             "symbol": symbol,
             "product": product,
             "granularity": granularity,
             "n": len(rows),
+            "pages_requested": pages,
+            "pages_fetched": pages_fetched,
+            "pagination_stop": stopped,
             "actual_first": _rows_first_ts(rows),
+            "actual_last": last,
             "payload_sha256": hashlib.sha256(blob).hexdigest(),
             "rows": rows,
         }
@@ -100,3 +112,26 @@ class BitgetRest:
                 if len(batch) < 100:
                     break
         return {"symbol": symbol, "n": len(rows), "rows": rows}
+
+    def ticker(self, *, frozen: bool, symbol: str) -> dict | None:
+        """One public book snapshot. It is an observation, not an input to the verdict."""
+        require_frozen(frozen)
+        path = "/api/v2/mix/market/ticker"
+        with httpx.Client(timeout=self.settings.bitget_timeout_s, headers={"User-Agent": "curl/8.0"}) as client:
+            response = client.get(
+                self.settings.bitget_rest_base + path,
+                params={"symbol": symbol, "productType": "USDT-FUTURES"},
+            )
+        if response.status_code >= 400:
+            return None
+        payload = response.json()
+        data = payload.get("data") or []
+        row = data[0] if isinstance(data, list) and data else None
+        if not isinstance(row, dict) or row.get("bidPr") is None or row.get("askPr") is None:
+            return None
+        return {
+            "symbol": symbol,
+            "bid": row.get("bidPr"),
+            "ask": row.get("askPr"),
+            "ts": row.get("ts"),
+        }
