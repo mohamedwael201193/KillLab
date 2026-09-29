@@ -357,4 +357,12 @@ This file is append-only.
 - Test: `python -m pytest -q` → 66 passed.
 - Production `GET /health` returned `killlab-0.12.2`. Run `426629e7-6dc8-438e-89e1-133e1b1b5fd5`: `UNTESTABLE`, 38 of 60, mechanism `cash_close_hour_vs_other_cash_hours`, engine `killlab-0.12.2`. Book historical false, spread 0.437 bps. Official US-stock `do_query` returned NVDA `last_price` 228.61, freshness `current`, source clock `2026-09-30T01:44:39.000344`, retrieved `2026-09-29T17:44:39+00:00`. `technical_analysis` returned undated rsi 56.87. `usable_for_verdict` false on both context rows.
 
+## 2026-09-29 Hourly history now covers the frozen window
+
+- Decision: engine `killlab-0.12.3`. Candle paging continues until the oldest bar is at the frozen start, a short page, an empty page, or 16 pages. Bars before `test_start` and after `test_end` are dropped. `window_start` is not a venue floor. A non-finite statistic is stored as null so a degenerate series can still be saved.
+- Why: eight pages stopped on 2026-07-24 while the frozen start was 2026-07-01, and Bitget still returned full pages through 2026-06-21. One API run then failed to save because Postgres rejected `NaN`.
+- Test: `python -m pytest -q` → 68 passed.
+- Production run `66e3df89-ab41-4ffd-bb03-397121504029`: `UNTESTABLE`, 55 of 60, mechanism `ny_open_hour_vs_other_cash_hours`, engine `killlab-0.12.3`. Oldest bar `2026-07-01T00:00:00Z`, last bar `2026-09-28T23:00:00Z`, stop `window_start`, pages requested 16, venue floor false. DSR `0.022858876490157776`. Official quote NVDA `last_price` 228.1, retrieved `2026-09-29T17:56:14+00:00`.
+- `POST /v1/internal/forward-sweep` for UTC day `2026-09-29` returned 26 `below_floor` actions and no `AUTO_RUN`. The full frozen window still does not reach 60. The floor was not changed.
+
 
