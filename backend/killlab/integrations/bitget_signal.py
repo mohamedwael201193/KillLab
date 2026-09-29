@@ -38,7 +38,7 @@ _FAMILY = {
     "lead_lag": "technical-analysis",
 }
 
-_TECHNICAL_ACTIONS = ("rsi", "macd", "atr", "ema")
+_TECHNICAL_ACTIONS = ("rsi", "macd", "atr", "ema", "bollinger", "ma")
 
 
 def route_skills(text: str, family: str | None, thesis: str | None = None) -> list[dict]:

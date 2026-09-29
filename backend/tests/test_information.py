@@ -49,6 +49,10 @@ def _ok(name, arguments):
             return _sse({"symbol": symbol, "atr": 1.9804, "atr_pct": 0.87, "period": 14})
         if action == "ema":
             return _sse({"symbol": symbol, "price": 227.67, "ema9": 228.5925, "ema21": 227.5227, "ema55": 225.6719})
+        if action == "bollinger":
+            return _sse({"symbol": symbol, "upper": 222.8465, "middle": 227.9493, "lower": 233.0521, "pct_b": 0.5068})
+        if action == "ma":
+            return _sse({"symbol": symbol, "price": 227.88, "ma7": 229.39, "ma25": 226.5776, "ma99": 222.2181, "trend": "mixed"})
         return _sse({"symbol": symbol, "rsi": 42.21, "period": 14, "signal": "neutral"})
     if name == "sentiment_index":
         return _sse({"value": 28, "value_classification": "Fear"})
@@ -676,12 +680,14 @@ def test_technical_analysis_calls_the_indicators_that_return_numbers():
         send=send,
     )
     actions = [call[2].get("action") for call in send.calls if call[1] == "technical_analysis"]
-    assert actions == ["rsi", "macd", "atr", "ema"]
+    assert actions == ["rsi", "macd", "atr", "ema", "bollinger", "ma"]
     blob = " ".join(item["summary"] for item in items)
     assert "rsi 42.21" in blob
     assert "macd 1.126084" in blob
     assert "atr 1.9804" in blob
     assert "ema9 228.5925" in blob
+    assert "upper 222.8465" in blob
+    assert "ma7 229.39" in blob
     assert all(item["usable_for_verdict"] is False for item in items)
 
 
