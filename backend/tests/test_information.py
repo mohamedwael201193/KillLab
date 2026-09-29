@@ -544,6 +544,49 @@ def test_perp_versus_spot_is_the_basis_family():
     assert family_from_text("Does the NVDA perp versus spot premium fade?", "carry_basis") == "basis_convergence"
 
 
+def test_a_missing_leader_tape_is_not_stored_as_zero_units():
+    from killlab.config import Settings
+    from killlab.data.assemble import assemble_snapshot
+    from killlab.data.bitget import BitgetError, BitgetRest
+
+    def candles(self, **kwargs):
+        if kwargs["symbol"] == "BTCUSDT":
+            raise BitgetError("http 429")
+        return {"rows": [[1, 1, 1, 1, 1]], "actual_first": "2026-05-18T00:00:00Z", "pagination_stop": "page_cap", "pages_requested": 16}
+
+    original_candles = BitgetRest.history_candles
+    original_ticker = BitgetRest.ticker
+    original_book = BitgetRest.forward_book
+    BitgetRest.history_candles = candles
+    BitgetRest.ticker = lambda *args, **kwargs: None
+    BitgetRest.forward_book = lambda *args, **kwargs: None
+    client = BitgetRest(Settings(
+        database_url="", direct_url="", api_token="", env="test", log_level="INFO",
+        bitget_rest_base="https://api.bitget.com", bitget_timeout_s=5,
+        llm_api_key="", llm_base_url="", llm_model="", llm_timeout_s=5,
+        run_stale_minutes=15, frontend_origin="",
+    ))
+    try:
+        try:
+            assemble_snapshot(client, {
+                "family": "lead_lag",
+                "leader": "BTCUSDT",
+                "instruments": ["NVDAUSDT"],
+                "venue": "bitget_perp",
+                "test_start": "2026-05-18",
+                "test_end": "2026-09-28",
+                "notional_usd": 10000,
+            })
+            raised = False
+        except BitgetError:
+            raised = True
+        assert raised
+    finally:
+        BitgetRest.history_candles = original_candles
+        BitgetRest.ticker = original_ticker
+        BitgetRest.forward_book = original_book
+
+
 def test_the_lead_question_uses_the_same_page_cap_as_the_other_scored_families():
     from killlab.data.assemble import _FAMILIES
 

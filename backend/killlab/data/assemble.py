@@ -76,18 +76,15 @@ def assemble_snapshot(client: BitgetRest, canonical: dict) -> dict:
         raise BitgetError(f"no symbol ({failures} failed)")
     leader = canonical.get("leader")
     if canonical.get("family") == "lead_lag" and isinstance(leader, str) and leader.strip():
-        try:
-            pulled = client.history_candles(
-                frozen=True,
-                product=product,
-                symbol=symbol_for(leader, venue or ""),
-                pages=pages,
-                not_before_ms=not_before,
-                not_after_ms=not_after,
-            )
-            snapshot["leader_rows"] = list(pulled.get("rows") or [])
-        except BitgetError:
-            snapshot["leader_rows"] = []
+        pulled = client.history_candles(
+            frozen=True,
+            product=product,
+            symbol=symbol_for(leader, venue or ""),
+            pages=pages,
+            not_before_ms=not_before,
+            not_after_ms=not_after,
+        )
+        snapshot["leader_rows"] = list(pulled.get("rows") or [])
     first = symbol_for(canonical["instruments"][0], venue or "")
     try:
         book = client.ticker(frozen=True, symbol=first)

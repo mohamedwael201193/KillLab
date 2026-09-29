@@ -92,9 +92,15 @@ class BitgetRest:
             for _ in range(pages):
                 params = dict(params_base)
                 params["endTime"] = str(end)
-                response = client.get(self.settings.bitget_rest_base + path, params=params)
-                if response.status_code >= 400:
-                    raise BitgetError(f"http {response.status_code}")
+                response = None
+                for attempt in range(3):
+                    response = client.get(self.settings.bitget_rest_base + path, params=params)
+                    if response.status_code in {429, 500, 502, 503, 504} and attempt < 2:
+                        time.sleep(0.5 * (attempt + 1))
+                        continue
+                    break
+                if response is None or response.status_code >= 400:
+                    raise BitgetError(f"http {response.status_code if response is not None else 0}")
                 payload = response.json()
                 batch = payload.get("data") or []
                 pages_fetched += 1
