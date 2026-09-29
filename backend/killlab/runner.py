@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 from killlab.engine.beta import mean_tstat
 from killlab.engine.bootstrap import percentile_ci
 from killlab.engine.dsr import dsr_from_series
@@ -9,6 +11,17 @@ from killlab.engine.mechanisms import build_panel, walk_forward_selected
 from killlab.engine.pbo import cscv_pbo
 from killlab.engine.traps import FAMILY_MIN_UNITS
 from killlab.engine.verdict import decide
+
+
+def _json_safe(value):
+    """Postgres JSON rejects NaN. A missing number stays null and cannot pass a floor."""
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    return value
 
 
 def _mde(low, high) -> float | None:
@@ -146,4 +159,4 @@ def execute(spec: dict, snapshot: dict, prior_trials: int = 0, related_trials: i
     from killlab.engine.review import evolution_state
 
     card["next_question"] = evolution_state(card, card.get("primary_trap")).get("proposed_raw_text")
-    return card
+    return _json_safe(card)

@@ -39,7 +39,17 @@ class BitgetRest:
     def __init__(self, settings: Settings):
         self.settings = settings
 
-    def history_candles(self, *, frozen: bool, product: str, symbol: str, granularity: str = "1H", pages: int = 3) -> dict:
+    def history_candles(
+        self,
+        *,
+        frozen: bool,
+        product: str,
+        symbol: str,
+        granularity: str = "1H",
+        pages: int = 3,
+        not_before_ms: int | None = None,
+        not_after_ms: int | None = None,
+    ) -> dict:
         require_frozen(frozen)
         if product == "USDT-FUTURES":
             path = "/api/v2/mix/market/history-candles"
@@ -72,6 +82,16 @@ class BitgetRest:
                 if len(batch) < 200:
                     stopped = "short_page"
                     break
+                if not_before_ms is not None and oldest <= not_before_ms:
+                    stopped = "window_start"
+                    break
+        if not_before_ms is not None or not_after_ms is not None:
+            rows = [
+                row
+                for row in rows
+                if (not_before_ms is None or int(row[0]) >= not_before_ms)
+                and (not_after_ms is None or int(row[0]) <= not_after_ms)
+            ]
         blob = json.dumps(rows, separators=(",", ":")).encode()
         last = None
         if rows:

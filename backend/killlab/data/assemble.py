@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from killlab.data.bitget import BitgetError, BitgetRest
 from killlab.data.earnings import align_events, classify_event_times, earnings_timestamps_ms, symbol_for, tag_events
 
@@ -11,7 +13,9 @@ _FAMILIES = {"event_earnings", "execution_venue_time", "carry_basis", "basis_con
 def assemble_snapshot(client: BitgetRest, canonical: dict) -> dict:
     venue = canonical.get("venue")
     product = "USDT-FUTURES" if venue == "bitget_perp" else "SPOT"
-    pages = 8 if canonical.get("family") in _FAMILIES else 3
+    pages = 16 if canonical.get("family") in _FAMILIES else 3
+    not_before = _window_ms(canonical.get("test_start"), end=False)
+    not_after = _window_ms(canonical.get("test_end"), end=True)
     snapshot = None
     events = []
     failures = 0
@@ -21,7 +25,14 @@ def assemble_snapshot(client: BitgetRest, canonical: dict) -> dict:
         if canonical.get("family") == "basis_convergence" and symbol.upper().startswith("R"):
             leg_product = "SPOT"
         try:
-            pulled = client.history_candles(frozen=True, product=leg_product, symbol=symbol, pages=pages)
+            pulled = client.history_candles(
+                frozen=True,
+                product=leg_product,
+                symbol=symbol,
+                pages=pages,
+                not_before_ms=not_before,
+                not_after_ms=not_after,
+            )
         except BitgetError:
             failures += 1
             continue
@@ -80,3 +91,16 @@ def assemble_snapshot(client: BitgetRest, canonical: dict) -> dict:
         snapshot["events"] = events
     snapshot["requested_start"] = canonical.get("test_start")
     return snapshot
+
+
+def _window_ms(value: object, *, end: bool) -> int | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        day = datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+    if end:
+        day = day + timedelta(days=1)
+        return int(day.timestamp() * 1000) - 1
+    return int(day.timestamp() * 1000)

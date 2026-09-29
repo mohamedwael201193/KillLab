@@ -486,6 +486,42 @@ def test_an_inversion_flag_without_tenors_is_not_a_curve():
     assert items[0]["structured_data"] == {}
 
 
+def test_paging_stops_at_the_frozen_start_and_drops_older_bars(monkeypatch):
+    import httpx
+    from datetime import datetime, timezone
+
+    from killlab.config import Settings
+    from killlab.data.bitget import BitgetRest
+
+    class Dummy:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def get(self, url, params=None):
+            end = int(params["endTime"])
+            rows = [[end - index * 3_600_000, 1, 1, 1, 1] for index in range(200)]
+            request = httpx.Request("GET", url)
+            return httpx.Response(200, json={"data": rows}, request=request)
+
+    monkeypatch.setattr(httpx, "Client", lambda *args, **kwargs: Dummy())
+    not_before = int(datetime(2026, 7, 1, tzinfo=timezone.utc).timestamp() * 1000)
+    result = BitgetRest(Settings(
+        database_url="", direct_url="", api_token="", env="test", log_level="INFO",
+        bitget_rest_base="https://api.bitget.com", bitget_timeout_s=5,
+        llm_api_key="", llm_base_url="", llm_model="", llm_timeout_s=5,
+        run_stale_minutes=15, frontend_origin="",
+    )).history_candles(
+        frozen=True, product="USDT-FUTURES", symbol="NVDAUSDT", pages=16, not_before_ms=not_before,
+    )
+    assert result["pagination_stop"] == "window_start"
+    assert result["pages_fetched"] < 16
+    assert result["rows"]
+    assert all(int(row[0]) >= not_before for row in result["rows"])
+
+
 def test_the_cash_close_is_a_session_question_and_the_open_stays_the_open():
     from killlab.ai.compile import normalize_draft
     from killlab.engine.review import research_fingerprint

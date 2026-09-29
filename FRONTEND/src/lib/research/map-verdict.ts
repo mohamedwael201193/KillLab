@@ -146,7 +146,7 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
     verdict === "UNTESTABLE" && raw.primary_trap === "book_unusable"
       ? "The current forward book cannot support this execution claim. It is not historical depth."
       : verdict === "UNTESTABLE"
-      ? `Not enough independent Bitget history. Observed ${n ?? "unknown"} of ${raw.required_units ?? "the family minimum"}. Oldest fetched bar ${raw.actual_first || "unknown"} (${raw.pagination_stop === "page_cap" ? "page cap, not a venue floor" : raw.pagination_stop || "fetch boundary"}).`
+      ? `Not enough independent Bitget history. Observed ${n ?? "unknown"} of ${raw.required_units ?? "the family minimum"}. Oldest fetched bar ${raw.actual_first || "unknown"} (${raw.pagination_stop === "page_cap" ? "page cap, not a venue floor" : raw.pagination_stop === "window_start" ? "frozen window start, not a venue floor" : raw.pagination_stop || "fetch boundary"}).`
       : verdict === "INCONCLUSIVE"
         ? "The interval still covers both a real edge and no edge. That is not a kill and it is not a pass."
       : verdict === "KILLED"

@@ -90,6 +90,16 @@ def test_traps_positive_and_negative():
     assert not trap_waiting_risk("event_earnings", [], False, [])
 
 
+def test_a_non_finite_number_is_stored_as_null():
+    import json
+
+    from killlab.runner import _json_safe
+
+    safe = _json_safe({"dsr": float("nan"), "ci_high": float("inf"), "n": 3})
+    assert safe == {"dsr": None, "ci_high": None, "n": 3}
+    json.dumps(safe)
+
+
 def test_execute_uses_walkforward_dsr_not_a_hardcoded_verdict():
     from killlab.runner import execute
     import random
