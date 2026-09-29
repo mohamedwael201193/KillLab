@@ -27,6 +27,20 @@ type VerdictJson = {
   next_question?: string;
   thesis?: string;
   book_capture?: { provenance?: string; historical?: boolean; spread_bps?: number | null; payload_sha256?: string };
+  research_context?: {
+    usable_for_verdict?: boolean;
+    routing?: { skill?: string | null; reason?: string };
+    items?: {
+      source_type?: string;
+      tool_name?: string;
+      summary?: string;
+      data_timestamp?: string | null;
+      content_hash?: string;
+      symbol?: string | null;
+      current_or_historical?: string;
+      category?: string;
+    }[];
+  };
   findings?: { code: string; severity: string; detail?: Record<string, unknown> }[];
 };
 
@@ -75,6 +89,24 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
     },
     { label: "Thesis", value: raw.thesis || "—", status: "info" },
     { label: "Next question", value: raw.next_question || "—", status: "info" },
+    {
+      label: "Research skill",
+      value: raw.research_context?.routing?.skill || "none",
+      status: "info",
+    },
+    {
+      label: "Context changes the verdict",
+      value: raw.research_context && raw.research_context.usable_for_verdict === false ? "no" : raw.research_context ? "no" : "—",
+      status: "info",
+    },
+    ...((raw.research_context?.items || []).slice(0, 2).map((item) => ({
+      label: item.category || item.source_type || "Context",
+      value: item.summary || "—",
+      status: "info" as EvidenceStatus,
+      threshold: [item.tool_name, item.symbol, item.current_or_historical, item.data_timestamp || "no source time", item.content_hash ? item.content_hash.slice(0, 12) : ""]
+        .filter((part) => part)
+        .join(" · "),
+    }))),
   ];
   const traps: TrapCheckResult[] = (raw.findings || []).map((finding, index) => ({
     id: finding.code || String(index),

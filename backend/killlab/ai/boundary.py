@@ -41,15 +41,38 @@ def reject_forbidden(document: dict) -> None:
         raise ValueError(str(exc)) from exc
 
 
+SKILL_NAMES = (
+    "macro-analyst",
+    "market-intel",
+    "sentiment-analyst",
+    "technical-analysis",
+    "news-briefing",
+)
+SOURCE_NAMES = ("Bloomberg", "Reuters", "CoinDesk", "Cointelegraph")
+
+
 def filter_explanation(text: str, engine_doc: dict) -> str:
-    """Drop any number that is not present in the engine document."""
+    """Drop numbers, dates, skills, and sources that are not in the stored document."""
     allowed = set(re.findall(r"-?\d+(?:\.\d+)?", json_numbers(engine_doc)))
     def repl(match: re.Match) -> str:
         token = match.group(0)
         if token in allowed:
             return token
         return "[redacted]"
-    return re.sub(r"-?\d+(?:\.\d+)?", repl, text)
+    cleaned = re.sub(r"-?\d+(?:\.\d+)?", repl, text)
+    blob = json_numbers(engine_doc)
+    for name in SKILL_NAMES:
+        if name not in blob:
+            cleaned = cleaned.replace(name, "[redacted]")
+    for name in SOURCE_NAMES:
+        if name not in blob:
+            cleaned = cleaned.replace(name, "[redacted]")
+    book = engine_doc.get("book_capture") if isinstance(engine_doc.get("book_capture"), dict) else {}
+    historical = book.get("historical", engine_doc.get("historical"))
+    if historical is False:
+        for phrase in ("historical order book", "historical l2", "historical depth"):
+            cleaned = cleaned.replace(phrase, "[redacted]")
+    return cleaned
 
 
 def json_numbers(document: dict) -> str:

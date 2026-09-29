@@ -290,4 +290,13 @@ This file is append-only.
 - Test: `python -m pytest -q` → 39 passed before the version string moved to `killlab-0.9.0`. `tests/test_overmatch.py` covers four-state copy, thesis isolation, review isolation, book cases, and invented numbers. Frontend `tsc --noEmit` and `next build` passed.
 - Production after `d78f2a6`: `GET /health` returned `killlab-0.9.0`. Chrome on `https://killlab.vercel.app` showed KILLED, ALIVE, INCONCLUSIVE, and UNTESTABLE, and the phrase “exactly one of four.” A desk compile showed the thesis sentence beside `session_timing` before any candle pull. An execution run returned `INCONCLUSIVE` / `underpowered`, book provenance `forward_recorded`, `historical` false, the thesis on the card, and a next question. The thesis was not in the compiler draft and the draft had no verdict field. The basis floor was not lowered.
 
+## 2026-09-29 Post-freeze Bitget information layer
+
+- Decision: after a freeze, attach one official research-skill reading and, when the instrument is a US equity ticker, one read from the official US-stock MCP. Neither value is an input to `execute`. A failed context call still stores the engine card.
+- Reason: the desk needed market evidence next to a frozen question without letting that evidence become the Sharpe, the sample, or the verdict. The official skill package is an instruction set plus a public MCP. KillLab calls the tool the skill names. It does not ship a stand-in answer.
+- Source: `https://datahub.noxiaohao.com/mcp` tool `technical_analysis` action `rsi` on `NVDAUSDT` returned rsi 60.4, timeframe 4h, period 14, signal neutral, with no data timestamp, classified current. `https://agent.bitget.com/mcp` returned upstream unavailable (`Too many open sessions` on an earlier probe). That item is stored as MCP context with no price. The compiler module does not reference either host.
+- Files: `backend/killlab/integrations/`, `api.py` run and explain paths, `ai/boundary.py`, `FRONTEND/src/lib/research/map-verdict.ts`, `tests/test_information.py`, `tests/conftest.py`. Engine string `killlab-0.10.0`. The forward sweep does not call this layer. No order route was added.
+- Test: `python -m pytest -q` → 52 passed. Frontend `tsc --noEmit` passed. A local frozen NVDA session sentence routed `technical-analysis` and did not change label, DSR, PBO, unit count, or trial count. Context before freeze raises and performs no HTTP call.
+- Limitation: the US-stock MCP did not open a session from this network, so that evidence row is an availability record, not a quote. Skill tools other than `technical_analysis` can answer with empty numeric fields; those rows say so. Production verification of the deployed card is not in this entry.
+
 

@@ -104,7 +104,7 @@ Out of scope until a later product: order placement, Agent Hub execution, Playbo
 | Fees | Forensic runs: spot 5 bps promo, perp taker 6 / maker 2 | Versioned schedule, plus 10 bps spot sensitivity | `cost_schedule.json` with `effective_from` | Carry test uses the schedule, not a literal in strategy code |
 | Earn 2.00% and BTC/ETH carry | ROUND 4 CARRY | Yield claims must beat a fetched baseline snapshot | Baseline row stored with `as_of` | Missing snapshot → UNTESTABLE, not “beat 2%” |
 | Playbook is not the engine | ROUND 4 R2 | Sandbox is perp 1h, no rToken, no import | Do not call Playbook to produce verdicts | No playbook client in `engine/` |
-| Competitors do not already ship this | `02-WINNERS-COMPETITORS.md` ROUND 3-4 | TradePilot has no executable test; Argus DSR is on its own factors | Spec is the user’s, kill floor is ours | N/A (do not re-audit those repos) |
+| Competitors do not already ship this | `02-WINNERS-COMPETITORS.md` ROUND 3-4 | An external benchmark has no executable test of this contract | Spec is the user’s, kill floor is ours | N/A (do not re-audit those repos) |
 | Contaminated naive-agent run | `03-IDEA-KILLING.md`; `06` §12 residual | Do not cite that run as a clean baseline | Phase 1 task, isolated directory | Not a blocker for the engine |
 
 Old assumptions that must not survive:
@@ -2618,7 +2618,7 @@ No blocking question. Database authentication succeeded.
 | Judging | `00-HACKATHON-DOCS.md` | Desk judging quotes | same | 20 | Subjective; thesis weighted in the form notes |
 | History floors | `01-FORENSICS.md` | ROUND 3-4 | MCP `market` plus REST | 4 | Do not assume February history |
 | Kill list | `03-IDEA-KILLING.md` | ROUND 3-4 rows | none | 1 | Do not rebuild killed products |
-| Competitors | `02-WINNERS-COMPETITORS.md` | TradePilot, Argus | none | 1 | Separation is already evidenced; do not re-audit |
+| Competitors | `02-WINNERS-COMPETITORS.md` | external benchmark | none | 1 | Separation is already evidenced; do not re-audit |
 | Final gates | `06-JUDGMENT.md` | §12 | none | 1 | Sections 1–11 are not the product |
 | Agent Hub | `00-HACKATHON-DOCS.md` | Bitget Agent Hub | `https://www.bitget.com/docs/uta/agent-hub` | 0, 4 | Verb surface |
 | MCP package | skill file | header | `https://github.com/Bitget-AI/agent_hub` | all | `get_auth_status` then `market` |

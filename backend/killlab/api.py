@@ -26,6 +26,7 @@ from killlab.data.assemble import assemble_snapshot
 from killlab.data.bitget import BitgetError, BitgetRest, NotFrozen
 from killlab.db import session_factory
 from killlab.engine.review import evolution_state, is_related_research, killed_decision, reconcile_unit, research_fingerprint, realized_from_fills
+from killlab.integrations.context import attach_context, enrich_context
 from killlab.forward import accrual_window, sweep_forward
 from killlab.guard import fixtures_loaded
 from killlab.hashutil import sha256_canonical
@@ -417,6 +418,40 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             owner = session.get(Hypothesis, spec.hypothesis_id)
             if owner is not None and owner.thesis:
                 card["thesis"] = owner.thesis
+            review_body = None
+            prior_review = session.scalars(
+                select(LedgerEntry).where(LedgerEntry.hypothesis_id == spec.hypothesis_id, LedgerEntry.stage == "REVIEW").order_by(LedgerEntry.created_at)
+            ).all()
+            if prior_review:
+                review_body = prior_review[-1].body
+            if os.environ.get("KILLAB_CONTEXT", "1") == "0":
+                context = {
+                    "status": "skipped",
+                    "items": [],
+                    "routing": {"skill": None, "reason": "context disabled"},
+                    "usable_for_verdict": False,
+                    "personalization": {"changes_verdict": False},
+                }
+            else:
+                try:
+                    context = enrich_context(
+                        frozen=True,
+                        family=spec.canonical_json.get("family"),
+                        instruments=list(spec.canonical_json.get("instruments") or []),
+                        text=owner.raw_text if owner is not None else "",
+                        thesis=owner.thesis if owner is not None else None,
+                        review=review_body,
+                        fingerprint=fingerprint,
+                    )
+                except Exception:
+                    context = {
+                        "status": "unavailable",
+                        "items": [],
+                        "routing": {"skill": None, "reason": "context unavailable"},
+                        "usable_for_verdict": False,
+                        "personalization": {"changes_verdict": False},
+                    }
+            attach_context(card, context)
             log_event("verdict", label=card.get("label"), primary_trap=card.get("primary_trap"), run_id=str(run.id))
             run.status = "untestable" if card["label"] == "UNTESTABLE" else "succeeded"
             run.result_json = card
@@ -506,6 +541,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "required_units": card.get("required_units"),
             "forward_armed": card.get("forward_armed"),
             "proposed_raw_text": proposal.get("proposed_raw_text"),
+            "context_skill": ((card.get("research_context") or {}).get("routing") or {}).get("skill"),
         }
         words = narrate("Phrase the next research question using only these facts.", facts, timeout_s=settings.llm_timeout_s)
         proposal["narrative"] = words["text"]
@@ -564,6 +600,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         row = session.get(TestRun, uuid.UUID(run_id))
         if row is None or not row.result_json:
             raise _error(409, "not_ready")
+        context = row.result_json.get("research_context") or {}
         facts = {
             "label": row.result_json.get("label"),
             "primary_trap": row.result_json.get("primary_trap"),
@@ -572,6 +609,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "dsr": row.result_json.get("dsr"),
             "ci_low": row.result_json.get("ci_low"),
             "ci_high": row.result_json.get("ci_high"),
+            "book_capture": row.result_json.get("book_capture"),
+            "research_context": {
+                "skill": (context.get("routing") or {}).get("skill"),
+                "usable_for_verdict": False,
+                "items": [
+                    {
+                        "source_type": item.get("source_type"),
+                        "tool_name": item.get("tool_name"),
+                        "summary": item.get("summary"),
+                        "data_timestamp": item.get("data_timestamp"),
+                        "content_hash": item.get("content_hash"),
+                    }
+                    for item in (context.get("items") or [])
+                    if isinstance(item, dict)
+                ],
+            },
         }
         words = narrate("Explain this frozen result in plain language.", facts, timeout_s=settings.llm_timeout_s)
         return {"summary": words["text"], "model": words["model"], "numbers_locked": True}
