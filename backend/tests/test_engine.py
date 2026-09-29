@@ -329,6 +329,8 @@ def test_compiler_drops_a_model_that_injects_a_metric():
     assert owned["costs"]["perp_taker_bps"] == 6
     assert owned["instruments"] == ["NVDAUSDT"]
     assert owned["selection"]["split"] == "IS"
+    forced = normalize_draft("Trade NVDA", {"family": "session_timing", "variants": [{"code": "NY1H"}]})
+    assert [item["code"] for item in forced["variants"]] == ["continuation", "reversal"]
     os_environ = __import__("os").environ
     saved = {name: os_environ.pop(name, None) for name in ("LLM_API_KEY", "GROQ_API_KEY", "CEREBRAS_API_KEY", "SAMBANOVA_API_KEY", "TOGETHER_API_KEY", "OPENROUTER_API_KEY", "KIMI_API_KEY")}
     try:

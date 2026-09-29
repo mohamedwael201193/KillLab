@@ -94,12 +94,12 @@ def normalize_draft(raw_text: str, proposed: dict) -> dict:
     instruments = [str(item) for item in instruments if isinstance(item, str) and item.strip()]
     if not instruments:
         instruments = named or ["NVDAUSDT"]
-    variants = []
-    for item in proposed.get("variants") or []:
-        if isinstance(item, dict) and item.get("code"):
-            variants.append({"code": str(item["code"])[:40]})
-    if not variants:
-        variants = [{"code": "continuation"}, {"code": "reversal"}]
+    variants = {
+        "session_timing": [{"code": "continuation"}, {"code": "reversal"}],
+        "event_earnings": [{"code": "continuation"}, {"code": "reversal"}],
+        "carry_basis": [{"code": "receive"}],
+        "execution_venue_time": [{"code": "NOW"}, {"code": "WAIT"}],
+    }.get(family, [{"code": "none"}])
     from killlab.engine.costs import COST_SCHEDULE
     draft = {
         "family": family,
