@@ -206,7 +206,7 @@ This file is append-only.
 - Why it was wrong: the two execution actions covered different clocks, so the longer weekend move dominated for mechanical reasons. A market-wide drift must not look like an open-hour edge, and a three-weekend sample must not clear the family floor.
 - Correct behavior: both actions are marked to the first StockRoute bar. NOW includes the weekend; WAIT is flat until the switch. Engine `killlab-0.4.0`. Extra variant codes in the spec do not create extra trials; the family scores only its own pre-registered pair.
 - Test: `python -m pytest -q` → 20 passed. Equal hourly drift is KILLED. Eighty days of noise are KILLED. Three weekends are UNTESTABLE with `n_events` 3.
-- Production verification: pending the `killlab-0.4.0` deploy. `killlab-0.3.0` execution results, if any, used the old clocks.
+- Production verification: `GET /health` returned `killlab-0.4.0` after deploy `b198e3a`. `killlab-0.3.0` execution results, if any, used the old clocks and stay obsolete for that comparison.
 
 
 ## 2026-09-29 Frontend connected to the live API
