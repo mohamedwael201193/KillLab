@@ -135,3 +135,42 @@ class BitgetRest:
             "ask": row.get("askPr"),
             "ts": row.get("ts"),
         }
+
+    def forward_book(self, *, frozen: bool, symbol: str, limit: int = 15) -> dict | None:
+        """Current public depth. Bitget has no historical order-book REST path.
+
+        The returned record is a forward capture. It is not a reconstruction of the past book.
+        """
+        require_frozen(frozen)
+        path = "/api/v2/mix/market/merge-depth"
+        with httpx.Client(timeout=self.settings.bitget_timeout_s, headers={"User-Agent": "curl/8.0"}) as client:
+            response = client.get(
+                self.settings.bitget_rest_base + path,
+                params={"symbol": symbol, "productType": "USDT-FUTURES", "limit": str(limit)},
+            )
+        if response.status_code >= 400:
+            return None
+        payload = response.json()
+        if payload.get("code") not in {None, "00000"}:
+            return None
+        data = payload.get("data") or {}
+        asks = data.get("asks") or []
+        bids = data.get("bids") or []
+        if not asks or not bids:
+            return None
+        best_ask = float(asks[0][0])
+        best_bid = float(bids[0][0])
+        mid = (best_ask + best_bid) / 2 if best_ask and best_bid else 0.0
+        spread_bps = ((best_ask - best_bid) / mid * 1e4) if mid else None
+        blob = json.dumps({"asks": asks, "bids": bids, "ts": data.get("ts")}, separators=(",", ":")).encode()
+        return {
+            "provenance": "forward_recorded",
+            "historical": False,
+            "symbol": symbol,
+            "endpoint": path,
+            "ts": data.get("ts"),
+            "spread_bps": spread_bps,
+            "bid_depth": sum(float(level[1]) for level in bids if len(level) > 1),
+            "ask_depth": sum(float(level[1]) for level in asks if len(level) > 1),
+            "payload_sha256": hashlib.sha256(blob).hexdigest(),
+        }

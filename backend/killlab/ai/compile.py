@@ -141,7 +141,8 @@ def normalize_draft(raw_text: str, proposed: dict) -> dict:
     return enforce_kill_floor(draft)
 
 
-def compile_text(raw_text: str, timeout_s: float = 30) -> dict:
+def _each_completion(messages: list[dict], timeout_s: float, accept):
+    """Call providers in order. accept(content, model) may raise ValueError to try the next one."""
     providers = _providers()
     if not providers:
         raise LLMUnavailable("no_provider")
@@ -151,24 +152,64 @@ def compile_text(raw_text: str, timeout_s: float = 30) -> dict:
             response = httpx.post(
                 base + "/chat/completions",
                 headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                json={
-                    "model": model,
-                    "temperature": 0,
-                    "messages": [
-                        {"role": "system", "content": SYSTEM},
-                        {"role": "user", "content": raw_text[:4000]},
-                    ],
-                },
+                json={"model": model, "temperature": 0, "messages": messages},
                 timeout=timeout_s,
             )
             if response.status_code >= 400:
                 last_error = f"http_{response.status_code}"
                 continue
             content = response.json()["choices"][0]["message"]["content"]
-            draft = normalize_draft(raw_text, _extract_json(content))
-            draft.pop("kill_floor", None)
-            return draft
+            if not isinstance(content, str) or not content.strip():
+                last_error = "invalid_response"
+                continue
+            return accept(content, model)
         except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
-            last_error = type(exc).__name__
+            last_error = type(exc).__name__ if not str(exc).startswith("http_") else str(exc)
+            if isinstance(exc, ValueError) and str(exc).startswith("forbidden"):
+                last_error = "schema_rejected"
             continue
     raise LLMUnavailable(last_error)
+
+
+def complete_messages(messages: list[dict], timeout_s: float = 30) -> tuple[str, str]:
+    """Return (assistant text, model name). The key stays in the process environment."""
+    return _each_completion(messages, timeout_s, lambda content, model: (content, model))
+
+
+def narrate(instruction: str, facts: dict, timeout_s: float = 30) -> dict:
+    """Words from the model. Every number that is not already in facts is removed."""
+    from killlab.ai.boundary import filter_explanation
+
+    try:
+        raw, model = complete_messages(
+            [
+                {
+                    "role": "system",
+                    "content": (
+                        "Use only the JSON facts. Do not calculate Sharpe, DSR, PBO, a confidence interval, "
+                        "PnL, costs, sample counts, or a verdict. If you mention a number, copy it from the JSON."
+                    ),
+                },
+                {"role": "user", "content": instruction[:1000] + "\n" + json.dumps(facts, default=str)[:6000]},
+            ],
+            timeout_s=timeout_s,
+        )
+    except LLMUnavailable:
+        raw, model = instruction, None
+    return {"text": filter_explanation(raw, facts), "model": model, "numbers_locked": True}
+
+
+def compile_text(raw_text: str, timeout_s: float = 30) -> dict:
+    def accept(content: str, _model: str) -> dict:
+        draft = normalize_draft(raw_text, _extract_json(content))
+        draft.pop("kill_floor", None)
+        return draft
+
+    return _each_completion(
+        [
+            {"role": "system", "content": SYSTEM},
+            {"role": "user", "content": raw_text[:4000]},
+        ],
+        timeout_s,
+        accept,
+    )

@@ -110,6 +110,19 @@ def execute(spec: dict, snapshot: dict, prior_trials: int = 0, related_trials: i
     card["events_in_tape"] = snapshot.get("events_aligned")
     if snapshot.get("book_observation"):
         card["book_observation"] = snapshot.get("book_observation")
+    capture = snapshot.get("book_capture")
+    if isinstance(capture, dict):
+        card["book_capture"] = {
+            "provenance": "forward_recorded",
+            "historical": False,
+            "symbol": capture.get("symbol"),
+            "ts": capture.get("ts"),
+            "spread_bps": capture.get("spread_bps"),
+            "bid_depth": capture.get("bid_depth"),
+            "ask_depth": capture.get("ask_depth"),
+            "payload_sha256": capture.get("payload_sha256"),
+            "endpoint": capture.get("endpoint"),
+        }
     short = FAMILY_MIN_UNITS.get(spec.get("family"), 60) - n_units
     if card["label"] == "UNTESTABLE" and card.get("primary_trap") == "insufficient_units" and short > 0:
         card["units_short"] = short

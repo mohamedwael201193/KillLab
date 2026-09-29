@@ -22,6 +22,7 @@ type VerdictJson = {
   snapshot_sha256?: string;
   engine_version?: string;
   mechanism?: string;
+  book_capture?: { provenance?: string; historical?: boolean; spread_bps?: number | null; payload_sha256?: string };
   findings?: { code: string; severity: string; detail?: Record<string, unknown> }[];
 };
 
@@ -59,6 +60,11 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
     { label: "Spec hash", value: raw.spec_sha256 ? raw.spec_sha256.slice(0, 16) : "—", status: "info" },
     { label: "Engine", value: raw.engine_version || "—", status: "info" },
     { label: "Mechanism", value: raw.mechanism || "—", status: "info" },
+    {
+      label: "Book record",
+      value: raw.book_capture?.provenance === "forward_recorded" && raw.book_capture.historical === false ? "forward-recorded" : "—",
+      status: "info",
+    },
   ];
   const traps: TrapCheckResult[] = (raw.findings || []).map((finding, index) => ({
     id: finding.code || String(index),

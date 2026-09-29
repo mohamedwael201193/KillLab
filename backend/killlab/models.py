@@ -81,6 +81,19 @@ class Fill(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 
+class BookCapture(Base):
+    """A book observed from this moment forward. Not a historical reconstruction."""
+
+    __tablename__ = "book_captures"
+    __table_args__ = {"schema": "killlab"}
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    symbol: Mapped[str] = mapped_column(Text)
+    provenance: Mapped[str] = mapped_column(Text)
+    payload_sha256: Mapped[str] = mapped_column(Text)
+    body: Mapped[dict] = mapped_column(JSONB)
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
 class IdempotencyKey(Base):
     __tablename__ = "idempotency_keys"
     __table_args__ = {"schema": "killlab"}
@@ -89,5 +102,5 @@ class IdempotencyKey(Base):
     status_code: Mapped[int] = mapped_column(Integer)
 
 
-ENGINE_VERSION = "killlab-0.7.0"
+ENGINE_VERSION = "killlab-0.8.0"
 SCHEMA_READY = text("SELECT 1")

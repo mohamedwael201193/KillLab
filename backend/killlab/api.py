@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hmac
 import logging
+import os
 import sys
+import threading
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -16,13 +18,14 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from killlab.ai.boundary import enforce_kill_floor, filter_explanation, reject_forbidden
-from killlab.ai.compile import LLMUnavailable, compile_text
+from killlab.ai.boundary import enforce_kill_floor, reject_forbidden
+from killlab.ai.compile import LLMUnavailable, compile_text, narrate
 from killlab.config import Settings, settings_from_environ
+from killlab.data.assemble import assemble_snapshot
 from killlab.data.bitget import BitgetError, BitgetRest, NotFrozen
-from killlab.data.earnings import align_events, classify_event_times, earnings_timestamps_ms, symbol_for, tag_events
 from killlab.db import session_factory
 from killlab.engine.review import evolution_state, is_related_research, killed_decision, reconcile_unit, research_fingerprint, realized_from_fills
+from killlab.forward import accrual_window, sweep_forward
 from killlab.guard import fixtures_loaded
 from killlab.hashutil import sha256_canonical
 from killlab.logjson import log_event
@@ -30,6 +33,7 @@ from killlab.ratelimit import allow, client_key
 from killlab.recover import interrupted_if_stale
 from killlab.models import (
     ENGINE_VERSION,
+    BookCapture,
     Fill,
     Hypothesis,
     IdempotencyKey,
@@ -86,6 +90,111 @@ def _fail_stale_runs(factory, stale_minutes: int) -> int:
         return changed
     finally:
         session.close()
+
+
+def _trial_counts(session: Session, canonical: dict) -> tuple[int, int]:
+    fingerprint = research_fingerprint(canonical)
+    prior = 0
+    related = 0
+    specs_by_hash: dict = {}
+    for previous in session.scalars(select(TestRun).where(TestRun.result_json.is_not(None))):
+        if (previous.result_json or {}).get("fingerprint") == fingerprint:
+            prior += 1
+            continue
+        prev_spec = specs_by_hash.get(previous.spec_sha256)
+        if prev_spec is None and previous.spec_sha256:
+            prev_spec = session.scalar(select(TestSpec).where(TestSpec.content_sha256 == previous.spec_sha256))
+            specs_by_hash[previous.spec_sha256] = prev_spec
+        if prev_spec is not None and is_related_research(canonical, prev_spec.canonical_json):
+            related += 1
+    return prior, related
+
+
+def _forward_sweep(session: Session, settings: Settings) -> dict:
+    now = datetime.now(timezone.utc)
+    window = accrual_window(now)
+    seen: set[tuple[str, str]] = set()
+    for entry in session.scalars(select(LedgerEntry).where(LedgerEntry.stage.in_(("FORWARD_CHECK", "AUTO_RUN")))):
+        body = entry.body or {}
+        if body.get("window") and body.get("preregistration_id"):
+            seen.add((str(body["preregistration_id"]), str(body["window"])))
+    latest: dict = {}
+    for run in session.scalars(select(TestRun).where(TestRun.result_json.is_not(None)).order_by(TestRun.created_at)):
+        latest[run.preregistration_id] = run
+    items = []
+    owners = {}
+    for run in latest.values():
+        if not (run.result_json or {}).get("forward_armed"):
+            continue
+        pre = session.get(Preregistration, run.preregistration_id)
+        spec = session.get(TestSpec, pre.test_spec_id) if pre else None
+        if pre is None or spec is None:
+            continue
+        owners[str(pre.id)] = (pre, spec, run)
+        items.append({
+            "preregistration_id": str(pre.id),
+            "spec_sha256": spec.content_sha256,
+            "frozen_sha256": pre.spec_sha256,
+            "canonical": {**spec.canonical_json, "content_sha256": spec.content_sha256},
+            "prior_trials": 0,
+            "related_trials": 0,
+        })
+
+    def pull(canonical: dict) -> dict:
+        return assemble_snapshot(BitgetRest(settings), canonical)
+
+    def execute_fn(canonical: dict, snapshot: dict, _prior: int, _related: int) -> dict:
+        prior, related = _trial_counts(session, canonical)
+        return execute(canonical, snapshot, prior_trials=prior, related_trials=related)
+
+    actions = sweep_forward(items=items, seen=seen, now=now, pull=pull, execute_fn=execute_fn)
+    public = []
+    for action in actions:
+        pre_id = action.get("preregistration_id")
+        owner = owners.get(str(pre_id))
+        if action["action"] == "below_floor" and owner:
+            _pre, spec, _run = owner
+            session.add(LedgerEntry(
+                hypothesis_id=spec.hypothesis_id,
+                stage="FORWARD_CHECK",
+                body={
+                    "window": window,
+                    "preregistration_id": str(pre_id),
+                    "spec_sha256": spec.content_sha256,
+                    "n_units": (action["card"].get("n_units") or {}).get("n"),
+                    "units_short": action["card"].get("units_short"),
+                    "automatic": True,
+                },
+            ))
+        elif action["action"] == "ran" and owner:
+            _pre, spec, _run = owner
+            card = action["card"]
+            card["fingerprint"] = research_fingerprint(spec.canonical_json)
+            created = TestRun(
+                preregistration_id=_pre.id,
+                status="untestable" if card.get("label") == "UNTESTABLE" else "succeeded",
+                spec_sha256=spec.content_sha256,
+                engine_version=ENGINE_VERSION,
+                result_json=card,
+            )
+            session.add(created)
+            session.flush()
+            session.add(LedgerEntry(
+                hypothesis_id=spec.hypothesis_id,
+                test_run_id=created.id,
+                stage="AUTO_RUN",
+                body={
+                    "window": window,
+                    "preregistration_id": str(pre_id),
+                    "spec_sha256": spec.content_sha256,
+                    "label": card.get("label"),
+                    "automatic": True,
+                },
+            ))
+            action["test_run_id"] = str(created.id)
+        public.append({key: value for key, value in action.items() if key not in {"card", "snapshot"}})
+    session.commit()
+    return {"window": window, "actions": public}
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -255,68 +364,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         session.commit()
         try:
             client = BitgetRest(settings)
-            venue = spec.canonical_json.get("venue")
-            product = "USDT-FUTURES" if venue == "bitget_perp" else "SPOT"
-            pages = 8 if spec.canonical_json.get("family") in {"event_earnings", "execution_venue_time", "carry_basis", "basis_convergence", "session_timing"} else 3
-            snapshot = None
-            events = []
-            failures = 0
-            for instrument in spec.canonical_json["instruments"]:
-                symbol = symbol_for(instrument, venue or "")
-                leg_product = product
-                if spec.canonical_json.get("family") == "basis_convergence" and symbol.upper().startswith("R"):
-                    leg_product = "SPOT"
-                try:
-                    pulled = client.history_candles(frozen=True, product=leg_product, symbol=symbol, pages=pages)
-                except BitgetError:
-                    failures += 1
-                    continue
-                if snapshot is None:
-                    snapshot = pulled
-                else:
-                    if pulled.get("actual_first") and (
-                        snapshot.get("actual_first") is None or pulled["actual_first"] < snapshot["actual_first"]
-                    ):
-                        snapshot["actual_first"] = pulled["actual_first"]
-                    if pulled.get("actual_last") and (
-                        snapshot.get("actual_last") is None or pulled["actual_last"] > snapshot["actual_last"]
-                    ):
-                        snapshot["actual_last"] = pulled["actual_last"]
-                    rank = {"short_page": 0, "empty_page": 1, "page_cap": 2}
-                    if rank.get(pulled.get("pagination_stop"), 0) > rank.get(snapshot.get("pagination_stop"), 0):
-                        snapshot["pagination_stop"] = pulled["pagination_stop"]
-                        snapshot["pages_requested"] = pulled.get("pages_requested")
-                        snapshot["pages_fetched"] = pulled.get("pages_fetched")
-                if spec.canonical_json.get("family") == "event_earnings":
-                    stamps = earnings_timestamps_ms(symbol)
-                    classified = classify_event_times(pulled.get("rows") or [], stamps)
-                    snapshot["events_outside_tape"] = int(snapshot.get("events_outside_tape") or 0) + classified["outside"]
-                    snapshot["events_short_horizon"] = int(snapshot.get("events_short_horizon") or 0) + classified["short_horizon"]
-                    snapshot["events_aligned"] = int(snapshot.get("events_aligned") or 0) + classified["aligned"]
-                    events.extend(tag_events(align_events(pulled.get("rows") or [], stamps), symbol))
-                if spec.canonical_json.get("family") == "basis_convergence" and leg_product == "SPOT":
-                    snapshot["spot_rows"] = list(pulled.get("rows") or [])
-                    if snapshot.get("rows") is pulled.get("rows"):
-                        snapshot["rows"] = []
-                elif spec.canonical_json.get("family") == "basis_convergence":
-                    snapshot["rows"] = list(pulled.get("rows") or [])
-                if spec.canonical_json.get("family") == "carry_basis":
-                    try:
-                        funding = client.history_funding(frozen=True, symbol=symbol)
-                    except BitgetError:
-                        funding = {"rows": []}
-                    snapshot.setdefault("funding", [])
-                    snapshot["funding"].extend(funding.get("rows") or [])
-            if snapshot is None:
-                raise BitgetError(f"no symbol ({failures} failed)")
-            try:
-                book = client.ticker(frozen=True, symbol=symbol_for(spec.canonical_json["instruments"][0], venue or ""))
-            except (BitgetError, IndexError):
-                book = None
-            if book:
-                snapshot["book_observation"] = book
-            if spec.canonical_json.get("family") == "event_earnings":
-                snapshot["events"] = events
+            snapshot = assemble_snapshot(client, spec.canonical_json)
+            capture = snapshot.get("book_capture")
+            if isinstance(capture, dict) and capture.get("payload_sha256"):
+                session.add(BookCapture(
+                    symbol=str(capture.get("symbol") or ""),
+                    provenance="forward_recorded",
+                    payload_sha256=str(capture["payload_sha256"]),
+                    body=capture,
+                ))
             fingerprint = research_fingerprint(spec.canonical_json)
             prior = 0
             related = 0
@@ -414,6 +470,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             run = session.get(TestRun, row.test_run_id)
             card = dict(run.result_json or {}) if run else {}
         proposal = evolution_state(card, trap)
+        facts = {
+            "label": card.get("label"),
+            "primary_trap": card.get("primary_trap"),
+            "units_short": card.get("units_short"),
+            "required_units": card.get("required_units"),
+            "forward_armed": card.get("forward_armed"),
+            "proposed_raw_text": proposal.get("proposed_raw_text"),
+        }
+        words = narrate("Phrase the next research question using only these facts.", facts)
+        proposal["narrative"] = words["text"]
+        proposal["model"] = words["model"]
+        proposal["stored"] = False
         return proposal
 
     @app.post("/v1/hypotheses/{hypothesis_id}/fills", status_code=201)
@@ -456,15 +524,48 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if spec_row is not None:
             session.add(LedgerEntry(hypothesis_id=spec_row.hypothesis_id, test_run_id=run.id, stage="REVIEW", body={"fingerprint": before.get("fingerprint"), "object": "unit", "inside_predictive": review.get("inside_predictive")}))
             session.commit()
+        words = narrate("Describe this one-trade review. Do not change the comparison.", review)
+        review = dict(review)
+        review["narrative"] = words["text"]
+        review["model"] = words["model"]
         return review
 
     @app.post("/v1/runs/{run_id}/explain")
-    def explain(run_id: str, body: dict, session: Session = Depends(db), _: None = Depends(auth)):
+    def explain(run_id: str, session: Session = Depends(db), _: None = Depends(auth)):
         row = session.get(TestRun, uuid.UUID(run_id))
         if row is None or not row.result_json:
             raise _error(409, "not_ready")
-        text_in = str(body.get("text") or "")
-        return {"summary": filter_explanation(text_in, row.result_json)}
+        facts = {
+            "label": row.result_json.get("label"),
+            "primary_trap": row.result_json.get("primary_trap"),
+            "n_units": row.result_json.get("n_units"),
+            "mechanism": row.result_json.get("mechanism"),
+            "dsr": row.result_json.get("dsr"),
+            "ci_low": row.result_json.get("ci_low"),
+            "ci_high": row.result_json.get("ci_high"),
+        }
+        words = narrate("Explain this frozen result in plain language.", facts)
+        return {"summary": words["text"], "model": words["model"], "numbers_locked": True}
+
+    @app.post("/v1/internal/forward-sweep")
+    def forward_sweep(session: Session = Depends(db), _: None = Depends(auth)):
+        return _forward_sweep(session, settings)
+
+    if os.environ.get("FORWARD_SCHEDULER") == "1":
+        def _loop() -> None:
+            import time
+            time.sleep(20)
+            while True:
+                held = factory()
+                try:
+                    _forward_sweep(held, settings)
+                except Exception:
+                    log_event("forward_sweep", status="error")
+                finally:
+                    held.close()
+                time.sleep(int(os.environ.get("FORWARD_SWEEP_S", "3600")))
+
+        threading.Thread(target=_loop, daemon=True, name="forward-sweep").start()
 
     return app
 
