@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from killlab.data.bitget import BitgetError, BitgetRest
 from killlab.data.earnings import align_events, classify_event_times, earnings_timestamps_ms, symbol_for, tag_events
 
-_FAMILIES = {"event_earnings", "execution_venue_time", "carry_basis", "basis_convergence", "session_timing"}
+_FAMILIES = {"event_earnings", "execution_venue_time", "carry_basis", "basis_convergence", "session_timing", "lead_lag"}
 
 
 def assemble_snapshot(client: BitgetRest, canonical: dict) -> dict:

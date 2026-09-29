@@ -544,6 +544,12 @@ def test_perp_versus_spot_is_the_basis_family():
     assert family_from_text("Does the NVDA perp versus spot premium fade?", "carry_basis") == "basis_convergence"
 
 
+def test_the_lead_question_uses_the_same_page_cap_as_the_other_scored_families():
+    from killlab.data.assemble import _FAMILIES
+
+    assert "lead_lag" in _FAMILIES
+
+
 def test_a_named_lead_is_not_a_session_question():
     from killlab.ai.compile import normalize_draft
     from killlab.engine.review import research_fingerprint
