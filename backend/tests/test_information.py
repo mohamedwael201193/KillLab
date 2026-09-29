@@ -529,6 +529,8 @@ def test_the_cash_close_is_a_session_question_and_the_open_stays_the_open():
     close = normalize_draft("Does the NVDA last cash hour beat the other cash hours?", {"family": "unsupported"})
     assert close["family"] == "session_timing"
     assert close["session_hour"] == 15
+    assert close["test_start"] == "2026-05-18"
+    assert close["test_end"] == "2026-09-28"
     opened = normalize_draft("Trade NVDA in the first hour of the cash session", {"family": "unsupported"})
     assert opened["family"] == "session_timing"
     assert "session_hour" not in opened

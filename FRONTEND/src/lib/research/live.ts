@@ -40,7 +40,7 @@ export function draftSpec(text: string) {
     family,
     instruments,
     venue: "bitget_perp",
-    test_start: "2026-07-01",
+    test_start: "2026-05-18",
     test_end: "2026-09-28",
     grain: "1H",
     costs: { perp_taker_bps: 6 },

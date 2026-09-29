@@ -122,7 +122,7 @@ def normalize_draft(raw_text: str, proposed: dict) -> dict:
         "family": family,
         "instruments": ["NVDAUSDT", "RNVDAUSDT"] if family == "basis_convergence" else instruments,
         "venue": "bitget_perp",
-        "test_start": "2026-07-01",
+        "test_start": "2026-05-18",
         "test_end": "2026-09-28",
         "grain": "1H",
         "costs": {"perp_taker_bps": COST_SCHEDULE["perp_taker_bps"]},
