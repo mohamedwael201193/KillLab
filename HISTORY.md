@@ -344,4 +344,9 @@ This file is append-only.
   - `market-intel` / `news_feed` on run `da31fc71-364c-4612-b6e1-ed00a7ebeeac`: the official news tool answered with no articles. Engine on that run row is `killlab-0.12.1`.
 - `POST /v1/internal/forward-sweep` for UTC day `2026-09-29` returned 20 `below_floor` actions and no `AUTO_RUN`. The short checks were retried. None of the armed specs had reached its family minimum. Floors were not changed. No historical order book was reconstructed. No new research family was added.
 
+## 2026-09-29 Follow-up on the empty skills and the short public series
+
+- `news_feed` with feed `blockbeats` returned an empty item list. `dex_market` action `trending` returned an empty error and a URL, with no token rows. `derivatives_sentiment` action `reddit_trending` returned an empty error. No article or ratio from those calls was stored as a reading.
+- Bitget public `GET /api/v2/mix/market/open-interest` for BTCUSDT returned one current size and a timestamp, not a history. `account-long-short` returned 30 rows at 5m, 15m, and 1h, and 24 rows at 4h. `taker-buy-sell` returned 30 rows at those periods, including 30 daily rows. `1d` is not a valid period for `account-long-short`. None of these series reaches 60 points. No family was added and no floor was lowered.
+
 
