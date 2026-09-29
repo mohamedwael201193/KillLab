@@ -229,7 +229,7 @@ This file is append-only.
 - Why it was wrong: one trade is one draw from the unit distribution, not a new estimate of the mean. KillLab-observed repeats of the same family, instruments, grain, and variants are additional trials.
 - Correct behavior: the fill is compared with the 5th–95th percentile of the out-of-sample units. The research fingerprint ignores the sentence. Prior matching runs increase `n_trials`. `n_eff` is the decision-unit count. Engine `killlab-0.6.0`.
 - Test: a 40 bps fill sits inside a wide unit range and outside a tight mean interval. Reordered instruments and variant codes share a fingerprint. `python -m pytest -q` → 24 passed.
-- Production verification: pending the `killlab-0.6.0` deploy.
+- Production verification: `GET /health` returned `killlab-0.6.0` after deploy `7d80f71`.
 
 
 ## 2026-09-29 Frontend connected to the live API
