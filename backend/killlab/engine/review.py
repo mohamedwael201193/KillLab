@@ -44,6 +44,15 @@ def next_hypothesis(primary_trap: str | None) -> dict:
     }
 
 
+def evolution_state(card: dict, primary_trap: str | None) -> dict:
+    """The next test inherits the stored fingerprint. The frozen card is not edited."""
+    proposal = next_hypothesis(primary_trap)
+    proposal["fingerprint"] = card.get("fingerprint")
+    proposal["prior_trials"] = card.get("prior_trials")
+    proposal["next_prior_trials"] = int(card.get("prior_trials") or 0) + 1
+    return proposal
+
+
 def reconcile_point(realized_bps: float, ci_low: float | None, ci_high: float | None) -> dict:
     """Mean-interval helper kept for tests. A single fill must not use this as the forecast."""
     if ci_low is None or ci_high is None:

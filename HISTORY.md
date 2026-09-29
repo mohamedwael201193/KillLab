@@ -234,6 +234,8 @@ This file is append-only.
 - The production desk, in a clean Chrome context, called only `https://killlab.vercel.app/api/killlab/...` and compiled the open-hour sentence to `session_timing`. A model-supplied variant code is no longer frozen; the server writes the family's canonical variant pair.
 - Chrome freeze returned 422 because the compiler echoed `kill_floor`, which the spec schema forbids. The client now keeps only spec fields, and the compiler response drops `kill_floor` so the server can apply it on save.
 - After that fix, a clean Chrome session froze the NVDA open-hour idea and showed `UNTESTABLE`, 38 units, 46 events, first bar `2026-07-24T02:00:00Z`, engine `killlab-0.6.0`, spec `5ee49af183708761`, snapshot `10dbb1b098dbfce4`. The ledger next question was the insufficient-history sentence. A pasted round trip was compared with the one-trade range, not the mean interval. The browser made 14 calls, all to `/api/killlab`, and none to Supabase, Bitget, or the model host.
+- A repeated fingerprint increases the next trial count. Beta claimed without a positive alpha, a three-unit sample, a carry spec without the earn baseline, a claimed start before the tape, and a missing cost model cannot be approved. `python -m pytest -q` → 25 passed.
+- Weekend and StockRoute wording selects `execution_venue_time` even if the model guesses another family. The next-question response carries the stored fingerprint and the next prior-trial count, and it does not edit the frozen result. A fill review writes a REVIEW ledger row and leaves `result_json` unchanged.
 
 
 ## 2026-09-29 Frontend connected to the live API

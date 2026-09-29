@@ -122,6 +122,14 @@ export const useDesk = create<DeskState>((set, get) => ({
             if (compiled.draft[key] !== undefined) merged[key] = compiled.draft[key];
           }
           spec = merged as typeof local;
+          if (/weekend|stockroute/i.test(text)) {
+            spec = {
+              ...spec,
+              family: "execution_venue_time",
+              variants: [{ code: "NOW" }, { code: "WAIT" }],
+              risk: { sigma_span: "until_sunday_switch", horizon_span: "until_sunday_switch", alternatives: ["NOW", "WAIT"], lambda_grid: [0.5] },
+            };
+          }
         }
       } catch {
         spec = local;

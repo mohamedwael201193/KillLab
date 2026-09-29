@@ -331,6 +331,9 @@ def test_compiler_drops_a_model_that_injects_a_metric():
     assert owned["selection"]["split"] == "IS"
     forced = normalize_draft("Trade NVDA", {"family": "session_timing", "variants": [{"code": "NY1H"}]})
     assert [item["code"] for item in forced["variants"]] == ["continuation", "reversal"]
+    weekend = normalize_draft("compare the weekend with StockRoute", {"family": "session_timing"})
+    assert weekend["family"] == "execution_venue_time"
+    assert [item["code"] for item in weekend["variants"]] == ["NOW", "WAIT"]
     clean = dict(forced)
     clean.pop("kill_floor", None)
     reject_forbidden(clean)

@@ -22,7 +22,7 @@ from killlab.config import Settings, settings_from_environ
 from killlab.data.bitget import BitgetError, BitgetRest, NotFrozen
 from killlab.data.earnings import align_events, earnings_timestamps_ms, symbol_for, tag_events
 from killlab.db import session_factory
-from killlab.engine.review import killed_decision, next_hypothesis, reconcile_unit, research_fingerprint, realized_from_fills
+from killlab.engine.review import evolution_state, killed_decision, reconcile_unit, research_fingerprint, realized_from_fills
 from killlab.guard import fixtures_loaded
 from killlab.hashutil import sha256_canonical
 from killlab.logjson import log_event
@@ -363,7 +363,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         row = session.get(LedgerEntry, uuid.UUID(entry_id))
         if row is None or row.stage != "DECISION":
             raise _error(404, "not_found")
-        proposal = next_hypothesis((row.body or {}).get("primary_trap") or (row.body or {}).get("label"))
+        trap = (row.body or {}).get("primary_trap") or (row.body or {}).get("label")
+        card = {}
+        if row.test_run_id:
+            run = session.get(TestRun, row.test_run_id)
+            card = dict(run.result_json or {}) if run else {}
+        proposal = evolution_state(card, trap)
         return proposal
 
     @app.post("/v1/hypotheses/{hypothesis_id}/fills", status_code=201)
@@ -395,9 +400,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             realized = realized_from_fills(pasted)
             if realized is None:
                 raise _error(422, "validation")
+        before = dict(run.result_json)
         review = reconcile_unit(float(realized), run.result_json.get("unit_p05"), run.result_json.get("unit_p95"))
         if review.get("status") == "no_forecast":
             raise _error(409, "no_forecast")
+        if run.result_json != before:
+            raise _error(500, "frozen_mutated")
+        pre = session.get(Preregistration, run.preregistration_id)
+        spec_row = session.get(TestSpec, pre.test_spec_id) if pre else None
+        if spec_row is not None:
+            session.add(LedgerEntry(hypothesis_id=spec_row.hypothesis_id, test_run_id=run.id, stage="REVIEW", body={"fingerprint": before.get("fingerprint"), "object": "unit", "inside_predictive": review.get("inside_predictive")}))
+            session.commit()
         return review
 
     @app.post("/v1/runs/{run_id}/explain")

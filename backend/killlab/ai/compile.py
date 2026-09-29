@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 import httpx
 
@@ -81,13 +82,26 @@ _NAMES = ("NVDA", "TSLA", "AAPL", "MSFT", "AMZN", "META", "GOOGL", "COIN", "MSTR
 _FAMILIES = {"session_timing", "event_earnings", "carry_basis", "execution_venue_time", "unsupported"}
 
 
+def family_from_text(raw_text: str, proposed_family: str | None) -> str:
+    """Unambiguous mechanism words outrank a model guess."""
+    if re.search(r"weekend|stockroute", raw_text, re.I):
+        return "execution_venue_time"
+    if re.search(r"earn|after[- ]hours", raw_text, re.I):
+        return "event_earnings"
+    if re.search(r"fund|carry|basis", raw_text, re.I):
+        return "carry_basis"
+    if re.search(r"session|first hour|cash open", raw_text, re.I):
+        return "session_timing"
+    if proposed_family in _FAMILIES:
+        return proposed_family
+    return "unsupported"
+
+
 def normalize_draft(raw_text: str, proposed: dict) -> dict:
     """The model may name the family. The server owns costs, the split, and the floor."""
     if FORBIDDEN_KEYS.intersection(proposed):
         raise ValueError("forbidden metric fields")
-    family = proposed.get("family")
-    if family not in _FAMILIES:
-        raise ValueError("family")
+    family = family_from_text(raw_text, proposed.get("family") if isinstance(proposed.get("family"), str) else None)
     upper = raw_text.upper()
     named = [f"{name}USDT" for name in _NAMES if name in upper]
     instruments = proposed.get("instruments") if isinstance(proposed.get("instruments"), list) else []
