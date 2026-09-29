@@ -57,6 +57,8 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
   const summary =
     verdict === "UNTESTABLE"
       ? `Not enough independent Bitget history to score this idea. First bar ${raw.actual_first || "unknown"}. Sample ${n ?? "unknown"}.`
+      : verdict === "INCONCLUSIVE"
+        ? "The interval still covers both a real edge and no edge. That is not a kill and it is not a pass."
       : verdict === "KILLED"
         ? `The frozen kill rule failed${raw.primary_trap ? ` on ${raw.primary_trap}` : ""}.`
         : "The frozen kill rule passed on this sample.";

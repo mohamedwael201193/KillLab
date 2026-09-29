@@ -204,6 +204,48 @@ def test_session_units_are_cash_hours_not_every_bar():
     assert killed_floor["primary_trap"] == "WRONG_COST_BASELINE"
 
 
+def test_mirror_variants_do_not_invent_pbo_and_a_real_edge_can_live():
+    import numpy as np
+    from killlab.engine.pbo import cscv_pbo
+    from killlab.runner import execute
+    mirror = np.column_stack([np.linspace(-1, 1, 32), np.linspace(1, -1, 32)])
+    assert cscv_pbo(mirror, splits=8)["reason"] == "degenerate_mirror"
+    from datetime import datetime, timedelta
+    import random
+    rng = random.Random(3)
+    start = datetime(2026, 6, 1, 9, 0, tzinfo=ET)
+    rows = []
+    price = 100.0
+    day = start
+    built = 0
+    while built < 80:
+        if day.weekday() < 5:
+            for hour in range(9, 17):
+                price *= 1.004 if hour == 10 else 1 + rng.uniform(-0.00005, 0.00005)
+                rows.append([int(day.replace(hour=hour).timestamp() * 1000), price, price, price, price])
+            built += 1
+        day += timedelta(days=1)
+    spec = {
+        "family": "session_timing",
+        "venue": "bitget_perp",
+        "variants": [{"code": "continuation"}, {"code": "reversal"}],
+        "selection": {"split": "IS"},
+        "costs": {"perp_taker_bps": 6},
+        "baselines": ["buy_and_hold"],
+        "transforms": [],
+        "claims_alpha": False,
+        "event_kind": "none",
+        "grain": "1H",
+        "seed": 1,
+        "risk": {},
+    }
+    planted = execute(spec, {"rows": rows, "payload_sha256": "plant"})
+    assert planted["label"] == "ALIVE"
+    assert planted["bar_straddle"] is True
+    assert planted["pbo"] is None
+    assert planted["pbo_reason"] == "degenerate_mirror"
+
+
 def test_noise_and_a_short_weekend_sample_cannot_be_alive():
     import random
     from datetime import datetime, timedelta

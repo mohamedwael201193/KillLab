@@ -7,11 +7,25 @@ import itertools
 import numpy as np
 
 
+def _mirror_pair(values: np.ndarray) -> bool:
+    """X and -X, or a near mirror after a constant cost, is not a real variant set."""
+    if values.shape[1] != 2:
+        return False
+    left = values[:, 0]
+    right = values[:, 1]
+    if left.std(ddof=1) == 0 or right.std(ddof=1) == 0:
+        return True
+    corr = float(np.corrcoef(left, right)[0, 1])
+    return corr == corr and corr < -0.98
+
+
 def cscv_pbo(matrix: np.ndarray, splits: int = 8) -> dict:
     values = np.asarray(matrix, float)
     rows, cols = values.shape
     if splits % 2 or splits < 2 or rows < splits or cols < 2:
         return {"pbo": None, "reason": "insufficient_shape"}
+    if _mirror_pair(values):
+        return {"pbo": None, "reason": "degenerate_mirror"}
     usable = np.isfinite(values).any(axis=1)
     values = np.where(np.isfinite(values), values, 0.0)[usable]
     rows = int(values.shape[0])

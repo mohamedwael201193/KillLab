@@ -32,7 +32,7 @@ def trap_multiple_testing(spec: dict, dsr: float | None) -> list[dict]:
     if n < 1:
         out.append(_finding("MULTIPLE_TESTING", "invalidate", {"reason": "no_variants"}))
     if dsr is not None and dsr == dsr and dsr < KILL_FLOOR["dsr_gte"]:
-        out.append(_finding("MULTIPLE_TESTING", "kill", {"dsr": dsr, "bar": KILL_FLOOR["dsr_gte"], "n_trials": n}))
+        out.append(_finding("MULTIPLE_TESTING", "hold", {"dsr": dsr, "bar": KILL_FLOOR["dsr_gte"], "n_trials": n}))
     return out
 
 

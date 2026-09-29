@@ -10,6 +10,14 @@ from killlab.engine.pbo import cscv_pbo
 from killlab.engine.verdict import decide
 
 
+def _mde(low, high) -> float | None:
+    """Approximate 80% power minimum detectable mean from a 90% interval."""
+    if low is None or high is None or high <= low:
+        return None
+    standard_error = (high - low) / (2 * 1.64485)
+    return (1.64485 + 0.84162) * standard_error
+
+
 def execute(spec: dict, snapshot: dict) -> dict:
     panel = build_panel(spec, snapshot)
     series_ids = panel["unit_ids"]
@@ -30,13 +38,16 @@ def execute(spec: dict, snapshot: dict) -> dict:
         if ci["ci_low"] is not None:
             beats = ci["ci_low"] > 0
     pbo = None
+    pbo_reason = None
     if len(oos) >= 16 and len(variants) >= 2:
         import numpy as np
 
         width = len(panel["unit_ids"])
         columns = [panel["variants"][name][:width] for name in variants]
         if all(len(column) == width and width >= 16 for column in columns):
-            pbo = cscv_pbo(np.column_stack(columns), splits=8).get("pbo")
+            pbo_doc = cscv_pbo(np.column_stack(columns), splits=8)
+            pbo = pbo_doc.get("pbo")
+            pbo_reason = pbo_doc.get("reason")
     measured = {
         "n_units": n_units,
         "dsr": dsr,
@@ -50,6 +61,9 @@ def execute(spec: dict, snapshot: dict) -> dict:
         "sigma_h_present": bool((spec.get("risk") or {}).get("sigma_span")),
         "snapshot_sha256": snapshot.get("payload_sha256"),
         "avoided_loss_bps": None,
+        "ci_low": ci.get("ci_low"),
+        "ci_high": ci.get("ci_high"),
+        "bar_straddle": spec.get("family") == "session_timing" and spec.get("grain") in {"1H", "1h"},
     }
     if beats is not None:
         measured["beats_baseline"] = beats
@@ -62,6 +76,9 @@ def execute(spec: dict, snapshot: dict) -> dict:
     card["ci_low"] = ci.get("ci_low")
     card["ci_high"] = ci.get("ci_high")
     card["pbo"] = pbo
+    card["pbo_reason"] = pbo_reason
+    card["bar_straddle"] = measured["bar_straddle"]
+    card["mde_bps"] = _mde(ci.get("ci_low"), ci.get("ci_high"))
     card["n_events"] = n_events
     card["mechanism"] = panel["mechanism"]
     card["selected_variant"] = selected["selected"]

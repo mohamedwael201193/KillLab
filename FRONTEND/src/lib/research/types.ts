@@ -7,7 +7,7 @@
  * the same interfaces without touching the UI layer.
  */
 
-export type Verdict = "KILLED" | "ALIVE" | "UNTESTABLE";
+export type Verdict = "KILLED" | "ALIVE" | "INCONCLUSIVE" | "UNTESTABLE";
 
 export type LedgerStage = "KNOWN" | "UNKNOWN" | "TEST" | "RESULT" | "DECISION";
 
