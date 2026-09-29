@@ -185,6 +185,7 @@ def _forward_sweep(session: Session, settings: Settings) -> dict:
             _pre, spec, _run = owner
             card = action["card"]
             card["fingerprint"] = research_fingerprint(spec.canonical_json)
+            card["run_origin"] = "automatic"
             created = TestRun(
                 preregistration_id=_pre.id,
                 status="untestable" if card.get("label") == "UNTESTABLE" else "succeeded",
@@ -452,6 +453,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         "personalization": {"changes_verdict": False},
                     }
             attach_context(card, context)
+            card["run_origin"] = "manual"
             log_event("verdict", label=card.get("label"), primary_trap=card.get("primary_trap"), run_id=str(run.id))
             run.status = "untestable" if card["label"] == "UNTESTABLE" else "succeeded"
             run.result_json = card

@@ -26,19 +26,23 @@ type VerdictJson = {
   related_trials?: number;
   next_question?: string;
   thesis?: string;
-  book_capture?: { provenance?: string; historical?: boolean; spread_bps?: number | null; payload_sha256?: string };
+  book_capture?: { provenance?: string; historical?: boolean; spread_bps?: number | null; payload_sha256?: string; ts?: string };
+  run_origin?: string;
   research_context?: {
     usable_for_verdict?: boolean;
-    routing?: { skill?: string | null; reason?: string };
+    routing?: { skill?: string | null; secondary?: string | null; reason?: string };
     items?: {
       source_type?: string;
+      source_url?: string;
       tool_name?: string;
       summary?: string;
       data_timestamp?: string | null;
+      retrieved_at?: string;
       content_hash?: string;
       symbol?: string | null;
       current_or_historical?: string;
       category?: string;
+      failure_reason?: string | null;
     }[];
   };
   findings?: { code: string; severity: string; detail?: Record<string, unknown> }[];
@@ -84,14 +88,19 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
     { label: "Mechanism", value: raw.mechanism || "—", status: "info" },
     {
       label: "Book record",
-      value: raw.book_capture?.provenance === "forward_recorded" && raw.book_capture.historical === false ? "forward-recorded" : "—",
+      value:
+        raw.book_capture?.provenance === "forward_recorded" && raw.book_capture.historical === false
+          ? `forward-recorded${raw.book_capture.spread_bps === undefined || raw.book_capture.spread_bps === null ? "" : ` · spread ${num(raw.book_capture.spread_bps)} bps`}`
+          : "—",
       status: "info",
+      threshold: raw.book_capture?.historical === false ? `retrieved ${raw.book_capture.ts || "unknown"} · not a past book` : undefined,
     },
+    { label: "Run origin", value: raw.run_origin || "—", status: "info" },
     { label: "Thesis", value: raw.thesis || "—", status: "info" },
     { label: "Next question", value: raw.next_question || "—", status: "info" },
     {
       label: "Research skill",
-      value: raw.research_context?.routing?.skill || "none",
+      value: [raw.research_context?.routing?.skill, raw.research_context?.routing?.secondary].filter((item) => item).join(" + ") || "none",
       status: "info",
     },
     {
@@ -99,11 +108,18 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
       value: raw.research_context && raw.research_context.usable_for_verdict === false ? "no" : raw.research_context ? "no" : "—",
       status: "info",
     },
-    ...((raw.research_context?.items || []).slice(0, 2).map((item) => ({
+    ...((raw.research_context?.items || []).slice(0, 3).map((item) => ({
       label: item.category || item.source_type || "Context",
       value: item.summary || "—",
       status: "info" as EvidenceStatus,
-      threshold: [item.tool_name, item.symbol, item.current_or_historical, item.data_timestamp || "no source time", item.content_hash ? item.content_hash.slice(0, 12) : ""]
+      threshold: [
+        item.current_or_historical,
+        item.data_timestamp ? `data ${item.data_timestamp}` : "no source time",
+        item.retrieved_at ? `retrieved ${item.retrieved_at}` : "",
+        item.source_url ? item.source_url.replace("https://", "") : "",
+        item.tool_name,
+        item.content_hash ? item.content_hash.slice(0, 12) : "",
+      ]
         .filter((part) => part)
         .join(" · "),
     }))),

@@ -109,4 +109,5 @@ def test_qwen_text_cannot_invent_a_book_a_sample_or_a_verdict_number():
     assert "3.2" not in text
     assert "600" not in text
     assert "2024" not in text
-    assert "ALIVE" in text
+    assert "ALIVE" not in text
+    assert "[redacted]" in text

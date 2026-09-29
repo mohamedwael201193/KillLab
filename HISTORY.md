@@ -308,4 +308,14 @@ This file is append-only.
 - One explanation call for the first run returned model `openai/gpt-oss-120b` with `numbers_locked` true. The next-question call in the same session returned `qwen3.8-max`.
 - Test command already recorded above: `python -m pytest -q` → 52 passed.
 
+## 2026-09-29 Provenance split between the US-stock MCP and the research skills
+
+- Decision: engine `killlab-0.11.0`. An evidence row now keeps `source_url`, `requested_at`, `retrieved_at`, and `data_timestamp` as separate fields. A payload with numbers and no upstream time is `undated`. A quote time older than two days is `stale`. A history action with a source time is `historical`. A session refusal is `too many open sessions` and is not replaced with another provider's price. A hypothesis can select one primary skill and one secondary skill when the wording names two different questions. An empty news tool is stored as no articles. A manual run is labeled `manual`. A scored forward run is labeled `automatic`.
+- Why: the receipt had called an undated RSI current, and it did not show which host produced the row. The US-stock host and the research-skill host are different services.
+- Files: `backend/killlab/integrations/`, `ai/boundary.py`, `api.py`, `models.py`, `FRONTEND/src/lib/research/map-verdict.ts`, `tests/test_information.py`, `tests/test_overmatch.py`, `docs/calibration/verdict_curve.json`.
+- Local calls on 2026-09-29, after freeze in the probe only: `technical_analysis` on NVDAUSDT returned rsi 59.59, undated. `rates_yields` returned `yield_curve_inverted` false, undated. `sentiment_index` returned no numeric fields. `news_feed` for news-briefing and market-intel returned feed names and no articles, recorded as no articles after this change. `https://agent.bitget.com/mcp` `do_query` for NVDA returned `too many open sessions` from this network. No price was invented.
+- Test: `python -m pytest -q` → 57 passed. Frontend `tsc --noEmit` and `next build` passed.
+- Not done in this entry: a new production run on `killlab-0.11.0`, and a natural `AUTO_RUN`. Family floors were not changed. No new research family was added. Historical order-book depth was not reconstructed.
+
+
 

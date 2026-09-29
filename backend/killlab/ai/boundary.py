@@ -67,6 +67,9 @@ def filter_explanation(text: str, engine_doc: dict) -> str:
     for name in SOURCE_NAMES:
         if name not in blob:
             cleaned = cleaned.replace(name, "[redacted]")
+    for label in ("ALIVE", "KILLED", "INCONCLUSIVE", "UNTESTABLE"):
+        if label not in blob:
+            cleaned = cleaned.replace(label, "[redacted]")
     book = engine_doc.get("book_capture") if isinstance(engine_doc.get("book_capture"), dict) else {}
     historical = book.get("historical", engine_doc.get("historical"))
     if historical is False:

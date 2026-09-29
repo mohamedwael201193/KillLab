@@ -175,9 +175,18 @@ def test_evidence_keeps_provenance_hash_and_time_class():
     assert current["content_hash"] == again["content_hash"] == content_hash(payload)
     assert current["current_or_historical"] == "current"
     assert historical["current_or_historical"] == "historical"
-    assert live_only["current_or_historical"] == "current"
+    assert live_only["current_or_historical"] == "undated"
     assert live_only["data_timestamp"] is None
-    assert current["usable_for_verdict"] is False
+    stale = evidence_object(
+        source_type="MCP_CONTEXT",
+        provider="bitget-mcp-server",
+        tool_name="do_query",
+        symbol="NVDA",
+        query={"action": "quote"},
+        payload={"price": 10, "as_of": "2020-01-01T00:00:00Z"},
+    )
+    assert stale["current_or_historical"] == "stale"
+    assert stale["data_timestamp"] == "2020-01-01T00:00:00Z"
 
 
 def test_client_source_has_no_secret_and_no_authorization_header():
@@ -310,6 +319,88 @@ def test_forward_book_cases_stay_forward_only():
     assert claimed["book_capture"]["historical"] is False or claimed["primary_trap"] == "book_unusable"
     other = execute(spec, {"rows": [], "book_capture": {**_book(), "provenance": "rest"}})
     assert other["primary_trap"] == "book_unusable"
+
+
+def test_each_official_skill_has_one_route_and_a_second_skill_is_optional():
+    assert route_skill("How does the Fed and CPI change the tape?", None)["skill"] == "macro-analyst"
+    assert route_skill("Are ETF and whale flows arriving?", None)["skill"] == "market-intel"
+    assert route_skill("Is the crowd in fear while funding is positive?", None)["skill"] == "sentiment-analyst"
+    assert route_skill("Is the session hour overbought?", None)["skill"] == "technical-analysis"
+    assert route_skill("What breaking news moved the name?", None)["skill"] == "news-briefing"
+    send = _transport(_ok)
+    context = enrich_context(
+        frozen=True,
+        family="session_timing",
+        instruments=["BTCUSDT"],
+        text="Fed rates and ETF institutional flow",
+        send=send,
+    )
+    names = [item[1] for item in send.calls]
+    assert set(names) == {"rates_yields", "news_feed"}
+    assert context["routing"]["skill"] == "macro-analyst"
+    assert context["routing"]["secondary"] == "market-intel"
+    assert "technical_analysis" not in names
+    assert "sentiment_index" not in names
+    urls = {item["source_url"] for item in context["items"]}
+    assert urls == {"https://datahub.noxiaohao.com/mcp"}
+    assert all(item["usable_for_verdict"] is False for item in context["items"])
+
+
+def test_a_crypto_name_does_not_call_the_us_stock_mcp_and_an_undated_quote_stays_undated():
+    send = _transport(_ok)
+    crypto = enrich_context(frozen=True, family="carry_basis", instruments=["BTCUSDT"], text="funding", send=send)
+    assert all(item["source_url"] != "https://agent.bitget.com/mcp" for item in crypto["items"])
+    equity = enrich_context(
+        frozen=True,
+        family="session_timing",
+        instruments=["NVDAUSDT"],
+        text="the first cash session hour",
+        send=_transport(lambda name, arguments: _sse({"symbol": "NVDA", "last_price": 10}) if name == "do_query" else _ok(name, arguments)),
+    )
+    quote = next(item for item in equity["items"] if item["source_type"] == "MCP_CONTEXT")
+    skill = next(item for item in equity["items"] if item["source_type"] == "SKILL_CONTEXT")
+    assert quote["source_url"] == "https://agent.bitget.com/mcp"
+    assert skill["source_url"] == "https://datahub.noxiaohao.com/mcp"
+    assert quote["current_or_historical"] == "undated"
+    assert quote["data_timestamp"] is None
+    assert quote["retrieved_at"] != quote["data_timestamp"]
+
+
+def test_a_session_limit_is_labeled_and_not_replaced_with_a_skill_price():
+    def limited(name, arguments):
+        return 503, {"mcp-session-id": "session"}, "Too many open sessions"
+
+    send = _transport(limited)
+    with pytest.raises(McpError) as exc:
+        call_tool("https://agent.bitget.com/mcp", "do_query", {"entry_id": "equity_price_quote"}, retries=1, send=send)
+    assert exc.value.reason == "too many open sessions"
+    context = enrich_context(frozen=True, family="session_timing", instruments=["NVDAUSDT"], text="session hour", send=send)
+    quote = next(item for item in context["items"] if item["source_type"] == "MCP_CONTEXT")
+    assert quote["failure_reason"] == "too many open sessions"
+    assert "228" not in quote["summary"]
+    assert quote["source_url"] == "https://agent.bitget.com/mcp"
+
+
+def test_an_empty_news_tool_is_not_described_as_an_article():
+    def empty(name, arguments):
+        return _sse([{"feed": "cointelegraph", "items": []}])
+
+    context = enrich_context(
+        frozen=True,
+        family=None,
+        instruments=["BTCUSDT"],
+        text="What breaking news moved the name?",
+        send=_transport(empty),
+    )
+    item = context["items"][0]
+    assert item["skill"] == "news-briefing"
+    assert item["summary"] == "The official news tool answered with no articles."
+    assert item["current_or_historical"] == "unknown"
+    assert item["source_url"] == "https://datahub.noxiaohao.com/mcp"
+
+
+def test_execution_wording_without_a_skill_trigger_does_not_invent_one():
+    assert route_skill("Compare waiting with trading now on the same exit.", "execution_venue_time")["skill"] is None
 
 
 def test_compiler_module_does_not_call_the_information_layer():

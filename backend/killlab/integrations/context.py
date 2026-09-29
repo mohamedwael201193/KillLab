@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from killlab.data.bitget import NotFrozen
 from killlab.integrations.bitget_mcp import equity_ticker, quote_evidence
-from killlab.integrations.bitget_signal import route_skill, skill_evidence
+from killlab.integrations.bitget_signal import route_skills, skill_evidence
 
 _LOCKED = ("label", "dsr", "pbo", "ci_low", "ci_high", "n_units", "n_trials", "mechanism")
 
@@ -26,7 +26,13 @@ def enrich_context(
     if not frozen:
         raise NotFrozen("research context is refused before freeze")
     symbol = str(instruments[0]) if instruments else None
-    routing = route_skill(text, family, thesis)
+    chosen = route_skills(text, family, thesis)
+    routing = {
+        "skill": chosen[0]["skill"] if chosen else None,
+        "secondary": chosen[1]["skill"] if len(chosen) > 1 else None,
+        "reason": chosen[0]["reason"] if chosen else "No research skill matches this frozen question.",
+        "skills": chosen,
+    }
     outside = isinstance(review, dict) and review.get("object") == "unit" and review.get("inside_predictive") is False
     personalization = {
         "thesis_used": bool(thesis),
@@ -51,7 +57,7 @@ def enrich_context(
         )
 
     items = []
-    with ThreadPoolExecutor(max_workers=2) as pool:
+    with ThreadPoolExecutor(max_workers=3) as pool:
         quote_job = pool.submit(_quote) if equity_ticker(symbol) else None
         skill_job = pool.submit(_skill)
         if quote_job is not None:
@@ -59,16 +65,29 @@ def enrich_context(
                 quote = quote_job.result(timeout=timeout + 2)
             except Exception as exc:
                 quote = None
-                items.append({"source_type": "MCP_CONTEXT", "usable_for_verdict": False, "summary": type(exc).__name__})
+                items.append({
+                    "source_type": "MCP_CONTEXT",
+                    "source_url": "https://agent.bitget.com/mcp",
+                    "usable_for_verdict": False,
+                    "failure_reason": type(exc).__name__,
+                    "summary": type(exc).__name__,
+                    "current_or_historical": "unavailable",
+                })
             if quote:
                 items.append(quote)
         try:
-            skill = skill_job.result(timeout=timeout + 2)
+            skills = skill_job.result(timeout=timeout + 2)
         except Exception as exc:
-            skill = None
-            items.append({"source_type": "SKILL_CONTEXT", "usable_for_verdict": False, "summary": type(exc).__name__})
-        if skill:
-            items.append(skill)
+            skills = []
+            items.append({
+                "source_type": "SKILL_CONTEXT",
+                "source_url": "https://datahub.noxiaohao.com/mcp",
+                "usable_for_verdict": False,
+                "failure_reason": type(exc).__name__,
+                "summary": type(exc).__name__,
+                "current_or_historical": "unavailable",
+            })
+        items.extend(skills or [])
     return {
         "status": "ok" if any(not item.get("provenance", {}).get("error") and item.get("summary") for item in items) else "unavailable",
         "routing": routing,

@@ -8,6 +8,7 @@ No account key is sent.
 from __future__ import annotations
 
 import json
+import time
 from typing import Callable
 
 import httpx
@@ -61,6 +62,8 @@ def _raise_for_status(status: int, body: str) -> None:
     if status < 400:
         return
     if status == 503:
+        if "session" in body.lower():
+            raise McpError("too many open sessions")
         raise McpError("upstream unavailable")
     if status in {408, 504}:
         raise McpError("timeout")
@@ -87,8 +90,10 @@ def call_tool(
             last = exc.reason
             if attempt + 1 >= attempts:
                 break
-            if exc.reason not in {"timeout", "upstream unavailable"}:
+            if exc.reason not in {"timeout", "upstream unavailable", "too many open sessions"}:
                 break
+            if send is None:
+                time.sleep(0.6 * (attempt + 1))
     raise McpError(last)
 
 

@@ -6,6 +6,8 @@ not a missing verdict.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from killlab.data.bitget import NotFrozen
 from killlab.integrations.evidence import evidence_object
 from killlab.integrations.mcp_http import McpError, call_tool
@@ -38,6 +40,8 @@ def quote_evidence(*, frozen: bool, symbol: str | None, timeout: float = 12.0, s
     if ticker is None:
         return None
     query = {"entry_id": "equity_price_quote", "params": {"symbol": ticker}}
+    requested = datetime.now(timezone.utc).replace(microsecond=0)
+    started = requested.timestamp()
     try:
         result = call_tool(MCP_URL, "do_query", query, timeout=timeout, retries=2, send=send)
         payload = result["data"]
@@ -53,4 +57,7 @@ def quote_evidence(*, frozen: bool, symbol: str | None, timeout: float = 12.0, s
         query=query,
         payload=payload,
         error=error,
+        source_url=MCP_URL,
+        requested_at=requested.isoformat(),
+        latency_ms=int((datetime.now(timezone.utc).timestamp() - started) * 1000),
     )
