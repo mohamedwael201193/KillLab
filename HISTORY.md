@@ -418,4 +418,17 @@ This file is append-only.
 - `derivatives_sentiment` long_short and open_interest: `{"error": ""}`. `sentiment_index` current: `{"alt_me_error": ""}`. `rates_yields` rates_snapshot: every tenor an empty error. `news_feed` latest cointelegraph+coindesk: both feeds empty items. `crypto_market` markets: `ConnectTimeout`. `defi_analytics` stablecoins: error plus a URL, no rows. None of these was wired as a reading.
 - `POST /v1/internal/forward-sweep` for UTC day `2026-09-29` returned 200 with 0 results and no `AUTO_RUN`. The scored lead freeze cleared its floor on a manual run and is not armed; the scored basis freeze is already automatic. No floor was changed and no key was deleted.
 
+## 2026-09-29 Correction: the sweep returned 30 below_floor, not 0
+
+- The sentence above misread the response. The endpoint returns `{"window": ..., "actions": [...]}`. The first check script read `body["results"]`, which does not exist, and printed 0.
+- A corrected check on 2026-09-29 returned window `2026-09-29`, HTTP 200, 30 `below_floor` actions and no `AUTO_RUN`. No armed spec has reached its family floor. No floor was changed and no key was deleted. The earlier claim of 0 results is withdrawn.
+
+## 2026-09-29 Browser freeze-to-run of the cash-close question
+
+- Chrome on `https://killlab.vercel.app/?v=8632764` picked the `CASH CLOSE` chip, drafted `Trade NVDA in the last cash hour.`, reviewed `session_timing` with `Hour 15 Eastern versus the other cash hours`, and held the freeze control. Freeze hash `eefb0e61aaa5aac99fc38759cd77d568e81bfd0e1f84cb378cb11f763372eece`, window `2026-05-18` to `2026-09-28`, instruments `NVDAUSDT`, variants 2, baseline `buy_and_hold`.
+- Run `f85b430e-91c2-4a38-bb8c-ed9e5563fc72`, hypothesis `3fcec0ab-61e6-4a44-847c-30ba8830f713`, spec `41d18348-8098-4f86-8ea8-42fae3b8e3bb`, engine `killlab-0.12.7`, origin `manual`: `KILLED`, trap `contradicted`, 86 out-of-sample units, 94 raw events, mechanism `cash_close_hour_vs_other_cash_hours`, DSR `0`, interval `-24.184` to `-9.267`, oldest bar `2026-05-18T20:00:00Z`, stop `page_cap`, venue floor no. Book forward-recorded, spread `0.438` bps, notional `10000` walk `2.682` bps, imbalance `0.115`, retrieved `1790711480841`, not a past book.
+- Official US-stock row on that run: host `agent.bitget.com/mcp`, tool `do_query`, freshness `current`, NVDA `last_price` 228.0499, source clock `2026-09-30T03:51:23.705130`, retrieved `2026-09-29T19:51:24+00:00`, `usable_for_verdict` false. Skill row: `technical_analysis` undated rsi 54.59, timeframe 4h, period 14, signal neutral. Research skill `technical-analysis`. Context changes the verdict: no.
+- Desk network for the cash-close flow was same-origin `/api/killlab` only: hypothesis POST, compile POST, spec POST, freeze POST, run POST, then run GETs for verdict, results, traps, evidence, and ledger. No Bitget or MCP host was called from the browser.
+- This proves a second desk family path from chip to sealed run. The desk LUI now has two browser-sealed runs: lead `INCONCLUSIVE` (`aedc5d97`) and cash-close `KILLED` (`f85b430e`).
+
 
