@@ -382,4 +382,14 @@ This file is append-only.
 - `technical-analysis` / `technical_analysis`: undated rsi 55.3, timeframe 4h, period 14, signal neutral, retrieved `2026-09-29T18:15:56+00:00`, `usable_for_verdict` false.
 - `POST /v1/internal/forward-sweep` for UTC day `2026-09-29` then returned 27 `below_floor` actions and no new `AUTO_RUN`. The scored basis freeze was already automatic, so it was not armed again. The new session freeze was a manual run and was not armed. Floors were not changed.
 
+## 2026-09-29 Prior-hour lead and the live book walk
+
+- Decision: engine `killlab-0.12.7`, commit `888e624`. A frozen sentence that the prior hour leads the cash open scores that hour only. The leader is not traded. One weekday with both bars is one unit. The family minimum stays 60. The current book also records the average price to lift $10,000 on each side. That walk is forward-recorded, `historical` false, and is not subtracted from past returns. An incomplete walk can stop an execution claim. A missing leader tape fails the pull instead of being stored as zero units.
+- Why: the same hourly Bitget tape already contains both series. A local count on 2026-09-29 found 93 aligned weekdays from `2026-05-18` through `2026-09-28`. The visible NVDA book could fill $10,000.
+- Tests: `python -m pytest -q` → 74 passed. `node --experimental-strip-types src/lib/research/draft-spec.test.ts` printed `draft-spec ok`.
+- Production run `ca07d15a-7bd9-40cc-be1d-adda4de5c9d6` on `killlab-0.12.5` was `UNTESTABLE`, 13 of 60, stop `page_cap`, pages requested 3, oldest bar `2026-09-04T17:00:00Z`. The lead family was not on the 16-page list.
+- Production run `367db2ed-3874-47c3-b9c0-214e229f439b` on `killlab-0.12.6` was `UNTESTABLE`, 0 units, pages requested 16, oldest bar `2026-05-18T20:00:00Z`. The leader pull had been replaced with an empty tape.
+- Production run `74299f68-7679-4cd3-84a8-b7dbbb0d1206` on `killlab-0.12.7`: `INCONCLUSIVE`, trap `underpowered`, 85 out-of-sample units, 93 events, mechanism `prior_hour_leads_cash_open`, origin `manual`. Interval `-18.605445590788115` to `11.615166519245092`. DSR `0.04930099307598479`. Oldest bar `2026-05-18T20:00:00Z`, last bar `2026-09-28T23:00:00Z`, stop `page_cap`, pages requested 16. Book historical false, spread `0.4377421261131085` bps, walk complete, notional `10000`, round-trip walk `2.161951612020818` bps.
+- Not closed: `macro-analyst`, `sentiment-analyst`, `news-briefing`, and `market-intel` still have no usable official payload. The desk chips for these questions have not been checked in the browser.
+
 
