@@ -143,11 +143,13 @@ def _rates_without_tenors(payload: object) -> bool:
         return False
     curve = payload.get("yield_curve")
     if not isinstance(curve, dict) or not curve:
-        return "yield_curve_inverted" in payload and not any(isinstance(value, (int, float)) for value in payload.values())
+        return "yield_curve_inverted" in payload and not any(
+            isinstance(value, (int, float)) and not isinstance(value, bool) for value in payload.values()
+        )
     for value in curve.values():
-        if isinstance(value, (int, float)):
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
             return False
-        if isinstance(value, dict) and any(isinstance(item, (int, float)) for item in value.values()):
+        if isinstance(value, dict) and any(isinstance(item, (int, float)) and not isinstance(item, bool) for item in value.values()):
             return False
     return True
 

@@ -475,6 +475,17 @@ def test_rates_without_tenor_levels_are_not_called_a_curve():
     assert items[0]["usable_for_verdict"] is False
 
 
+def test_an_inversion_flag_without_tenors_is_not_a_curve():
+    from killlab.integrations.bitget_signal import skill_evidence
+
+    def flag_only(name, arguments):
+        return _sse({"yield_curve_inverted": False})
+
+    items = skill_evidence(frozen=True, text="What does the yield curve say?", family=None, symbol=None, send=_transport(flag_only))
+    assert items[0]["summary"] == "The official rates tool returned no tenor levels."
+    assert items[0]["structured_data"] == {}
+
+
 def test_perp_versus_spot_is_the_basis_family():
     from killlab.ai.compile import family_from_text
 

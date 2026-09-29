@@ -326,6 +326,22 @@ This file is append-only.
 - `POST /v1/internal/forward-sweep` for UTC day `2026-09-29` returned 11 `duplicate` actions and no `AUTO_RUN`. The day had already been checked. Floors were not changed.
 - An earlier production run on `killlab-0.10.0`, `52680de5-831d-4ce4-bef5-fafd25249d56`, did receive NVDA `last_price` 228.5 from `do_query`. That success is not repeated on this deploy. The current official-endpoint state from production is the session refusal above.
 
+## 2026-09-29 Official US-stock quote, skill answers, and the same-day forward retry
 
+- Decision: engine `killlab-0.12.1`. Each official MCP call now sends HTTP DELETE for its session after the tool returns. The receipt keeps the source clock, the request time, and the retrieval time apart. A forward book stores depth imbalance from the live bid and ask sizes. That ratio is not a return. A short forward check no longer blocks a later check on the same UTC day. A scored automatic run still does. An official rates payload with no tenor level is stored as no tenor levels. `perp versus spot` routes to the existing basis family.
+- Why: the US-stock host was refusing new sessions because the previous ones were left open. A 20-second wait was also abandoning skill calls that were still in flight.
+- Files: `backend/killlab/integrations/mcp_http.py`, `context.py`, `evidence.py`, `bitget_signal.py`, `api.py`, `runner.py`, `ai/compile.py`, `models.py`, `FRONTEND/src/lib/research/map-verdict.ts`, `tests/test_information.py`.
+- Test: `python -m pytest -q` → 65 passed.
+- Production `GET /health` returned `killlab-0.12.1`. Chrome on `https://killlab.vercel.app/?v=661a5e3` wrote “Trade NVDA in the first hour of the cash session”, froze hash `5ee49af183708761c4b3383d7ae63cbc16fb54188d488c23c04d872129650f1b`, and the browser called only `https://killlab.vercel.app/api/killlab`. The run request had no Authorization header.
+- Chrome run `008686f7-a051-4786-b3f1-8b6b3c3672fc`: `UNTESTABLE`, 38 of 60, engine `killlab-0.12.1`, mechanism `ny_open_hour_vs_other_cash_hours`, origin `manual`. Book: forward-recorded, spread 0.436 bps, depth imbalance 0.084, retrieved `1790702747845`, not a past book. Context changes the verdict: no.
+- Official US-stock row on that run: host `agent.bitget.com/mcp`, tool `do_query`, freshness `current`, requested and retrieved `2026-09-29T17:25:50+00:00`, source clock `2026-09-30T01:25:49.970279`, summary `last_price 229.09`. `usable_for_verdict` false. The source clock is the upstream stamp, about eight hours ahead of the retrieval time, and it was not rewritten.
+- Same host on earlier `killlab-0.12.0` run `51227361-a5a9-476d-ae51-f5962aa45ca3`: `last_price 229.3645`, source clock `2026-09-30T01:04:32.450959`, retrieved `2026-09-29T17:04:32+00:00`. Later `0.12.1` quotes on the same tool were 229.32, 229.075, 229.1, and 228.9501. The price moved. It was not a stored fixture.
+- Skill rows from production, each on its own frozen hypothesis, host `datahub.noxiaohao.com/mcp`, `usable_for_verdict` false:
+  - `technical-analysis` / `technical_analysis` on run `008686f7-a051-4786-b3f1-8b6b3c3672fc`: undated, rsi 58.84, timeframe 4h, period 14, signal neutral. No source time.
+  - `macro-analyst` / `rates_yields` on run `b0f986af-274c-4eb3-b1c6-f4efb20b9360`: undated, the only stored field was `yield_curve_inverted` false. No tenor level and no source time.
+  - `sentiment-analyst` / `sentiment_index` on run `9e804988-3b96-489d-a6e7-bfa11f455b1a`: the official tool answered and supplied no numeric fields.
+  - `news-briefing` / `news_feed` on run `bf72c65a-beca-41ae-977f-74a79e7fe27a`: the official news tool answered with no articles.
+  - `market-intel` / `news_feed` on run `da31fc71-364c-4612-b6e1-ed00a7ebeeac`: the official news tool answered with no articles. Engine on that run row is `killlab-0.12.1`.
+- `POST /v1/internal/forward-sweep` for UTC day `2026-09-29` returned 20 `below_floor` actions and no `AUTO_RUN`. The short checks were retried. None of the armed specs had reached its family minimum. Floors were not changed. No historical order book was reconstructed. No new research family was added.
 
 
