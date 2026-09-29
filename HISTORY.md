@@ -513,6 +513,14 @@ This file is append-only.
 - Tests: `python -m pytest -q` → 95 passed. `node --experimental-strip-types src/lib/research/draft-spec.test.ts` printed `draft-spec ok`. `npx tsc --noEmit` and `npm run build` succeeded.
 - Production Chrome for this engine is not in this entry.
 
+## 2026-09-30 Production Chrome of the inversion family
+
+- Commit `57121c4`. Render `GET /health` returned `killlab-0.13.1`. Desk `https://killlab.vercel.app/?v=57121c4`. Isolated Chrome context `killlab-015`. Browser calls were only same-origin `/api/killlab`.
+- Chip `CURVE INVERSION` compiled to family `macro_regime`, instruments `NVDAUSDT`, data not loaded. Freeze hash `aec0e6446dafe68dc9088da5565be1d6acc6086fa8287c65bd071eaf38b5c55e`.
+- Run `5e2f25e6-6ac3-4fc9-b8f6-f4da9288a1d9`, hypothesis `0c501fc6-dedb-4701-8ca8-97399f47ff52`, spec `776a9734-651c-4501-883c-c7a28538cc2f`, origin `manual`, engine `killlab-0.13.1`: `UNTESTABLE`, 0 of 60, mechanism `cash_open_when_treasury_2s10s_inverted`. Context changes the verdict: no.
+- Official `rates_yields` `empty_result`. NY Fed latest SOFR 3.9 `authoritative_fallback` `current`. SOFR last-90 `historical` n 90, 2026-05-20 to 2026-09-28, min 3.5 max 3.9. Treasury par-yield `historical` n_days 187, n_inverted 0, spread 0.20 to 0.74. Official US-stock `do_query` NVDA `last_price` 228.0182. Official technical rsi/macd/atr undated. Book forward-recorded, spread 0.438 bps, $10,000 walk 4.535 bps, not a past book.
+- Fed backdrop and crowd positioning were not re-run on this URL. The inversion path is the new scored family, and it did not silently use unfiltered session hours.
+
 
 
 
