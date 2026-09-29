@@ -445,4 +445,14 @@ This file is append-only.
 - Official US-stock row: `do_query`, NVDA `last_price` 227.6385, freshness `current`, source clock `2026-09-30T04:18:52.400711`, retrieved `2026-09-29T20:18:52+00:00`, `usable_for_verdict` false.
 - Skill rows, host `datahub.noxiaohao.com/mcp`, tool `technical_analysis`, undated, `usable_for_verdict` false: rsi 52.77 period 14 signal neutral; macd 1.140443 signal 0.105538 histogram 1.034905 cross golden_cross; atr 1.989 atr_pct 0.87 suggested_stop 224.8865 period 14; price 227.87 ema9 228.6325 ema21 227.5408 ema55 225.679. The sentence above that only rsi returned a number is no longer true for this skill. The other four skills still have no usable official payload.
 
+## 2026-09-29 Host tool list, bollinger, and MA
+
+- `tools/list` on `https://datahub.noxiaohao.com/mcp` returned 19 tools. `technical_analysis` action enum is `rsi`, `macd`, `bollinger`, `ma`, `ema`, `atr`, `support_resistance`, `full_analysis`, `batch_analysis`. The earlier `boll` / `kdj` probes were unknown names, not missing data.
+- Live unread calls on 2026-09-29: `bollinger` returned upper 222.8465 middle 227.9493 lower 233.0521 pct_b 0.5068. `ma` returned ma7 229.39 ma25 226.5776 ma99 222.2181. `support_resistance` returned empty supports and resistances. `full_analysis` repeated rsi/macd/bollinger already stored. `sentiment_index` realtime was `{"error": ""}`. `rates_yields` series_list and `macro_indicators` series_list and `news_feed` sources and `cross_asset` assets_list were catalogs of names, not tenor levels, articles, or correlations. `rates_yields` rate t10y was `{"error": ""}`. Those catalogs were not wired as readings.
+- Decision: engine `killlab-0.12.9`, commit `d6c4afa`. `technical-analysis` now also calls `bollinger` and `ma`. Context stays unused for the verdict.
+- Tests: `python -m pytest -q` → 76 passed.
+- Production run `8a058446-bc19-4b08-b2e9-3eeb98ad0c2a`, hypothesis `abaf8d46-7445-46f2-8877-58877236b850`, spec `b569f93e-e309-4a6e-b88a-70fee57a0981`, freeze `7a6d5b1a-8645-48f6-9923-913d4a5aff54`, engine `killlab-0.12.9`, origin `manual`: `INCONCLUSIVE`, trap `underpowered`, 85 units, mechanism `ny_open_hour_vs_other_cash_hours`, DSR `0.03494519712564992`, interval `-13.967769535998801` to `13.225100897374748`. Book walk complete, notional `10000`, round-trip `2.244672719712293` bps, spread `0.4387023185413545` bps.
+- Official US-stock `do_query`: NVDA `last_price` 227.6487, freshness `current`, source clock `2026-09-30T04:26:58.124380`, retrieved `2026-09-29T20:26:58+00:00`, `usable_for_verdict` false.
+- Skill rows undated: rsi 53.01; macd 1.146027 golden_cross; atr 1.9926; ema9 228.6425; bollinger upper 222.8495 middle 227.9521 lower 233.0548; ma7 229.3957 ma25 226.5792 ma99 222.2185. The other four official skills still have no usable payload.
+
 
