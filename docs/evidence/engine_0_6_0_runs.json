@@ -1,0 +1,51 @@
+{
+  "engine_version": "killlab-0.6.0",
+  "source": "Bitget public REST via https://killlab-api.onrender.com",
+  "runs": [
+    {
+      "case": "session_timing NVDA open hour",
+      "run_id": "6d4a61a2-5ca4-4365-b378-db65e63cd733",
+      "label": "UNTESTABLE",
+      "primary_trap": "insufficient_units",
+      "n_units": 38,
+      "n_events": 46,
+      "n_eff": 38,
+      "mechanism": "ny_open_hour_vs_other_cash_hours",
+      "spec_sha256": "5ee49af183708761c4b3383d7ae63cbc16fb54188d488c23c04d872129650f1b",
+      "snapshot_sha256": "10dbb1b098dbfce44080d17b879526bfb1c00f7f8f5edec2b9a7dd5f1db0ce5d",
+      "actual_first": "2026-07-24T02:00:00Z",
+      "ci_low": -45.91208766500139,
+      "ci_high": -7.1718976966264405,
+      "note": "The interval is negative, but 38 units are below the family floor of 60, so the label stays UNTESTABLE."
+    },
+    {
+      "case": "event_earnings NVDA",
+      "run_id": "a51d529b-a0ab-417b-8178-bb381aebf271",
+      "label": "UNTESTABLE",
+      "primary_trap": "insufficient_units",
+      "n_units": 20,
+      "n_events": 24,
+      "n_eff": 20,
+      "n_trials": 3,
+      "prior_trials": 1,
+      "mechanism": "earnings_impulse_then_hold",
+      "spec_sha256": "fd3082da921b0fd73bc5bfaef1bb239b687285367c06c1f8aca584fcee8a2989",
+      "snapshot_sha256": "10dbb1b098dbfce44080d17b879526bfb1c00f7f8f5edec2b9a7dd5f1db0ce5d"
+    },
+    {
+      "case": "execution_venue_time NVDA weekend",
+      "run_id": "04f0e240-e17f-4b63-82f6-f7fd50754a32",
+      "label": "INCONCLUSIVE",
+      "primary_trap": "underpowered",
+      "n_units": 8,
+      "n_events": 10,
+      "n_eff": 8,
+      "mechanism": "weekend_choice_same_exit",
+      "spec_sha256": "2d636b72e6b90c3d319bb346cf2b2a91228e45a8747821ac9807a2eeb8d5c6e2",
+      "snapshot_sha256": "10dbb1b098dbfce44080d17b879526bfb1c00f7f8f5edec2b9a7dd5f1db0ce5d",
+      "ci_low": 0.0,
+      "ci_high": 0.0,
+      "dsr": 0.22022310414625473
+    }
+  ]
+}

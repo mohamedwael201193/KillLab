@@ -230,6 +230,7 @@ This file is append-only.
 - Correct behavior: the fill is compared with the 5th–95th percentile of the out-of-sample units. The research fingerprint ignores the sentence. Prior matching runs increase `n_trials`. `n_eff` is the decision-unit count. Engine `killlab-0.6.0`.
 - Test: a 40 bps fill sits inside a wide unit range and outside a tight mean interval. Reordered instruments and variant codes share a fingerprint. `python -m pytest -q` → 24 passed.
 - Production verification: `GET /health` returned `killlab-0.6.0` after deploy `7d80f71`.
+- Fresh runs on that engine, real Bitget candles, recorded in `docs/evidence/engine_0_6_0_runs.json`: session timing `6d4a61a2-5ca4-4365-b378-db65e63cd733` is `UNTESTABLE` at 38 units (floor 60) even though the interval is negative; earnings `a51d529b-a0ab-417b-8178-bb381aebf271` is `UNTESTABLE` at 20 events and counted 1 prior trial; weekend choice `04f0e240-e17f-4b63-82f6-f7fd50754a32` is `INCONCLUSIVE` at 8 weekends.
 
 
 ## 2026-09-29 Frontend connected to the live API
