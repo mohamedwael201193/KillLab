@@ -26,7 +26,16 @@ type VerdictJson = {
   related_trials?: number;
   next_question?: string;
   thesis?: string;
-  book_capture?: { provenance?: string; historical?: boolean; spread_bps?: number | null; payload_sha256?: string; ts?: string };
+  book_capture?: {
+    provenance?: string;
+    historical?: boolean;
+    spread_bps?: number | null;
+    bid_depth?: number | null;
+    ask_depth?: number | null;
+    depth_imbalance?: number | null;
+    payload_sha256?: string;
+    ts?: string;
+  };
   run_origin?: string;
   research_context?: {
     usable_for_verdict?: boolean;
@@ -90,7 +99,7 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
       label: "Book record",
       value:
         raw.book_capture?.provenance === "forward_recorded" && raw.book_capture.historical === false
-          ? `forward-recorded${raw.book_capture.spread_bps === undefined || raw.book_capture.spread_bps === null ? "" : ` · spread ${num(raw.book_capture.spread_bps)} bps`}`
+          ? `forward-recorded${raw.book_capture.spread_bps === undefined || raw.book_capture.spread_bps === null ? "" : ` · spread ${num(raw.book_capture.spread_bps)} bps`}${raw.book_capture.depth_imbalance === undefined || raw.book_capture.depth_imbalance === null ? "" : ` · depth imbalance ${num(raw.book_capture.depth_imbalance)}`}`
           : "—",
       status: "info",
       threshold: raw.book_capture?.historical === false ? `retrieved ${raw.book_capture.ts || "unknown"} · not a past book` : undefined,

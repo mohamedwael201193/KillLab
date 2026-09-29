@@ -90,7 +90,7 @@ def family_from_text(raw_text: str, proposed_family: str | None) -> str:
         return "event_earnings"
     if re.search(r"fund|carry", raw_text, re.I):
         return "carry_basis"
-    if re.search(r"basis|converge", raw_text, re.I):
+    if re.search(r"basis|converge|perp versus spot|perp vs spot", raw_text, re.I):
         return "basis_convergence"
     if re.search(r"session|first hour|cash open", raw_text, re.I):
         return "session_timing"

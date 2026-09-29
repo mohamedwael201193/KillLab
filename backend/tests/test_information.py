@@ -403,6 +403,92 @@ def test_execution_wording_without_a_skill_trigger_does_not_invent_one():
     assert route_skill("Compare waiting with trading now on the same exit.", "execution_venue_time")["skill"] is None
 
 
+def test_a_real_session_is_closed_after_the_tool_call():
+    from killlab.integrations.mcp_http import _once
+
+    closed = []
+
+    def send(url, payload, session, timeout):
+        if payload.get("method") == "initialize":
+            return 200, {"mcp-session-id": "sess-1"}, "{}"
+        if payload.get("method") == "notifications/initialized":
+            return 202, {}, ""
+        return _sse({"symbol": "NVDA", "last_price": 229.76})
+
+    result = _once("https://agent.bitget.com/mcp", "do_query", {}, 5, send, close=lambda url, session: closed.append((url, session)))
+    assert result["data"]["last_price"] == 229.76
+    assert closed == [("https://agent.bitget.com/mcp", "sess-1")]
+
+
+def test_a_failed_call_still_closes_the_session():
+    from killlab.integrations.mcp_http import _once
+
+    closed = []
+
+    def send(url, payload, session, timeout):
+        if payload.get("method") == "initialize":
+            return 200, {"mcp-session-id": "sess-2"}, "{}"
+        return 503, {}, "Too many open sessions"
+
+    with pytest.raises(McpError):
+        _once("https://agent.bitget.com/mcp", "do_query", {}, 5, send, close=lambda url, session: closed.append(session))
+    assert closed == ["sess-2"]
+
+
+def test_quote_time_stays_separate_from_retrieval_time():
+    item = evidence_object(
+        source_type="MCP_CONTEXT",
+        provider="bitget-mcp",
+        tool_name="do_query",
+        symbol="NVDA",
+        query={"entry_id": "equity_price_quote"},
+        payload={
+            "success": True,
+            "data": {
+                "results": [{"symbol": "NVDA", "last_price": 229.76, "open": 229.3}],
+                "extra": {"metadata": {"timestamp": "2026-09-29T16:49:33"}},
+                "warnings": [{"message": "deprecated"}],
+            },
+        },
+        source_url="https://agent.bitget.com/mcp",
+        requested_at="2026-09-29T16:49:30+00:00",
+    )
+    assert item["data_timestamp"] == "2026-09-29T16:49:33"
+    assert item["requested_at"] == "2026-09-29T16:49:30+00:00"
+    assert item["retrieved_at"] != item["data_timestamp"]
+    assert item["current_or_historical"] == "current"
+    assert item["usable_for_verdict"] is False
+    assert "last_price 229.76" in item["summary"]
+    assert "deprecated" not in item["summary"]
+
+
+def test_rates_without_tenor_levels_are_not_called_a_curve():
+    from killlab.integrations.bitget_signal import skill_evidence
+
+    def empty_curve(name, arguments):
+        return _sse({"yield_curve": {"t2y": {"error": ""}, "t10y": {"error": ""}}, "spread_10y2y": 0.0, "inverted": False})
+
+    items = skill_evidence(frozen=True, text="What does the yield curve say?", family=None, symbol=None, send=_transport(empty_curve))
+    assert items[0]["skill"] == "macro-analyst"
+    assert items[0]["summary"] == "The official rates tool returned no tenor levels."
+    assert items[0]["structured_data"] == {}
+    assert items[0]["usable_for_verdict"] is False
+
+
+def test_perp_versus_spot_is_the_basis_family():
+    from killlab.ai.compile import family_from_text
+
+    assert family_from_text("Does the NVDA perp versus spot premium fade?", "carry_basis") == "basis_convergence"
+
+
+def test_forward_depth_imbalance_is_not_a_return():
+    from killlab.runner import _depth_imbalance
+
+    assert _depth_imbalance(3, 1) == 0.5
+    assert _depth_imbalance(0, 0) is None
+    assert _depth_imbalance(None, 1) is None
+
+
 def test_compiler_module_does_not_call_the_information_layer():
     source = (Path(__file__).resolve().parents[1] / "killlab" / "ai" / "compile.py").read_text(encoding="utf-8")
     assert "enrich_context" not in source

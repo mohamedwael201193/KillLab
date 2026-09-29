@@ -125,12 +125,31 @@ def _one_skill(decision: dict, *, symbol: str | None, timeout: float, send) -> d
         latency_ms=int((datetime.now(timezone.utc).timestamp() - started) * 1000),
     )
     item["skill"] = skill
+    if tool == "rates_yields" and not error and _rates_without_tenors(payload):
+        item["summary"] = "The official rates tool returned no tenor levels."
+        item["textual_summary"] = item["summary"]
+        item["structured_data"] = {}
+        item["current_or_historical"] = "unknown"
     if tool == "news_feed" and not error and _no_articles(payload):
         item["summary"] = "The official news tool answered with no articles."
         item["textual_summary"] = item["summary"]
         item["current_or_historical"] = "unknown"
         item["structured_data"] = {}
     return item
+
+
+def _rates_without_tenors(payload: object) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    curve = payload.get("yield_curve")
+    if not isinstance(curve, dict) or not curve:
+        return "yield_curve_inverted" in payload and not any(isinstance(value, (int, float)) for value in payload.values())
+    for value in curve.values():
+        if isinstance(value, (int, float)):
+            return False
+        if isinstance(value, dict) and any(isinstance(item, (int, float)) for item in value.values()):
+            return False
+    return True
 
 
 def _no_articles(payload: object) -> bool:

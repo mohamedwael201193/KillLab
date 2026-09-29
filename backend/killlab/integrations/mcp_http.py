@@ -58,6 +58,19 @@ def _http_send(url: str, payload: dict, session: str | None, timeout: float) -> 
     return response.status_code, {k.lower(): v for k, v in response.headers.items()}, response.text
 
 
+def _http_close(url: str, session: str) -> None:
+    """Release the session. Leaving it open is what the host counts as too many sessions."""
+    headers = {
+        "Accept": "application/json, text/event-stream",
+        "User-Agent": USER_AGENT,
+        "mcp-session-id": session,
+    }
+    try:
+        httpx.request("DELETE", url, headers=headers, timeout=8)
+    except httpx.HTTPError:
+        return
+
+
 def _raise_for_status(status: int, body: str) -> None:
     if status < 400:
         return
@@ -85,7 +98,7 @@ def call_tool(
     attempts = max(1, retries)
     for attempt in range(attempts):
         try:
-            return _once(url, name, arguments or {}, timeout, transport)
+            return _once(url, name, arguments or {}, timeout, transport, close=_http_close if send is None else None)
         except McpError as exc:
             last = exc.reason
             if attempt + 1 >= attempts:
@@ -97,52 +110,57 @@ def call_tool(
     raise McpError(last)
 
 
-def _once(url: str, name: str, arguments: dict, timeout: float, send: Send) -> dict:
-    status, headers, body = send(
-        url,
-        {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "initialize",
-            "params": {
-                "protocolVersion": PROTOCOL,
-                "capabilities": {},
-                "clientInfo": {"name": "killlab", "version": "1"},
+def _once(url: str, name: str, arguments: dict, timeout: float, send: Send, close=None) -> dict:
+    session = None
+    try:
+        status, headers, body = send(
+            url,
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": PROTOCOL,
+                    "capabilities": {},
+                    "clientInfo": {"name": "killlab", "version": "1"},
+                },
             },
-        },
-        None,
-        timeout,
-    )
-    _raise_for_status(status, body)
-    session = headers.get("mcp-session-id")
-    if not session:
-        raise McpError("initialize returned no session")
-    send(url, {"jsonrpc": "2.0", "method": "notifications/initialized"}, session, timeout)
-    status, _, body = send(
-        url,
-        {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": name, "arguments": arguments}},
-        session,
-        timeout,
-    )
-    _raise_for_status(status, body)
-    try:
-        payload = unframe(body)
-    except json.JSONDecodeError as exc:
-        raise McpError("malformed response") from exc
-    if payload.get("error"):
-        raise McpError(str(payload["error"])[:180])
-    content = (payload.get("result") or {}).get("content") or []
-    if not content or not isinstance(content, list):
-        raise McpError("malformed response")
-    text = content[0].get("text", "") if isinstance(content[0], dict) else ""
-    if not isinstance(text, str) or not text.strip():
-        raise McpError("malformed response")
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError:
-        data = {"text": text[:500]}
-    if isinstance(data, dict) and data.get("success") is False:
-        raise McpError(f"upstream unavailable: {str(data.get('error') or '')[:120]}")
-    if not isinstance(data, (dict, list)):
-        raise McpError("malformed response")
-    return {"data": data}
+            None,
+            timeout,
+        )
+        _raise_for_status(status, body)
+        session = headers.get("mcp-session-id")
+        if not session:
+            raise McpError("initialize returned no session")
+        send(url, {"jsonrpc": "2.0", "method": "notifications/initialized"}, session, timeout)
+        status, _, body = send(
+            url,
+            {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": name, "arguments": arguments}},
+            session,
+            timeout,
+        )
+        _raise_for_status(status, body)
+        try:
+            payload = unframe(body)
+        except json.JSONDecodeError as exc:
+            raise McpError("malformed response") from exc
+        if payload.get("error"):
+            raise McpError(str(payload["error"])[:180])
+        content = (payload.get("result") or {}).get("content") or []
+        if not content or not isinstance(content, list):
+            raise McpError("malformed response")
+        text = content[0].get("text", "") if isinstance(content[0], dict) else ""
+        if not isinstance(text, str) or not text.strip():
+            raise McpError("malformed response")
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            data = {"text": text[:500]}
+        if isinstance(data, dict) and data.get("success") is False:
+            raise McpError(f"upstream unavailable: {str(data.get('error') or '')[:120]}")
+        if not isinstance(data, (dict, list)):
+            raise McpError("malformed response")
+        return {"data": data}
+    finally:
+        if session and close is not None:
+            close(url, session)

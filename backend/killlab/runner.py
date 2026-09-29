@@ -19,6 +19,16 @@ def _mde(low, high) -> float | None:
     return (1.64485 + 0.84162) * standard_error
 
 
+def _depth_imbalance(bid, ask) -> float | None:
+    """Forward book only. This ratio is not a return and does not enter the verdict."""
+    if not isinstance(bid, (int, float)) or not isinstance(ask, (int, float)):
+        return None
+    total = float(bid) + float(ask)
+    if total <= 0 or not (bid == bid and ask == ask):
+        return None
+    return (float(bid) - float(ask)) / total
+
+
 def _predictive(values: list[float]) -> tuple[float | None, float | None]:
     import numpy as np
 
@@ -122,6 +132,7 @@ def execute(spec: dict, snapshot: dict, prior_trials: int = 0, related_trials: i
             "spread_bps": capture.get("spread_bps"),
             "bid_depth": capture.get("bid_depth"),
             "ask_depth": capture.get("ask_depth"),
+            "depth_imbalance": _depth_imbalance(capture.get("bid_depth"), capture.get("ask_depth")),
             "payload_sha256": capture.get("payload_sha256"),
             "endpoint": capture.get("endpoint"),
         }

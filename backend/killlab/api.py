@@ -113,11 +113,27 @@ def _trial_counts(session: Session, canonical: dict) -> tuple[int, int]:
     return prior, related
 
 
+def _window_has_stage(session: Session, pre_id: str, window: str, stage: str) -> bool:
+    for entry in session.scalars(select(LedgerEntry).where(LedgerEntry.stage == stage)):
+        body = entry.body or {}
+        if str(body.get("preregistration_id")) == str(pre_id) and str(body.get("window")) == window:
+            return True
+    return False
+
+
+def _forward_scored(session: Session, pre_id: str, window: str) -> bool:
+    return _window_has_stage(session, pre_id, window, "AUTO_RUN")
+
+
+def _forward_checked(session: Session, pre_id: str, window: str) -> bool:
+    return _window_has_stage(session, pre_id, window, "FORWARD_CHECK")
+
+
 def _forward_sweep(session: Session, settings: Settings) -> dict:
     now = datetime.now(timezone.utc)
     window = accrual_window(now)
     seen: set[tuple[str, str]] = set()
-    for entry in session.scalars(select(LedgerEntry).where(LedgerEntry.stage.in_(("FORWARD_CHECK", "AUTO_RUN")))):
+    for entry in session.scalars(select(LedgerEntry).where(LedgerEntry.stage == "AUTO_RUN")):
         body = entry.body or {}
         if body.get("window") and body.get("preregistration_id"):
             seen.add((str(body["preregistration_id"]), str(body["window"])))
@@ -160,8 +176,20 @@ def _forward_sweep(session: Session, settings: Settings) -> dict:
                 session.add(IdempotencyKey(key=lock, response_json={"status": "reserved"}, status_code=202))
                 session.flush()
         except IntegrityError:
-            seen.add((pre_id, window))
-            continue
+            if _forward_scored(session, pre_id, window):
+                seen.add((pre_id, window))
+                continue
+            if not _forward_checked(session, pre_id, window):
+                seen.add((pre_id, window))
+                continue
+            with session.begin_nested():
+                stale = session.get(IdempotencyKey, lock)
+                if stale is not None:
+                    session.delete(stale)
+                session.flush()
+            with session.begin_nested():
+                session.add(IdempotencyKey(key=lock, response_json={"status": "reserved"}, status_code=202))
+                session.flush()
     actions = sweep_forward(items=items, seen=seen, now=now, pull=pull, execute_fn=execute_fn)
     public = []
     for action in actions:
@@ -208,7 +236,7 @@ def _forward_sweep(session: Session, settings: Settings) -> dict:
                 },
             ))
             action["test_run_id"] = str(created.id)
-        if action["action"] == "provider_failure":
+        if action["action"] in {"provider_failure", "below_floor"}:
             lock = session.get(IdempotencyKey, f"forward:{pre_id}:{window}")
             if lock is not None:
                 session.delete(lock)

@@ -58,7 +58,8 @@ def _scalars(payload: object, limit: int = 6) -> list[tuple[str, object]]:
             return
         if isinstance(node, dict):
             for key, value in node.items():
-                if "error" in str(key).lower():
+                name = str(key).lower()
+                if "error" in name or name in {"success", "status_code", "id", "warnings", "warning", "chart", "provider", "note"}:
                     continue
                 walk(value, str(key))
         elif isinstance(node, list):
@@ -78,7 +79,7 @@ def summarize(payload: object) -> str:
     parts = []
     for key, value in fields:
         if isinstance(value, float):
-            text = f"{value:.4g}"
+            text = f"{value:.8g}"
         else:
             text = str(value)
         parts.append(f"{key} {text[:80]}")
