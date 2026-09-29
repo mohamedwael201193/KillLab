@@ -198,7 +198,7 @@ This file is append-only.
 - Correct behavior: the open hour is compared with the other one-hour cash bars that same day, then one round trip is charged on that difference. A day without a peer hour is not a unit. One continuous funding hold is one unit. Overlapping earnings inside six hours collapse to the first event. Walk-forward selection of a variant uses only the past; a future spike cannot win the first out-of-sample step. Engine version `killlab-0.3.0`.
 - Fix: `mechanisms.py`, `ai/compile.py`. The temporary compiler is Groq `openai/gpt-oss-120b` because `llama-3.3-70b-versatile` now returns 404. Gemini is not called. Qwen remains first when `LLM_API_KEY` is set. The server overwrites costs to the versioned 6 bps taker schedule and forces `selection.split=IS`.
 - Test: `python -m pytest -q` → 19 passed. A live compile of an NVDA open-hour sentence returned `session_timing`, instrument `NVDAUSDT`, cost 6, split `IS`, and no verdict field.
-- Production verification: pending the `killlab-0.3.0` deploy. Runs from `killlab-0.1.0` and `killlab-0.2.0` stay in history and are not session-timing verdicts under this baseline.
+- Production verification: `GET /health` returned `killlab-0.3.0`. `POST /v1/hypotheses/{id}/compile` on that deploy returned `session_timing` for an NVDA open-hour sentence, cost 6, split `IS`, and `manual_spec_accepted` false. Runs from `killlab-0.1.0` and `killlab-0.2.0` stay in history and are not session-timing verdicts under this baseline.
 
 
 ## 2026-09-29 Frontend connected to the live API
