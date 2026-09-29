@@ -119,7 +119,7 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
       value: raw.research_context && raw.research_context.usable_for_verdict === false ? "no" : raw.research_context ? "no" : "—",
       status: "info",
     },
-    ...((raw.research_context?.items || []).slice(0, 3).map((item) => ({
+    ...((raw.research_context?.items || []).slice(0, 6).map((item) => ({)
       label: item.category || item.source_type || "Context",
       value: item.summary || "—",
       status: "info" as EvidenceStatus,

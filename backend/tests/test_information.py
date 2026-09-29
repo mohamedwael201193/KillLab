@@ -41,7 +41,15 @@ def _transport(handler):
 
 def _ok(name, arguments):
     if name == "technical_analysis":
-        return _sse({"symbol": arguments.get("symbol"), "rsi": 42.21, "period": 14, "signal": "neutral"})
+        action = arguments.get("action")
+        symbol = arguments.get("symbol")
+        if action == "macd":
+            return _sse({"symbol": symbol, "macd": 1.126084, "signal": 0.094051, "histogram": 1.032033, "cross": "golden_cross"})
+        if action == "atr":
+            return _sse({"symbol": symbol, "atr": 1.9804, "atr_pct": 0.87, "period": 14})
+        if action == "ema":
+            return _sse({"symbol": symbol, "price": 227.67, "ema9": 228.5925, "ema21": 227.5227, "ema55": 225.6719})
+        return _sse({"symbol": symbol, "rsi": 42.21, "period": 14, "signal": "neutral"})
     if name == "sentiment_index":
         return _sse({"value": 28, "value_classification": "Fear"})
     if name == "do_query":
@@ -654,6 +662,48 @@ def test_a_skill_that_does_not_finish_keeps_its_name():
     assert failed["failure_reason"] == "TimeoutError"
     assert failed["usable_for_verdict"] is False
     assert context["routing"]["skill"] == "technical-analysis"
+
+
+def test_technical_analysis_calls_the_indicators_that_return_numbers():
+    from killlab.integrations.bitget_signal import skill_evidence
+
+    send = _transport(_ok)
+    items = skill_evidence(
+        frozen=True,
+        text="Is the session hour overbought?",
+        family="session_timing",
+        symbol="NVDAUSDT",
+        send=send,
+    )
+    actions = [call[2].get("action") for call in send.calls if call[1] == "technical_analysis"]
+    assert actions == ["rsi", "macd", "atr", "ema"]
+    blob = " ".join(item["summary"] for item in items)
+    assert "rsi 42.21" in blob
+    assert "macd 1.126084" in blob
+    assert "atr 1.9804" in blob
+    assert "ema9 228.5925" in blob
+    assert all(item["usable_for_verdict"] is False for item in items)
+
+
+def test_an_unknown_indicator_action_is_not_stored_as_a_reading():
+    from killlab.integrations.bitget_signal import skill_evidence
+
+    def handler(name, arguments):
+        if name == "technical_analysis" and arguments.get("action") == "macd":
+            return _sse({"error": "Unknown action: macd"})
+        return _ok(name, arguments)
+
+    items = skill_evidence(
+        frozen=True,
+        text="Is the session hour overbought?",
+        family="session_timing",
+        symbol="NVDAUSDT",
+        send=_transport(handler),
+    )
+    macd = next(item for item in items if (item.get("query") or {}).get("action") == "macd")
+    assert macd["summary"] == "The official indicator tool returned no reading."
+    assert macd["structured_data"] == {}
+    assert macd["usable_for_verdict"] is False
 
 
 def test_compiler_module_does_not_call_the_information_layer():

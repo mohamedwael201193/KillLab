@@ -76,7 +76,7 @@ def enrich_context(
             if quote:
                 items.append(quote)
         try:
-            skills = skill_job.result(timeout=max(timeout * 4, timeout + 2))
+            skills = skill_job.result(timeout=max(timeout * 8, timeout + 2))
         except Exception as exc:
             skills = []
             items.append({

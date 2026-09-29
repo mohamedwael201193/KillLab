@@ -35,7 +35,10 @@ _FAMILY = {
     "carry_basis": "sentiment-analyst",
     "basis_convergence": "technical-analysis",
     "session_timing": "technical-analysis",
+    "lead_lag": "technical-analysis",
 }
+
+_TECHNICAL_ACTIONS = ("rsi", "macd", "atr", "ema")
 
 
 def route_skills(text: str, family: str | None, thesis: str | None = None) -> list[dict]:
@@ -69,17 +72,17 @@ def route_skill(text: str, family: str | None, thesis: str | None = None) -> dic
     return chosen[0]
 
 
-def _call_for(skill: str, symbol: str | None) -> tuple[str, dict]:
+def _calls_for(skill: str, symbol: str | None) -> list[tuple[str, dict]]:
     pair = symbol or "BTCUSDT"
     if skill == "macro-analyst":
-        return "rates_yields", {"action": "rates_snapshot"}
+        return [("rates_yields", {"action": "rates_snapshot"})]
     if skill == "market-intel":
-        return "news_feed", {"action": "latest", "feeds": "cointelegraph", "keyword": "ETF", "limit": 5}
+        return [("news_feed", {"action": "latest", "feeds": "cointelegraph", "keyword": "ETF", "limit": 5})]
     if skill == "sentiment-analyst":
-        return "sentiment_index", {"action": "current"}
+        return [("sentiment_index", {"action": "current"})]
     if skill == "news-briefing":
-        return "news_feed", {"action": "latest", "feeds": "cointelegraph,coindesk", "limit": 5}
-    return "technical_analysis", {"action": "rsi", "symbol": pair}
+        return [("news_feed", {"action": "latest", "feeds": "cointelegraph,coindesk", "limit": 5})]
+    return [("technical_analysis", {"action": action, "symbol": pair}) for action in _TECHNICAL_ACTIONS]
 
 
 def skill_evidence(
@@ -96,13 +99,13 @@ def skill_evidence(
         raise NotFrozen("research context is refused before freeze")
     items = []
     for decision in route_skills(text, family, thesis):
-        items.append(_one_skill(decision, symbol=symbol, timeout=timeout, send=send))
+        for tool, arguments in _calls_for(decision["skill"], symbol):
+            items.append(_one_skill(decision, tool, arguments, symbol=symbol, timeout=timeout, send=send))
     return items
 
 
-def _one_skill(decision: dict, *, symbol: str | None, timeout: float, send) -> dict:
+def _one_skill(decision: dict, tool: str, arguments: dict, *, symbol: str | None, timeout: float, send) -> dict:
     skill = decision["skill"]
-    tool, arguments = _call_for(skill, symbol)
     requested = datetime.now(timezone.utc).replace(microsecond=0)
     started = requested.timestamp()
     try:
@@ -135,6 +138,11 @@ def _one_skill(decision: dict, *, symbol: str | None, timeout: float, send) -> d
         item["textual_summary"] = item["summary"]
         item["current_or_historical"] = "unknown"
         item["structured_data"] = {}
+    if tool == "technical_analysis" and not error and _indicator_without_reading(payload):
+        item["summary"] = "The official indicator tool returned no reading."
+        item["textual_summary"] = item["summary"]
+        item["structured_data"] = {}
+        item["current_or_historical"] = "unknown"
     return item
 
 
@@ -152,6 +160,16 @@ def _rates_without_tenors(payload: object) -> bool:
         if isinstance(value, dict) and any(isinstance(item, (int, float)) and not isinstance(item, bool) for item in value.values()):
             return False
     return True
+
+
+def _indicator_without_reading(payload: object) -> bool:
+    if not isinstance(payload, dict):
+        return True
+    if payload.get("error") and not any(
+        isinstance(value, (int, float)) and not isinstance(value, bool) for value in payload.values()
+    ):
+        return True
+    return not any(isinstance(value, (int, float)) and not isinstance(value, bool) for value in payload.values())
 
 
 def _no_articles(payload: object) -> bool:
