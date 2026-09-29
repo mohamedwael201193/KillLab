@@ -403,4 +403,19 @@ This file is append-only.
 - Skill probes on 2026-09-29, host `https://datahub.noxiaohao.com/mcp`, digest only: ten calls (`crypto_market` price, `derivatives_sentiment` long_short/taker_ratio, `rates_yields` yield_curve, `global_assets` GC=F/^VIX, `tradfi_news` crypto_news, `defi_analytics` stablecoins, `network_status` eth_gas, `sentiment_index` history) all returned `timeout` at 12s with one retry. A second probe returned `technical_analysis` rsi on BTCUSDT `48.14`, timeframe 4h, period 14, signal neutral, and `crypto_market` price `ConnectTimeout`. Only `technical-analysis` has a usable official numeric reading. The four other skills stay unclosed. No empty payload was wired as a reading.
 - Not production-verified in this entry: a Chrome freeze-to-run for cash close or lead, a new `AUTO_RUN`, any historical order book.
 
+## 2026-09-29 Browser freeze-to-run of the lead question
+
+- Chrome on `https://killlab.vercel.app/?v=8632764` held the freeze control for the lead draft. Freeze hash `7c76dbb8a9e91d04bb83f997e9005d33989d2b92cadf3aaf90e88ad0829a85cc`, window `2026-05-18` to `2026-09-28`, family `lead_lag`, instruments `NVDAUSDT`, variants 2, baseline `buy_and_hold`.
+- Run `aedc5d97-f78f-4f40-9edd-ce0c50dec69d`, hypothesis `f4067e6f-1d29-4223-9b06-d1f1b740ad0e`, spec `86d64964-d1f6-44f3-83bb-af54e095f884`, engine `killlab-0.12.7`, origin `manual`: `INCONCLUSIVE`, 85 out-of-sample units, 93 raw events, mechanism `prior_hour_leads_cash_open`, DSR `0.039`, interval `-18.605` to `11.615`, oldest bar `2026-05-18T20:00:00Z`, stop `page_cap`, venue floor no. Book forward-recorded, spread `0.438` bps, notional `10000` walk `2.744` bps, imbalance `-0.113`, retrieved `1790710821849`, not a past book.
+- Official US-stock row on that run: host `agent.bitget.com/mcp`, tool `do_query`, freshness `current`, NVDA `last_price` 228.04, source clock `2026-09-30T03:40:24.299519`, retrieved `2026-09-29T19:40:24+00:00`, `usable_for_verdict` false. Skill row: host `datahub.noxiaohao.com/mcp`, tool `technical_analysis`, undated rsi 54.59, timeframe 4h, period 14, signal neutral. Research skill `technical-analysis`. Context changes the verdict: no.
+- Desk network during the whole flow was same-origin `/api/killlab` only: two hypothesis POSTs, one compile per hypothesis, one spec POST, one freeze POST, one run POST, then run GETs for verdict, results, traps, evidence, and ledger. No Bitget or MCP host was called from the browser.
+- This proves the desk POST path from chip to sealed run for the lead question. Cash-close freeze-to-run in Chrome is still not done.
+
+## 2026-09-29 Skill probe with production timeouts
+
+- Settings matched the backend: timeout 18s, retries 2, host `https://datahub.noxiaohao.com/mcp`, digest only.
+- `technical_analysis` rsi on NVDAUSDT: ok, rsi 54.24, timeframe 4h, period 14, signal neutral. The only usable official reading.
+- `derivatives_sentiment` long_short and open_interest: `{"error": ""}`. `sentiment_index` current: `{"alt_me_error": ""}`. `rates_yields` rates_snapshot: every tenor an empty error. `news_feed` latest cointelegraph+coindesk: both feeds empty items. `crypto_market` markets: `ConnectTimeout`. `defi_analytics` stablecoins: error plus a URL, no rows. None of these was wired as a reading.
+- `POST /v1/internal/forward-sweep` for UTC day `2026-09-29` returned 200 with 0 results and no `AUTO_RUN`. The scored lead freeze cleared its floor on a manual run and is not armed; the scored basis freeze is already automatic. No floor was changed and no key was deleted.
+
 
