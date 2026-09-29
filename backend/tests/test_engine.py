@@ -170,6 +170,10 @@ def test_session_units_are_cash_hours_not_every_bar():
     card = execute(spec, {"rows": rows, "actual_first": "2026-06-01T13:00:00Z", "payload_sha256": "abc"})
     assert card["mechanism"] == "ny_open_hour_vs_other_cash_hours"
     assert card["n_events"] == 70
+    closed = execute({**spec, "session_hour": 15}, {"rows": rows, "actual_first": "2026-06-01T13:00:00Z", "payload_sha256": "abc"})
+    assert closed["mechanism"] == "cash_close_hour_vs_other_cash_hours"
+    assert closed["n_events"] == 70
+    assert closed["n_units"]["n"] == card["n_units"]["n"]
     assert card["n_events"] < len(rows)
     assert card["label"] == "KILLED"
     crowded = execute({**spec, "variants": [{"code": f"v{i}"} for i in range(10)]}, {"rows": rows, "payload_sha256": "abc"})

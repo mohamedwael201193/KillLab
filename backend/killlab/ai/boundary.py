@@ -28,6 +28,7 @@ class TestSpecDraft(BaseModel):
     risk: dict = {}
     event_kind: str = "none"
     claims_alpha: bool = True
+    session_hour: int | None = None
     claimed_start: str | None = None
 
 

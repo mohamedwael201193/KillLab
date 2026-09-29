@@ -57,6 +57,18 @@ def _one_hour_return_bps(items: list, index: int) -> float | None:
     return (items[index + 1][1] / start - 1.0) * 1e4
 
 
+def _session_target(spec: dict) -> tuple[int, set[int], str]:
+    """Hour 9 is the open. Hour 15 is the close. Any other value stays the open."""
+    raw = spec.get("session_hour", 9)
+    try:
+        hour = int(raw)
+    except (TypeError, ValueError):
+        hour = 9
+    if hour == 15:
+        return 15, set(range(9, 15)), "cash_close_hour_vs_other_cash_hours"
+    return 9, set(range(10, 16)), "ny_open_hour_vs_other_cash_hours"
+
+
 def session_panel(rows: list, spec: dict) -> dict:
     """Open hour versus the other one-hour cash bars that same day.
 
@@ -74,16 +86,17 @@ def session_panel(rows: list, spec: dict) -> dict:
     continuation: list[float] = []
     reversal: list[float] = []
     baseline: list[float] = []
+    target, peer_hours, mechanism = _session_target(spec)
     for _day, items in sorted(by_day.items()):
         items.sort(key=lambda item: item[0])
-        open_at = next((i for i, item in enumerate(items) if item[0].hour == 9), None)
+        open_at = next((i for i, item in enumerate(items) if item[0].hour == target), None)
         if open_at is None:
             continue
         gross = _one_hour_return_bps(items, open_at)
         peers = [
             value
             for i, item in enumerate(items)
-            if 10 <= item[0].hour <= 15 and (value := _one_hour_return_bps(items, i)) is not None
+            if item[0].hour in peer_hours and (value := _one_hour_return_bps(items, i)) is not None
         ]
         if gross is None or not peers:
             continue
@@ -92,7 +105,7 @@ def session_panel(rows: list, spec: dict) -> dict:
         continuation.append(edge - cost)
         reversal.append(-edge - cost)
         baseline.append(0.0)
-    return _panel(ids, {"continuation": continuation, "reversal": reversal}, baseline, "ny_open_hour_vs_other_cash_hours")
+    return _panel(ids, {"continuation": continuation, "reversal": reversal}, baseline, mechanism)
 
 
 def earnings_panel(events: list, spec: dict) -> dict:

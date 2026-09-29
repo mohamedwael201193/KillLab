@@ -92,7 +92,7 @@ def family_from_text(raw_text: str, proposed_family: str | None) -> str:
         return "carry_basis"
     if re.search(r"basis|converge|perp versus spot|perp vs spot", raw_text, re.I):
         return "basis_convergence"
-    if re.search(r"session|first hour|cash open", raw_text, re.I):
+    if re.search(r"cash close|closing hour|last cash hour|session|first hour|cash open|ny open|new york open", raw_text, re.I):
         return "session_timing"
     if proposed_family in _FAMILIES:
         return proposed_family
@@ -137,8 +137,18 @@ def normalize_draft(raw_text: str, proposed: dict) -> dict:
         "claims_alpha": False,
         "event_kind": "none",
     }
+    if family == "session_timing" and _cash_close(raw_text) and not _cash_open(raw_text):
+        draft["session_hour"] = 15
     reject_forbidden(draft)
     return enforce_kill_floor(draft)
+
+
+def _cash_close(raw_text: str) -> bool:
+    return re.search(r"cash close|closing hour|last cash hour", raw_text, re.I) is not None
+
+
+def _cash_open(raw_text: str) -> bool:
+    return re.search(r"first hour|cash open|ny open|new york open", raw_text, re.I) is not None
 
 
 def _each_completion(messages: list[dict], timeout_s: float, accept):

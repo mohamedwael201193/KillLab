@@ -110,11 +110,12 @@ def research_fingerprint(spec: dict) -> str:
         for item in (spec.get("variants") or [])
         if isinstance(item, dict) and item.get("code")
     )
-    return sha256_canonical(
-        {
-            "family": spec.get("family"),
-            "instruments": sorted(str(item) for item in (spec.get("instruments") or [])),
-            "grain": spec.get("grain"),
-            "variants": codes,
-        }
-    )
+    body = {
+        "family": spec.get("family"),
+        "instruments": sorted(str(item) for item in (spec.get("instruments") or [])),
+        "grain": spec.get("grain"),
+        "variants": codes,
+    }
+    if spec.get("session_hour") in (15, "15"):
+        body["session_hour"] = 15
+    return sha256_canonical(body)

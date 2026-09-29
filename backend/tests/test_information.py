@@ -486,6 +486,20 @@ def test_an_inversion_flag_without_tenors_is_not_a_curve():
     assert items[0]["structured_data"] == {}
 
 
+def test_the_cash_close_is_a_session_question_and_the_open_stays_the_open():
+    from killlab.ai.compile import normalize_draft
+    from killlab.engine.review import research_fingerprint
+
+    close = normalize_draft("Does the NVDA last cash hour beat the other cash hours?", {"family": "unsupported"})
+    assert close["family"] == "session_timing"
+    assert close["session_hour"] == 15
+    opened = normalize_draft("Trade NVDA in the first hour of the cash session", {"family": "unsupported"})
+    assert opened["family"] == "session_timing"
+    assert "session_hour" not in opened
+    assert research_fingerprint(opened) != research_fingerprint(close)
+    assert research_fingerprint(opened) == research_fingerprint({key: value for key, value in opened.items() if key != "session_hour"})
+
+
 def test_perp_versus_spot_is_the_basis_family():
     from killlab.ai.compile import family_from_text
 
