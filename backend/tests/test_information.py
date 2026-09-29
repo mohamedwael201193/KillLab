@@ -348,7 +348,7 @@ def test_each_official_skill_has_one_route_and_a_second_skill_is_optional():
         send=send,
     )
     names = [item[1] for item in send.calls]
-    assert set(names) == {"rates_yields", "news_feed"}
+    assert set(names) == {"rates_yields", "derivatives_sentiment"}
     assert context["routing"]["skill"] == "macro-analyst"
     assert context["routing"]["secondary"] == "market-intel"
     assert "technical_analysis" not in names
@@ -712,9 +712,278 @@ def test_an_unknown_indicator_action_is_not_stored_as_a_reading():
     assert macd["usable_for_verdict"] is False
 
 
+def test_an_empty_signal_row_is_not_replaced_by_a_hidden_source():
+    from killlab.integrations.bitget_signal import skill_evidence
+
+    def empty_rates(name, arguments):
+        return _sse({"yield_curve_inverted": False, "t10y": {"error": ""}})
+
+    def fallback(skill, symbol, text):
+        return [{
+            "skill": skill,
+            "source_class": "authoritative_fallback",
+            "failure_class": "valid_data",
+            "usable_for_verdict": False,
+            "summary": "sofr 3.9",
+            "source_url": "https://markets.newyorkfed.org/api/rates/secured/sofr/last/1.json",
+            "provider": "authoritative_fallback",
+        }]
+
+    items = skill_evidence(
+        frozen=True,
+        text="What does the Fed funds rate say?",
+        family=None,
+        symbol=None,
+        send=_transport(empty_rates),
+        fallback=fallback,
+    )
+    classes = [item.get("source_class") for item in items]
+    assert "official_signal_mcp" in classes
+    assert "authoritative_fallback" in classes
+    signal = next(item for item in items if item.get("source_class") == "official_signal_mcp")
+    fallback_row = next(item for item in items if item.get("source_class") == "authoritative_fallback")
+    assert signal["failure_class"] == "empty_result"
+    assert "noxiaohao.com" in (signal.get("source_url") or "")
+    assert fallback_row["provider"] != "bitget-signal"
+    assert fallback_row["usable_for_verdict"] is False
+
+
+def test_fallback_refuses_to_run_before_freeze():
+    from killlab.integrations import fallbacks
+
+    with pytest.raises(NotFrozen):
+        fallbacks.macro_rates(frozen=False)
+
+
+def test_mcp_timeout_is_classified():
+    from killlab.integrations.bitget_signal import classify_skill_result
+
+    assert classify_skill_result("timeout", {}, "rates_yields") == "timeout"
+    assert classify_skill_result("too many open sessions", {}, "do_query") == "session_error"
+    assert classify_skill_result("malformed response", {}, "news_feed") == "malformed_response"
+
+
+def test_ny_fed_rates_are_not_labeled_as_the_skill_host():
+    from killlab.integrations import fallbacks
+
+    class _Resp:
+        status_code = 200
+        text = '{"refRates":[{"effectiveDate":"2026-09-28","type":"SOFR","percentRate":3.9}]}'
+        content = text.encode()
+
+        def json(self):
+            return {"refRates": [{"effectiveDate": "2026-09-28", "type": "SOFR", "percentRate": 3.9}]}
+
+    item = fallbacks.macro_rates(frozen=True, get=lambda *args, **kwargs: _Resp())
+    assert item is not None
+    assert item["source_class"] == "authoritative_fallback"
+    assert item["provider"] == "authoritative_fallback"
+    assert "noxiaohao" not in (item.get("source_url") or "")
+    assert item["usable_for_verdict"] is False
+    assert "3.9" in item["summary"]
+
+
 def test_compiler_module_does_not_call_the_information_layer():
     source = (Path(__file__).resolve().parents[1] / "killlab" / "ai" / "compile.py").read_text(encoding="utf-8")
     assert "enrich_context" not in source
     assert "call_tool" not in source
     assert "datahub.noxiaohao.com" not in source
     assert "agent.bitget.com" not in source
+
+
+def test_canonical_skill_recipes_match_the_official_documents():
+    from killlab.integrations.bitget_signal import _calls_for
+
+    assert _calls_for("macro-analyst", None, "Fed funds") == [("rates_yields", {"action": "rates_snapshot"})]
+    assert _calls_for("sentiment-analyst", "BTCUSDT", "crowd positioning") == [("sentiment_index", {"action": "current"})]
+    assert _calls_for("news-briefing", None, "Fed FOMC") == [
+        ("news_feed", {"action": "latest", "feeds": "cnbc,fed", "keyword": "Fed", "limit": 5})
+    ]
+    assert _calls_for("news-briefing", None, "crypto headlines") == [
+        ("news_feed", {"action": "latest", "feeds": "cointelegraph,coindesk", "limit": 5})
+    ]
+    assert _calls_for("market-intel", "BTCUSDT", "ETF flow") == [
+        ("derivatives_sentiment", {"action": "top_ls", "symbol": "BTCUSDT", "period": "4h"})
+    ]
+    assert [item[1]["action"] for item in _calls_for("technical-analysis", "NVDAUSDT", "rsi")] == [
+        "rsi",
+        "macd",
+        "atr",
+        "ema",
+        "bollinger",
+        "ma",
+    ]
+
+
+def test_mcp_retries_timeouts_and_keeps_the_kind():
+    hits = {"n": 0}
+
+    def flaky(name, arguments):
+        hits["n"] += 1
+        if hits["n"] < 2:
+            return 408, {}, "slow"
+        return _sse({"price": 1})
+
+    result = call_tool("https://agent.bitget.com/mcp", "do_query", {}, retries=2, send=_transport(flaky))
+    assert result["data"]["price"] == 1
+    assert hits["n"] == 2
+
+    def always_timeout(name, arguments):
+        return 408, {}, "slow"
+
+    with pytest.raises(McpError) as failed:
+        call_tool("https://agent.bitget.com/mcp", "do_query", {}, retries=2, send=_transport(always_timeout))
+    assert failed.value.reason == "timeout"
+    assert failed.value.kind == "timeout"
+
+
+def test_mcp_empty_output_is_empty_result_not_a_reading():
+    def empty(name, arguments):
+        body = {"jsonrpc": "2.0", "id": 2, "result": {"content": []}}
+        return 200, {"mcp-session-id": "session"}, "event: message\ndata: " + json.dumps(body) + "\n"
+
+    with pytest.raises(McpError) as failed:
+        call_tool("https://datahub.noxiaohao.com/mcp", "news_feed", {}, retries=1, send=_transport(empty))
+    assert failed.value.kind == "empty_result"
+
+
+def test_mcp_tool_error_is_not_retried():
+    hits = {"n": 0}
+
+    def boom(name, arguments):
+        hits["n"] += 1
+        body = {"jsonrpc": "2.0", "id": 2, "error": {"message": "unknown action"}}
+        return 200, {"mcp-session-id": "session"}, "event: message\ndata: " + json.dumps(body) + "\n"
+
+    with pytest.raises(McpError) as failed:
+        call_tool("https://datahub.noxiaohao.com/mcp", "rates_yields", {}, retries=3, send=_transport(boom))
+    assert failed.value.kind == "tool_error"
+    assert hits["n"] == 1
+
+
+def test_mcp_sessions_do_not_overlap():
+    import threading
+
+    current = {"n": 0, "peak": 0}
+    lock = threading.Lock()
+
+    def send(url, payload, session, timeout):
+        method = payload.get("method")
+        if method == "initialize":
+            with lock:
+                current["n"] += 1
+                current["peak"] = max(current["peak"], current["n"])
+            return 200, {"mcp-session-id": "session"}, "{}"
+        if method == "notifications/initialized":
+            return 202, {}, ""
+        with lock:
+            current["n"] -= 1
+        return _sse({"ok": 1})
+
+    def worker():
+        call_tool("https://agent.bitget.com/mcp", "do_query", {}, retries=1, send=send)
+
+    threads = [threading.Thread(target=worker) for _ in range(4)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert current["peak"] == 1
+
+
+def test_lui_context_questions_keep_existing_families():
+    from killlab.ai.compile import family_from_text, normalize_draft
+    from killlab.integrations.bitget_signal import route_skills
+
+    fed = normalize_draft("Does the Fed funds backdrop change NVDA's first cash hour?", {})
+    assert family_from_text("Does the Fed funds backdrop change NVDA's first cash hour?", None) == "session_timing"
+    assert fed["family"] == "session_timing"
+    assert "session_hour" not in fed
+    assert route_skills(fed.get("raw_text") or "Does the Fed funds backdrop change NVDA's first cash hour?", fed["family"])[0]["skill"] == "macro-analyst"
+
+    crowd = normalize_draft("Is BTC crowd positioning one-sided while funding is harvested against cash?", {})
+    assert crowd["family"] == "carry_basis"
+    assert route_skills("Is BTC crowd positioning one-sided while funding is harvested against cash?", crowd["family"])[0]["skill"] == "sentiment-analyst"
+
+    news = normalize_draft("Did a Fed release coincide with NVDA after earnings?", {})
+    assert news["family"] == "event_earnings"
+    skills = {item["skill"] for item in route_skills("Did a Fed release coincide with NVDA after earnings?", news["family"])}
+    assert "news-briefing" in skills
+
+    proxy = normalize_draft("Is NVDA basis fading while ETF headlines mention flows?", {})
+    assert proxy["family"] == "basis_convergence"
+    skills = {item["skill"] for item in route_skills("Is NVDA basis fading while ETF headlines mention flows?", proxy["family"])}
+    assert "market-intel" in skills or "news-briefing" in skills
+
+
+def test_sentiment_and_news_and_intel_fallbacks_keep_their_own_urls():
+    from killlab.integrations import fallbacks
+
+    class _Json:
+        def __init__(self, status, payload):
+            self.status_code = status
+            self._payload = payload
+            self.text = json.dumps(payload)
+            self.content = self.text.encode()
+
+        def json(self):
+            return self._payload
+
+    class _Xml:
+        status_code = 200
+        content = (
+            b"<rss><channel><item><title>FOMC statement</title><link>https://www.federalreserve.gov/a</link>"
+            b"<pubDate>Mon, 28 Sep 2026 14:00:00 GMT</pubDate><guid>fed-1</guid></item></channel></rss>"
+        )
+        text = content.decode()
+
+    def get(url, *args, **kwargs):
+        if "account-long-short" in url:
+            return _Json(200, {"code": "00000", "data": [{"ts": "1790700000000", "longShortAccountRatio": "1.72", "longAccountRatio": "0.63"}]})
+        if "taker-buy-sell" in url:
+            return _Json(200, {"code": "00000", "data": [{"ts": "1790700000000", "buyVolume": "12", "sellVolume": "8"}]})
+        if "open-interest" in url:
+            return _Json(200, {"code": "00000", "data": {"ts": "1790700000000", "openInterestList": [{"size": "32536"}]}})
+        if "federalreserve.gov" in url or "coindesk.com" in url:
+            return _Xml()
+        return _Json(404, {})
+
+    sentiment = fallbacks.bitget_positioning(frozen=True, symbol="BTCUSDT", get=get)
+    assert sentiment["source_class"] == "bitget_public_rest"
+    assert sentiment["failure_class"] == "valid_data"
+    assert "api.bitget.com" in sentiment["source_url"]
+    assert "noxiaohao" not in sentiment["source_url"]
+    assert sentiment["usable_for_verdict"] is False
+
+    news = fallbacks.fed_releases(frozen=True, get=get)
+    assert news["source_class"] == "authoritative_fallback"
+    assert news["structured_data"] or "FOMC" in news["summary"]
+    assert "federalreserve.gov" in news["source_url"]
+
+    intel = fallbacks.bitget_open_interest(frozen=True, symbol="BTCUSDT", get=get)
+    assert intel["source_class"] == "bitget_public_rest"
+    assert intel["structured_data"]["open_interest"] == 32536.0
+    assert intel["usable_for_verdict"] is False
+
+
+def test_stale_fallback_rates_are_not_called_current():
+    from killlab.integrations import fallbacks
+
+    class _Resp:
+        status_code = 200
+        text = '{"refRates":[{"effectiveDate":"2020-01-02","type":"SOFR","percentRate":1.5}]}'
+        content = text.encode()
+
+        def json(self):
+            return {"refRates": [{"effectiveDate": "2020-01-02", "type": "SOFR", "percentRate": 1.5}]}
+
+    item = fallbacks.macro_rates(frozen=True, get=lambda *args, **kwargs: _Resp())
+    assert item["current_or_historical"] == "stale"
+    assert item["data_timestamp"].startswith("2020-01-02")
+    assert item["failure_class"] == "valid_data"
+    assert item["usable_for_verdict"] is False
+
+
+def test_a_missing_history_family_stays_untestable():
+    card = execute({**_spec(), "family": "unsupported"}, {"rows": []})
+    assert card["label"] == "UNTESTABLE"

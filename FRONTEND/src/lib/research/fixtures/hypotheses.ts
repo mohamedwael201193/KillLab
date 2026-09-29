@@ -48,6 +48,30 @@ export const EXAMPLE_HYPOTHESES: ExampleHypothesis[] = [
     note: "One weekday is the unit. BTC is the signal, not the trade. No result is assumed.",
   },
   {
+    scenarioKey: "fed-backdrop",
+    chip: "Fed backdrop",
+    text: "Does the Fed funds backdrop change NVDA's first cash hour?",
+    note: "Session family. Macro context is attached after freeze and cannot change the verdict.",
+  },
+  {
+    scenarioKey: "crowd-positioning",
+    chip: "Crowd positioning",
+    text: "Is BTC crowd positioning one-sided while funding is harvested against cash?",
+    note: "Carry family. Positioning context is a current observation, not a 60-unit history.",
+  },
+  {
+    scenarioKey: "fed-release",
+    chip: "Fed release",
+    text: "Did a Fed release coincide with NVDA after earnings?",
+    note: "Earnings family. News context is attached after freeze. No article is invented.",
+  },
+  {
+    scenarioKey: "positioning-proxy",
+    chip: "Positioning proxy",
+    text: "Is NVDA basis fading while ETF headlines mention flows?",
+    note: "Basis family. Direct ETF flow is not available. Positioning and public headlines are the proxy.",
+  },
+  {
     scenarioKey: "range-rotation",
     chip: "Outside the tape",
     text: "When BTC breaks its 20-day range, rotate into majors' alts perps within 48 hours.",

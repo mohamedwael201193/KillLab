@@ -103,5 +103,5 @@ class IdempotencyKey(Base):
     status_code: Mapped[int] = mapped_column(Integer)
 
 
-ENGINE_VERSION = "killlab-0.12.9"
+ENGINE_VERSION = "killlab-0.13.0"
 SCHEMA_READY = text("SELECT 1")

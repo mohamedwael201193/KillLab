@@ -43,6 +43,19 @@ const dropped = mergeCompiledDraft(
 );
 assert.equal(dropped.session_hour, 15);
 
+const fedBackdrop = draftSpec("Does the Fed funds backdrop change NVDA's first cash hour?");
+assert.equal(fedBackdrop.family, "session_timing");
+assert.equal(fedBackdrop.session_hour, undefined);
+
+const crowd = draftSpec("Is BTC crowd positioning one-sided while funding is harvested against cash?");
+assert.equal(crowd.family, "carry_basis");
+
+const fedRelease = draftSpec("Did a Fed release coincide with NVDA after earnings?");
+assert.equal(fedRelease.family, "event_earnings");
+
+const proxy = draftSpec("Is NVDA basis fading while ETF headlines mention flows?");
+assert.equal(proxy.family, "basis_convergence");
+
 function closeText(spec: { session_hour?: number }): string {
   return spec.session_hour === 15 ? "Trade NVDA in the last cash hour." : "";
 }

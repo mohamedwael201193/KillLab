@@ -35,9 +35,9 @@ export function familyFromText(text: string): string {
   if (/\bleads?\b|\blags?\b/i.test(text)) return "lead_lag";
   if (/weekend|stockroute/i.test(text)) return "execution_venue_time";
   if (/earn|after[- ]hours/i.test(text)) return "event_earnings";
-  if (/fund|carry/i.test(text)) return "carry_basis";
+  if (/\bfunding\b|\bcarry\b/i.test(text)) return "carry_basis";
   if (/basis|converge|perp versus spot|perp vs spot/i.test(text)) return "basis_convergence";
-  if (/cash close|closing hour|last cash hour|session|first hour|cash open|ny open|new york open/i.test(text)) return "session_timing";
+  if (/cash close|closing hour|last cash hour|session|first cash hour|first hour|cash open|ny open|new york open/i.test(text)) return "session_timing";
   return "unsupported";
 }
 
@@ -46,7 +46,7 @@ function cashClose(text: string): boolean {
 }
 
 function cashOpen(text: string): boolean {
-  return /first hour|cash open|ny open|new york open/i.test(text);
+  return /first cash hour|first hour|cash open|ny open|new york open/i.test(text);
 }
 
 export type DraftSpec = {

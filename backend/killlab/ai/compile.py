@@ -90,11 +90,11 @@ def family_from_text(raw_text: str, proposed_family: str | None) -> str:
         return "execution_venue_time"
     if re.search(r"earn|after[- ]hours", raw_text, re.I):
         return "event_earnings"
-    if re.search(r"fund|carry", raw_text, re.I):
+    if re.search(r"\bfunding\b|\bcarry\b", raw_text, re.I):
         return "carry_basis"
     if re.search(r"basis|converge|perp versus spot|perp vs spot", raw_text, re.I):
         return "basis_convergence"
-    if re.search(r"cash close|closing hour|last cash hour|session|first hour|cash open|ny open|new york open", raw_text, re.I):
+    if re.search(r"cash close|closing hour|last cash hour|session|first cash hour|first hour|cash open|ny open|new york open", raw_text, re.I):
         return "session_timing"
     if proposed_family in _FAMILIES:
         return proposed_family
@@ -157,7 +157,7 @@ def _cash_close(raw_text: str) -> bool:
 
 
 def _cash_open(raw_text: str) -> bool:
-    return re.search(r"first hour|cash open|ny open|new york open", raw_text, re.I) is not None
+    return re.search(r"first cash hour|first hour|cash open|ny open|new york open", raw_text, re.I) is not None
 
 
 def _each_completion(messages: list[dict], timeout_s: float, accept):

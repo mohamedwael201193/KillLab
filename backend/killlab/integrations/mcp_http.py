@@ -8,10 +8,13 @@ No account key is sent.
 from __future__ import annotations
 
 import json
+import threading
 import time
 from typing import Callable
 
 import httpx
+
+_SESSION_GATE = threading.Lock()
 
 PROTOCOL = "2024-11-05"
 USER_AGENT = (
@@ -21,9 +24,10 @@ USER_AGENT = (
 
 
 class McpError(RuntimeError):
-    def __init__(self, reason: str):
+    def __init__(self, reason: str, kind: str = "transport_error"):
         super().__init__(reason)
         self.reason = reason
+        self.kind = kind
 
 
 Send = Callable[[str, dict, str | None, float], tuple[int, dict, str]]
@@ -37,7 +41,7 @@ def unframe(text: str) -> dict:
         return {}
     payload = json.loads(raw)
     if not isinstance(payload, dict):
-        raise McpError("mcp payload was not an object")
+        raise McpError("mcp payload was not an object", kind="malformed_response")
     return payload
 
 
@@ -50,11 +54,16 @@ def _http_send(url: str, payload: dict, session: str | None, timeout: float) -> 
     if session:
         headers["mcp-session-id"] = session
     try:
-        response = httpx.post(url, json=payload, headers=headers, timeout=timeout)
+        response = httpx.post(
+            url,
+            json=payload,
+            headers=headers,
+            timeout=httpx.Timeout(timeout, connect=min(5.0, timeout), write=min(10.0, timeout), pool=5.0),
+        )
     except httpx.TimeoutException as exc:
-        raise McpError("timeout") from exc
+        raise McpError("timeout", kind="timeout") from exc
     except httpx.HTTPError as exc:
-        raise McpError(f"upstream unavailable: {type(exc).__name__}") from exc
+        raise McpError(f"upstream unavailable: {type(exc).__name__}", kind="transport_error") from exc
     return response.status_code, {k.lower(): v for k, v in response.headers.items()}, response.text
 
 
@@ -76,11 +85,11 @@ def _raise_for_status(status: int, body: str) -> None:
         return
     if status == 503:
         if "session" in body.lower():
-            raise McpError("too many open sessions")
-        raise McpError("upstream unavailable")
+            raise McpError("too many open sessions", kind="session_error")
+        raise McpError("upstream unavailable", kind="transport_error")
     if status in {408, 504}:
-        raise McpError("timeout")
-    raise McpError(f"upstream HTTP {status}")
+        raise McpError("timeout", kind="timeout")
+    raise McpError(f"upstream HTTP {status}", kind="transport_error")
 
 
 def call_tool(
@@ -95,19 +104,23 @@ def call_tool(
     """Open one session, call one tool, and return the parsed JSON body."""
     transport = send or _http_send
     last = "not attempted"
+    last_kind = "transport_error"
     attempts = max(1, retries)
-    for attempt in range(attempts):
-        try:
-            return _once(url, name, arguments or {}, timeout, transport, close=_http_close if send is None else None)
-        except McpError as exc:
-            last = exc.reason
-            if attempt + 1 >= attempts:
-                break
-            if exc.reason not in {"timeout", "upstream unavailable", "too many open sessions"}:
-                break
-            if send is None:
-                time.sleep(0.6 * (attempt + 1))
-    raise McpError(last)
+    retryable = {"timeout", "upstream unavailable", "too many open sessions"}
+    with _SESSION_GATE:
+        for attempt in range(attempts):
+            try:
+                return _once(url, name, arguments or {}, timeout, transport, close=_http_close if send is None else None)
+            except McpError as exc:
+                last = exc.reason
+                last_kind = exc.kind
+                if attempt + 1 >= attempts:
+                    break
+                if exc.kind not in {"timeout", "session_error", "transport_error"} and exc.reason not in retryable:
+                    break
+                if send is None:
+                    time.sleep(0.5 * (2 ** attempt))
+    raise McpError(last, kind=last_kind)
 
 
 def _once(url: str, name: str, arguments: dict, timeout: float, send: Send, close=None) -> dict:
@@ -131,7 +144,7 @@ def _once(url: str, name: str, arguments: dict, timeout: float, send: Send, clos
         _raise_for_status(status, body)
         session = headers.get("mcp-session-id")
         if not session:
-            raise McpError("initialize returned no session")
+            raise McpError("initialize returned no session", kind="session_error")
         send(url, {"jsonrpc": "2.0", "method": "notifications/initialized"}, session, timeout)
         status, _, body = send(
             url,
@@ -143,23 +156,25 @@ def _once(url: str, name: str, arguments: dict, timeout: float, send: Send, clos
         try:
             payload = unframe(body)
         except json.JSONDecodeError as exc:
-            raise McpError("malformed response") from exc
+            raise McpError("malformed response", kind="malformed_response") from exc
         if payload.get("error"):
-            raise McpError(str(payload["error"])[:180])
+            raise McpError(str(payload["error"])[:180], kind="tool_error")
         content = (payload.get("result") or {}).get("content") or []
-        if not content or not isinstance(content, list):
-            raise McpError("malformed response")
+        if not isinstance(content, list):
+            raise McpError("malformed response", kind="malformed_response")
+        if not content:
+            raise McpError("empty result", kind="empty_result")
         text = content[0].get("text", "") if isinstance(content[0], dict) else ""
         if not isinstance(text, str) or not text.strip():
-            raise McpError("malformed response")
+            raise McpError("empty result", kind="empty_result")
         try:
             data = json.loads(text)
         except json.JSONDecodeError:
             data = {"text": text[:500]}
         if isinstance(data, dict) and data.get("success") is False:
-            raise McpError(f"upstream unavailable: {str(data.get('error') or '')[:120]}")
+            raise McpError(f"upstream unavailable: {str(data.get('error') or '')[:120]}", kind="tool_error")
         if not isinstance(data, (dict, list)):
-            raise McpError("malformed response")
+            raise McpError("malformed response", kind="malformed_response")
         return {"data": data}
     finally:
         if session and close is not None:

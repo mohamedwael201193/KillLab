@@ -26,7 +26,11 @@ export type ScenarioKey =
   | "cash-close"
   | "weekend-choice"
   | "basis-fade"
-  | "prior-hour-lead";
+  | "prior-hour-lead"
+  | "fed-backdrop"
+  | "crowd-positioning"
+  | "fed-release"
+  | "positioning-proxy";
 
 /* ------------------------------------------------------------------ */
 /* Specification (pre-freeze)                                          */

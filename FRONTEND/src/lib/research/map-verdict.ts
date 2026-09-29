@@ -54,6 +54,8 @@ type VerdictJson = {
       current_or_historical?: string;
       category?: string;
       failure_reason?: string | null;
+      source_class?: string;
+      failure_class?: string;
     }[];
   };
   findings?: { code: string; severity: string; detail?: Record<string, unknown> }[];
@@ -129,6 +131,8 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
         item.retrieved_at ? `retrieved ${item.retrieved_at}` : "",
         item.source_url ? item.source_url.replace("https://", "") : "",
         item.tool_name,
+        item.source_class,
+        item.failure_class,
         item.content_hash ? item.content_hash.slice(0, 12) : "",
       ]
         .filter((part) => part)

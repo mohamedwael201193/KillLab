@@ -1,0 +1,61 @@
+{
+  "engine_version": "killlab-0.13.0",
+  "usable_for_verdict": false,
+  "skills": [
+    {
+      "skill": "technical-analysis",
+      "canonical_recipe": "technical_analysis actions rsi,macd,atr,ema,bollinger,ma",
+      "tool": "technical_analysis",
+      "primary_source": "official_signal_mcp",
+      "fallback_source": null,
+      "expected_fields": ["rsi", "macd", "atr", "ema", "upper", "ma7"],
+      "timestamp_support": "undated",
+      "historical_support": false,
+      "production_verified": true
+    },
+    {
+      "skill": "macro-analyst",
+      "canonical_recipe": "rates_yields action=rates_snapshot",
+      "tool": "rates_yields",
+      "primary_source": "official_signal_mcp",
+      "fallback_source": "https://markets.newyorkfed.org/api/rates/secured/sofr/last/1.json",
+      "expected_fields": ["percentRate", "effectiveDate"],
+      "timestamp_support": "effectiveDate",
+      "historical_support": false,
+      "production_verified": false
+    },
+    {
+      "skill": "sentiment-analyst",
+      "canonical_recipe": "sentiment_index action=current",
+      "tool": "sentiment_index",
+      "primary_source": "official_signal_mcp",
+      "fallback_source": "https://api.bitget.com/api/v2/mix/market/account-long-short",
+      "expected_fields": ["longShortAccountRatio", "buyVolume"],
+      "timestamp_support": "print ts",
+      "historical_support": false,
+      "production_verified": false
+    },
+    {
+      "skill": "news-briefing",
+      "canonical_recipe": "news_feed latest feeds=cnbc,fed or cointelegraph,coindesk never feeds=all",
+      "tool": "news_feed",
+      "primary_source": "official_signal_mcp",
+      "fallback_source": "https://www.federalreserve.gov/feeds/press_monetary.xml",
+      "expected_fields": ["title", "published", "guid"],
+      "timestamp_support": "pubDate",
+      "historical_support": false,
+      "production_verified": false
+    },
+    {
+      "skill": "market-intel",
+      "canonical_recipe": "derivatives_sentiment top_ls as positioning proxy; ETF flow not available",
+      "tool": "derivatives_sentiment",
+      "primary_source": "official_signal_mcp",
+      "fallback_source": "https://api.bitget.com/api/v2/mix/market/open-interest",
+      "expected_fields": ["open_interest"],
+      "timestamp_support": "ts",
+      "historical_support": false,
+      "production_verified": false
+    }
+  ]
+}

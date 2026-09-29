@@ -128,6 +128,8 @@ def evidence_object(
     source_url: str | None = None,
     requested_at: str | None = None,
     latency_ms: int | None = None,
+    failure_class: str | None = None,
+    source_class: str | None = None,
 ) -> dict:
     retrieved = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     body: object = {"error": error} if error else payload
@@ -163,6 +165,8 @@ def evidence_object(
         "current_or_historical": kind,
         "usable_for_verdict": False,
         "failure_reason": error,
+        "failure_class": failure_class or ("unavailable" if error else None),
+        "source_class": source_class,
         "summary": summary,
         "textual_summary": summary,
         "category": "MCP CONTEXT" if source_type == "MCP_CONTEXT" else "SKILL CONTEXT",
