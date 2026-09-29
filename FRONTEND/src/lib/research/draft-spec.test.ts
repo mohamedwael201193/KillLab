@@ -56,6 +56,10 @@ assert.equal(fedRelease.family, "event_earnings");
 const proxy = draftSpec("Is NVDA basis fading while ETF headlines mention flows?");
 assert.equal(proxy.family, "basis_convergence");
 
+const coincide = draftSpec("Did a Fed release coincide with NVDA after earnings?");
+assert.equal(coincide.family, "event_earnings");
+assert.deepEqual(coincide.instruments, ["NVDAUSDT"]);
+
 function closeText(spec: { session_hour?: number }): string {
   return spec.session_hour === 15 ? "Trade NVDA in the last cash hour." : "";
 }

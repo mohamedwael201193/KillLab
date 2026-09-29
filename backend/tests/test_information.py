@@ -916,6 +916,14 @@ def test_lui_context_questions_keep_existing_families():
     assert "market-intel" in skills or "news-briefing" in skills
 
 
+def test_coincide_does_not_invent_a_coin_ticker():
+    from killlab.ai.compile import normalize_draft
+
+    draft = normalize_draft("Did a Fed release coincide with NVDA after earnings?", {"instruments": ["NVDAUSDT", "COINUSDT"]})
+    assert draft["instruments"] == ["NVDAUSDT"]
+    assert "COINUSDT" not in draft["instruments"]
+
+
 def test_sentiment_and_news_and_intel_fallbacks_keep_their_own_urls():
     from killlab.integrations import fallbacks
 

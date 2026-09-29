@@ -487,6 +487,15 @@ This file is append-only.
 - No new scored family. Snapshot fallbacks are not a 60-unit history. The Fed RSS item is dated 2026-09-16 and is labeled stale. Direct ETF flow is not claimed.
 - Existing AUTO_RUN and prior family proofs were not re-run in this entry. Health still reports `killlab-0.13.0`.
 
+## 2026-09-30 Chrome freeze-to-run of the remaining three context skills
+
+- Same production desk `https://killlab.vercel.app/?v=95d9e14`, isolated context `killlab-013`, engine `killlab-0.13.0`. Browser calls stayed on `/api/killlab`. Context did not change any verdict. Official Signal rows for these three skills stayed `empty_result`.
+- Crowd positioning: freeze hash `351828e1ec285105b896a92667e60b26922ea907b69454a09e71e9c142b6e892`, run `ecaa572c-27d7-4da6-a850-bb3dd26df049`, family `carry_basis`, `UNTESTABLE`, 1 of 60, mechanism `funding_hold_versus_cash`. Research skill `sentiment-analyst`. Official `sentiment_index` empty. Bitget public REST `long_short_account_ratio` 1.6455, taker buy 213.1405 sell 413.2189, `current`. Book forward-recorded, spread 0.012 bps, $10,000 walk 0.012 bps.
+- Fed release: freeze hash `0ec6757cc9958c56ff2eeb50741c803bb4fabc1e560b6f2555230ab190395f66`, run `138097f4-bc65-44c2-906b-b14b0750509b`, family `event_earnings`, `UNTESTABLE`, 38 of 100. Research skill `news-briefing + macro-analyst`. Official `news_feed` empty. Fed RSS FOMC statement 2026-09-16 labeled `stale`. NY Fed SOFR 3.9 labeled `authoritative_fallback` `current`. The frozen instrument list included `COINUSDT` because the substring `COIN` matched inside `coincide`. That is not a Coinbase listing; the compiler now requires a whole ticker token.
+- Positioning proxy: freeze hash `e9d65f4e555fb356c318e1695865f4dbff164162017817e9e5888d3192cbc99b`, run `b6b43b23-4d75-4d30-9877-baf2433f9127`, family `basis_convergence`, `KILLED`, 117 units, trap `contradicted`, interval `-33.05` to `-22.481`. Research skill `news-briefing + market-intel`. Official `derivatives_sentiment` empty. CoinDesk RSS `current` as a news proxy, not ETF flow. Bitget open interest 52088.76 `current`. Direct ETF flow is not claimed.
+- No new scored family. Snapshot context is still not a 60-unit history.
+
+
 
 
 

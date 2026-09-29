@@ -79,6 +79,17 @@ def _extract_json(text: str) -> dict:
 
 
 _NAMES = ("NVDA", "TSLA", "AAPL", "MSFT", "AMZN", "META", "GOOGL", "COIN", "MSTR", "SPY", "QQQ", "BTC", "ETH")
+
+
+def _tickers_in_text(raw_text: str) -> list[str]:
+    """Whole ticker tokens only. 'coincide' is not COIN."""
+    found = []
+    for name in _NAMES:
+        if re.search(rf"\b{re.escape(name)}\b", raw_text, re.I):
+            found.append(f"{name}USDT")
+    return found
+
+
 _FAMILIES = {"session_timing", "event_earnings", "carry_basis", "basis_convergence", "execution_venue_time", "lead_lag", "unsupported"}
 
 
@@ -106,12 +117,13 @@ def normalize_draft(raw_text: str, proposed: dict) -> dict:
     if FORBIDDEN_KEYS.intersection(proposed):
         raise ValueError("forbidden metric fields")
     family = family_from_text(raw_text, proposed.get("family") if isinstance(proposed.get("family"), str) else None)
-    upper = raw_text.upper()
-    named = [f"{name}USDT" for name in _NAMES if name in upper]
+    named = _tickers_in_text(raw_text)
     instruments = proposed.get("instruments") if isinstance(proposed.get("instruments"), list) else []
     instruments = [str(item) for item in instruments if isinstance(item, str) and item.strip()]
-    if not instruments:
-        instruments = named or ["NVDAUSDT"]
+    if named:
+        instruments = named
+    elif not instruments:
+        instruments = ["NVDAUSDT"]
     variants = {
         "session_timing": [{"code": "continuation"}, {"code": "reversal"}],
         "event_earnings": [{"code": "continuation"}, {"code": "reversal"}],
@@ -143,11 +155,11 @@ def normalize_draft(raw_text: str, proposed: dict) -> dict:
     if family == "session_timing" and _cash_close(raw_text) and not _cash_open(raw_text):
         draft["session_hour"] = 15
     if family == "lead_lag":
-        upper = raw_text.upper()
-        coins = [name for name in ("BTC", "ETH") if name in upper]
-        equities = [name for name in _NAMES if name not in {"BTC", "ETH"} and name in upper]
-        draft["leader"] = f"{(coins or ['BTC'])[0]}USDT"
-        draft["instruments"] = [f"{(equities or ['NVDA'])[0]}USDT"]
+        named = _tickers_in_text(raw_text)
+        coins = [item for item in named if item in {"BTCUSDT", "ETHUSDT"}]
+        equities = [item for item in named if item not in {"BTCUSDT", "ETHUSDT"}]
+        draft["leader"] = (coins or ["BTCUSDT"])[0]
+        draft["instruments"] = [(equities or ["NVDAUSDT"])[0]]
     reject_forbidden(draft)
     return enforce_kill_floor(draft)
 

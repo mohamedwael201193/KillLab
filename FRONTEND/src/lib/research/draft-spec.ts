@@ -71,19 +71,22 @@ export type DraftSpec = {
   leader?: string;
 };
 
+function tickersInText(text: string): string[] {
+  return NAMES.filter((name) => new RegExp(`\\b${name}\\b`, "i").test(text)).map((name) => `${name}USDT`);
+}
+
 export function draftSpec(text: string): DraftSpec {
   const family = familyFromText(text);
-  const upper = text.toUpperCase();
-  const named = NAMES.filter((name) => upper.includes(name)).map((name) => `${name}USDT`);
-  const coins = ["BTC", "ETH"].filter((name) => upper.includes(name));
-  const equities = NAMES.filter((name) => name !== "BTC" && name !== "ETH" && upper.includes(name));
+  const named = tickersInText(text);
+  const coins = named.filter((item) => item === "BTCUSDT" || item === "ETHUSDT");
+  const equities = named.filter((item) => item !== "BTCUSDT" && item !== "ETHUSDT");
   const spec: DraftSpec = {
     family,
     instruments:
       family === "basis_convergence"
         ? ["NVDAUSDT", "RNVDAUSDT"]
         : family === "lead_lag"
-          ? [`${equities[0] || "NVDA"}USDT`]
+          ? [equities[0] || "NVDAUSDT"]
           : named.length
             ? named
             : ["NVDAUSDT"],
@@ -107,7 +110,7 @@ export function draftSpec(text: string): DraftSpec {
     event_kind: "none",
   };
   if (family === "session_timing" && cashClose(text) && !cashOpen(text)) spec.session_hour = 15;
-  if (family === "lead_lag") spec.leader = `${coins[0] || "BTC"}USDT`;
+  if (family === "lead_lag") spec.leader = coins[0] || "BTCUSDT";
   return spec;
 }
 
@@ -129,5 +132,8 @@ export function mergeCompiledDraft(local: DraftSpec, compiled: Record<string, un
       book_max_spread_bps: 50,
     };
   }
+  const named = tickersInText(text);
+  if (merged.family === "basis_convergence") merged.instruments = ["NVDAUSDT", "RNVDAUSDT"];
+  else if (named.length) merged.instruments = named;
   return merged;
 }
