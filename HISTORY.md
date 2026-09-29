@@ -455,4 +455,9 @@ This file is append-only.
 - Official US-stock `do_query`: NVDA `last_price` 227.6487, freshness `current`, source clock `2026-09-30T04:26:58.124380`, retrieved `2026-09-29T20:26:58+00:00`, `usable_for_verdict` false.
 - Skill rows undated: rsi 53.01; macd 1.146027 golden_cross; atr 1.9926; ema9 228.6425; bollinger upper 222.8495 middle 227.9521 lower 233.0548; ma7 229.3957 ma25 226.5792 ma99 222.2185. The other four official skills still have no usable payload.
 
+## 2026-09-29 Leftover rate and news actions, and the desk parse error
+
+- Further skill-host calls on 2026-09-29: `rates_yields` rate `fed_funds` and `sofr`, and history `t10y`, all `{"error": ""}`. `macro_indicators` history cpi `{"error": ""}`. `fomc_news` `Failed to fetch Fed RSS`. `news_feed` latest `feeds=all` returned every named feed with empty items. `crypto_derivatives` is not named by the official skill documents; `ticker` and `open_interest` were unknown actions. No new reading was wired.
+- Vercel production for `a4fb5aa` ended `ERROR`. `FRONTEND/src/lib/research/map-verdict.ts:122` had `({)` after raising the context row cap to 8. That is a parse error, not a verdict change. The live site stayed on the last READY desk (`8632764`) until the parse is fixed.
+
 
