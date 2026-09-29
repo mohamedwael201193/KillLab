@@ -431,4 +431,9 @@ This file is append-only.
 - Desk network for the cash-close flow was same-origin `/api/killlab` only: hypothesis POST, compile POST, spec POST, freeze POST, run POST, then run GETs for verdict, results, traps, evidence, and ledger. No Bitget or MCP host was called from the browser.
 - This proves a second desk family path from chip to sealed run. The desk LUI now has two browser-sealed runs: lead `INCONCLUSIVE` (`aedc5d97`) and cash-close `KILLED` (`f85b430e`).
 
+## 2026-09-29 Final sweep of the remaining skill-named actions
+
+- Twelve more skill-named calls, timeout 18s with one retry, host `https://datahub.noxiaohao.com/mcp`, digest only: `derivatives_sentiment` top_ls, taker_ratio, and reddit_trending all returned `{"error": ""}`. `macro_indicators` latest_release cpi returned `{"error": ""}`. `cross_asset` correlation and `global_assets` price ^GSPC returned empty tool-error text. `tradfi_news` news returned `{"error": ""}`. `network_status` btc_mempool and `defi_analytics` chains returned an error plus a URL and no rows. `crypto_market` ohlcv, trending, and global all returned `ConnectTimeout`.
+- Combined with the earlier production-timeout probe, every named action for `macro-analyst`, `sentiment-analyst`, `news-briefing`, and `market-intel` has now been tried and returns empty, timeout, or malformed. Only `technical-analysis` / `technical_analysis` rsi returns a usable numeric reading (latest NVDAUSDT 54.24, BTCUSDT 48.14). Nothing empty was wired as a reading. The four empty skills stay open at the upstream, and the receipt records that truthfully instead of inventing data.
+
 
