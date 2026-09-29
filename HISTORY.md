@@ -214,7 +214,7 @@ This file is append-only.
 - Old behavior that was real: `DSR < 0.95` was a kill, and `ci_low <= 0` was a kill, even when `ci_high` was still above zero. Failure to prove the edge was reported as a contradiction.
 - Correct behavior: `ci_high < 0` is `KILLED`. `ci_low > 0` with DSR at least 0.95 is `ALIVE`. An interval that covers both sides is `INCONCLUSIVE`. Missing units stay `UNTESTABLE`. Mirror variants `X` and `-X` do not receive a PBO number. One-hour session bars are flagged `bar_straddle` because they contain 09:30 rather than being a 09:30–10:30 print. Engine `killlab-0.5.0`.
 - Test: `python -m pytest -q` → 21 passed. A planted open-hour edge is `ALIVE`. Equal drift and noise are `KILLED`. Three weekends stay `UNTESTABLE`.
-- Production verification: pending the `killlab-0.5.0` deploy. `killlab-0.4.0` verdicts that used the old kill rule are superseded for that semantic.
+- Production verification: `GET /health` returned `killlab-0.5.0`. `killlab-0.4.0` verdicts that used the old kill rule are superseded for that semantic.
 
 
 ## 2026-09-29 Frontend connected to the live API
