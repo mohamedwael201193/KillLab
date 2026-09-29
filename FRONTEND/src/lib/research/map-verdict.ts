@@ -33,6 +33,8 @@ type VerdictJson = {
     bid_depth?: number | null;
     ask_depth?: number | null;
     depth_imbalance?: number | null;
+    walk_notional_usd?: number | null;
+    walk_round_trip_bps?: number | null;
     payload_sha256?: string;
     ts?: string;
   };
@@ -99,7 +101,7 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
       label: "Book record",
       value:
         raw.book_capture?.provenance === "forward_recorded" && raw.book_capture.historical === false
-          ? `forward-recorded${raw.book_capture.spread_bps === undefined || raw.book_capture.spread_bps === null ? "" : ` · spread ${num(raw.book_capture.spread_bps)} bps`}${raw.book_capture.depth_imbalance === undefined || raw.book_capture.depth_imbalance === null ? "" : ` · depth imbalance ${num(raw.book_capture.depth_imbalance)}`}`
+          ? `forward-recorded${raw.book_capture.spread_bps === undefined || raw.book_capture.spread_bps === null ? "" : ` · spread ${num(raw.book_capture.spread_bps)} bps`}${raw.book_capture.walk_round_trip_bps === undefined || raw.book_capture.walk_round_trip_bps === null ? "" : ` · ${num(raw.book_capture.walk_notional_usd)} notional walk ${num(raw.book_capture.walk_round_trip_bps)} bps`}${raw.book_capture.depth_imbalance === undefined || raw.book_capture.depth_imbalance === null ? "" : ` · depth imbalance ${num(raw.book_capture.depth_imbalance)}`}`
           : "—",
       status: "info",
       threshold: raw.book_capture?.historical === false ? `retrieved ${raw.book_capture.ts || "unknown"} · not a past book` : undefined,

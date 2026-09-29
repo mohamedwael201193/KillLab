@@ -35,6 +35,31 @@ def _rows_first_ts(rows: list) -> str | None:
     return datetime.fromtimestamp(min(stamps) / 1000, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _walk_vwap(levels: list, notional: float) -> float | None:
+    """Average price to lift one side for a USDT notional. None if the shown book cannot."""
+    if isinstance(notional, bool) or not isinstance(notional, (int, float)) or notional <= 0:
+        return None
+    left = float(notional)
+    spent = 0.0
+    got = 0.0
+    for level in levels:
+        if not isinstance(level, (list, tuple)) or len(level) < 2:
+            continue
+        price = float(level[0])
+        size = float(level[1])
+        if price <= 0 or size <= 0:
+            continue
+        take = min(size, left / price)
+        spent += take * price
+        got += take
+        left -= take * price
+        if left <= 1e-6:
+            break
+    if got <= 0 or left > 1.0:
+        return None
+    return spent / got
+
+
 class BitgetRest:
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -156,7 +181,7 @@ class BitgetRest:
             "ts": row.get("ts"),
         }
 
-    def forward_book(self, *, frozen: bool, symbol: str, limit: int = 15) -> dict | None:
+    def forward_book(self, *, frozen: bool, symbol: str, limit: int = 15, notional_usd: float = 10000) -> dict | None:
         """Current public depth. Bitget has no historical order-book REST path.
 
         The returned record is a forward capture. It is not a reconstruction of the past book.
@@ -182,6 +207,10 @@ class BitgetRest:
         best_bid = float(bids[0][0])
         mid = (best_ask + best_bid) / 2 if best_ask and best_bid else 0.0
         spread_bps = ((best_ask - best_bid) / mid * 1e4) if mid else None
+        buy = _walk_vwap(asks, notional_usd)
+        sell = _walk_vwap(bids, notional_usd)
+        walk_buy = ((buy / mid - 1.0) * 1e4) if buy and mid else None
+        walk_sell = ((1.0 - sell / mid) * 1e4) if sell and mid else None
         blob = json.dumps({"asks": asks, "bids": bids, "ts": data.get("ts")}, separators=(",", ":")).encode()
         return {
             "provenance": "forward_recorded",
@@ -192,5 +221,10 @@ class BitgetRest:
             "spread_bps": spread_bps,
             "bid_depth": sum(float(level[1]) for level in bids if len(level) > 1),
             "ask_depth": sum(float(level[1]) for level in asks if len(level) > 1),
+            "walk_notional_usd": notional_usd,
+            "walk_complete": walk_buy is not None and walk_sell is not None,
+            "walk_buy_bps": walk_buy,
+            "walk_sell_bps": walk_sell,
+            "walk_round_trip_bps": (walk_buy + walk_sell) if walk_buy is not None and walk_sell is not None else None,
             "payload_sha256": hashlib.sha256(blob).hexdigest(),
         }

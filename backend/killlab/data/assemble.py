@@ -74,6 +74,20 @@ def assemble_snapshot(client: BitgetRest, canonical: dict) -> dict:
             snapshot["funding"].extend(funding.get("rows") or [])
     if snapshot is None:
         raise BitgetError(f"no symbol ({failures} failed)")
+    leader = canonical.get("leader")
+    if canonical.get("family") == "lead_lag" and isinstance(leader, str) and leader.strip():
+        try:
+            pulled = client.history_candles(
+                frozen=True,
+                product=product,
+                symbol=symbol_for(leader, venue or ""),
+                pages=pages,
+                not_before_ms=not_before,
+                not_after_ms=not_after,
+            )
+            snapshot["leader_rows"] = list(pulled.get("rows") or [])
+        except BitgetError:
+            snapshot["leader_rows"] = []
     first = symbol_for(canonical["instruments"][0], venue or "")
     try:
         book = client.ticker(frozen=True, symbol=first)
@@ -82,7 +96,11 @@ def assemble_snapshot(client: BitgetRest, canonical: dict) -> dict:
     if book:
         snapshot["book_observation"] = book
     try:
-        capture = client.forward_book(frozen=True, symbol=first)
+        capture = client.forward_book(
+            frozen=True,
+            symbol=first,
+            notional_usd=float(canonical.get("notional_usd") or 10000),
+        )
     except (BitgetError, IndexError):
         capture = None
     if capture:

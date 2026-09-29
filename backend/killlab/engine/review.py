@@ -118,4 +118,6 @@ def research_fingerprint(spec: dict) -> str:
     }
     if spec.get("session_hour") in (15, "15"):
         body["session_hour"] = 15
+    if spec.get("leader"):
+        body["leader"] = str(spec["leader"])
     return sha256_canonical(body)

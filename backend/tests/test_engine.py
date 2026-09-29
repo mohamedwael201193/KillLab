@@ -457,6 +457,58 @@ def test_pbo_on_a_labeled_fixture_matrix():
         assert banned not in text
 
 
+def test_the_prior_hour_signs_the_cash_open_and_the_leader_is_not_priced_as_the_trade():
+    from datetime import timedelta
+    from killlab.engine.mechanisms import lead_panel
+    from killlab.runner import execute
+
+    day = datetime(2026, 6, 1, tzinfo=ET)
+    traded = []
+    leader = []
+    built = 0
+    while built < 70:
+        if day.weekday() < 5:
+            for hour, price in ((9, 200.0), (10, 202.0)):
+                traded.append([int(day.replace(hour=hour).timestamp() * 1000), price, price, price, price])
+            for hour, price in ((8, 100.0), (9, 101.0)):
+                leader.append([int(day.replace(hour=hour).timestamp() * 1000), price, price, price, price])
+            built += 1
+        day += timedelta(days=1)
+    panel = lead_panel(traded, leader, {"venue": "bitget_perp", "costs": {"perp_taker_bps": 6}})
+    assert panel["mechanism"] == "prior_hour_leads_cash_open"
+    assert len(panel["unit_ids"]) == 70
+    assert panel["variants"]["follow"][0] == pytest.approx(88.0)
+    assert panel["variants"]["fade"][0] == pytest.approx(-112.0)
+    spec = {
+        "family": "lead_lag",
+        "venue": "bitget_perp",
+        "leader": "BTCUSDT",
+        "instruments": ["NVDAUSDT"],
+        "variants": [{"code": "follow"}, {"code": "fade"}],
+        "selection": {"split": "IS"},
+        "costs": {"perp_taker_bps": 6},
+        "baselines": ["buy_and_hold"],
+        "transforms": [],
+        "claims_alpha": False,
+        "event_kind": "none",
+        "grain": "1H",
+        "seed": 1,
+        "risk": {},
+    }
+    card = execute(spec, {"rows": traded, "leader_rows": leader})
+    assert card["mechanism"] == "prior_hour_leads_cash_open"
+    assert card["n_units"]["n"] >= 60
+    assert card["label"] != "UNTESTABLE"
+    assert card["primary_trap"] != "insufficient_units"
+
+
+def test_a_shown_book_that_cannot_fill_the_notional_has_no_walk():
+    from killlab.data.bitget import _walk_vwap
+
+    assert _walk_vwap([[100, 1]], 10000) is None
+    assert _walk_vwap([[100, 200]], 10000) == pytest.approx(100)
+
+
 def _draft():
     return {
         "family": "event_earnings",

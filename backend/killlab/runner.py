@@ -146,6 +146,11 @@ def execute(spec: dict, snapshot: dict, prior_trials: int = 0, related_trials: i
             "bid_depth": capture.get("bid_depth"),
             "ask_depth": capture.get("ask_depth"),
             "depth_imbalance": _depth_imbalance(capture.get("bid_depth"), capture.get("ask_depth")),
+            "walk_notional_usd": capture.get("walk_notional_usd"),
+            "walk_complete": capture.get("walk_complete"),
+            "walk_buy_bps": capture.get("walk_buy_bps"),
+            "walk_sell_bps": capture.get("walk_sell_bps"),
+            "walk_round_trip_bps": capture.get("walk_round_trip_bps"),
             "payload_sha256": capture.get("payload_sha256"),
             "endpoint": capture.get("endpoint"),
         }

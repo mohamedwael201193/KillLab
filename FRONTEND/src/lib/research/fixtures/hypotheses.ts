@@ -42,6 +42,12 @@ export const EXAMPLE_HYPOTHESES: ExampleHypothesis[] = [
     note: "Basis family. One calendar day is the unit.",
   },
   {
+    scenarioKey: "prior-hour-lead",
+    chip: "Prior-hour lead",
+    text: "The BTC hour before the open leads NVDA's first cash hour.",
+    note: "One weekday is the unit. BTC is the signal, not the trade. No result is assumed.",
+  },
+  {
     scenarioKey: "range-rotation",
     chip: "Outside the tape",
     text: "When BTC breaks its 20-day range, rotate into majors' alts perps within 48 hours.",

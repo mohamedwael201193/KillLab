@@ -25,7 +25,8 @@ export type ScenarioKey =
   | "session-open"
   | "cash-close"
   | "weekend-choice"
-  | "basis-fade";
+  | "basis-fade"
+  | "prior-hour-lead";
 
 /* ------------------------------------------------------------------ */
 /* Specification (pre-freeze)                                          */

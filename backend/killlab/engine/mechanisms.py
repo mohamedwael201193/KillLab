@@ -231,6 +231,43 @@ def basis_panel(perp_rows: list, spot_rows: list, spec: dict) -> dict:
     return _panel(ids, {"fade": fade}, [0.0] * len(ids), "daily_basis_fade_versus_cash")
 
 
+def lead_panel(traded_rows: list, leader_rows: list, spec: dict) -> dict:
+    """The hour before the cash open signs the open hour. One weekday is one decision.
+
+    The leader is not traded. A missing bar, a weekend, or a flat leader hour is not a unit.
+    """
+    cost = trade_cost_bps(spec)
+    traded: dict = {}
+    leader: dict = {}
+    for stamp, close in _bars(traded_rows):
+        local = _local(stamp)
+        traded[(local.date(), local.hour)] = (stamp, close)
+    for stamp, close in _bars(leader_rows):
+        local = _local(stamp)
+        leader[(local.date(), local.hour)] = close
+    ids: list[str] = []
+    follow: list[float] = []
+    fade: list[float] = []
+    for day, hour in sorted(traded):
+        if hour != 9 or day.weekday() >= 5:
+            continue
+        opened = traded.get((day, 9))
+        nxt = traded.get((day, 10))
+        before = leader.get((day, 8))
+        at_open = leader.get((day, 9))
+        if opened is None or nxt is None or not before or not at_open or not opened[1] or not nxt[1]:
+            continue
+        signal = at_open / before - 1.0
+        if signal == 0:
+            continue
+        gross = (nxt[1] / opened[1] - 1.0) * 1e4
+        sign = 1.0 if signal > 0 else -1.0
+        ids.append(str(opened[0]))
+        follow.append(sign * gross - cost)
+        fade.append(-sign * gross - cost)
+    return _panel(ids, {"follow": follow, "fade": fade}, [0.0] * len(ids), "prior_hour_leads_cash_open")
+
+
 def build_panel(spec: dict, snapshot: dict) -> dict:
     if not spec.get("costs"):
         return _panel([], {}, [], "missing_cost")
@@ -245,6 +282,8 @@ def build_panel(spec: dict, snapshot: dict) -> dict:
         return session_panel(snapshot.get("rows") or [], spec)
     if family == "basis_convergence":
         return basis_panel(snapshot.get("rows") or [], snapshot.get("spot_rows") or [], spec)
+    if family == "lead_lag":
+        return lead_panel(snapshot.get("rows") or [], snapshot.get("leader_rows") or [], spec)
     return _panel([], {}, [], "unsupported")
 
 

@@ -544,6 +544,39 @@ def test_perp_versus_spot_is_the_basis_family():
     assert family_from_text("Does the NVDA perp versus spot premium fade?", "carry_basis") == "basis_convergence"
 
 
+def test_a_named_lead_is_not_a_session_question():
+    from killlab.ai.compile import normalize_draft
+    from killlab.engine.review import research_fingerprint
+
+    lead = normalize_draft("The BTC hour before the open leads NVDA's first cash hour.", {"family": "session_timing"})
+    assert lead["family"] == "lead_lag"
+    assert lead["leader"] == "BTCUSDT"
+    assert lead["instruments"] == ["NVDAUSDT"]
+    assert [item["code"] for item in lead["variants"]] == ["follow", "fade"]
+    opened = normalize_draft("Trade NVDA in the first hour of the cash session", {"family": "unsupported"})
+    assert research_fingerprint(lead) != research_fingerprint(opened)
+
+
+def test_an_incomplete_book_walk_stops_an_execution_claim():
+    from killlab.runner import execute
+
+    spec = {
+        "family": "execution_venue_time",
+        "venue": "bitget_perp",
+        "variants": [{"code": "NOW"}, {"code": "WAIT"}],
+        "selection": {"split": "IS"},
+        "costs": {"perp_taker_bps": 6},
+        "baselines": ["buy_and_hold"],
+        "transforms": [],
+        "claims_alpha": False,
+        "event_kind": "none",
+        "grain": "1H",
+        "risk": {"sigma_span": "until_sunday_switch", "horizon_span": "until_sunday_switch", "alternatives": ["NOW", "WAIT"], "lambda_grid": [0.5], "book_max_spread_bps": 50},
+    }
+    book = {"historical": False, "provenance": "forward_recorded", "spread_bps": 1, "bid_depth": 10, "ask_depth": 10, "walk_complete": False, "walk_notional_usd": 10000}
+    assert execute(spec, {"rows": [], "book_capture": book})["primary_trap"] == "book_unusable"
+
+
 def test_forward_depth_imbalance_is_not_a_return():
     from killlab.runner import _depth_imbalance
 

@@ -17,7 +17,7 @@ from killlab.ai.boundary import FORBIDDEN_KEYS, enforce_kill_floor, reject_forbi
 
 SYSTEM = (
     "You compile a trading hypothesis into one JSON object and nothing else. "
-    "Allowed families: session_timing, event_earnings, carry_basis, basis_convergence, execution_venue_time. "
+    "Allowed families: session_timing, event_earnings, carry_basis, basis_convergence, execution_venue_time, lead_lag. "
     "If the idea is none of those, use family unsupported. "
     "Do not include sharpe, dsr, pbo, bps, pnl, n, verdict, or avoided_loss_bps. "
     "selection.split must be IS. claims_alpha must be false unless the text explicitly claims alpha. "
@@ -79,11 +79,13 @@ def _extract_json(text: str) -> dict:
 
 
 _NAMES = ("NVDA", "TSLA", "AAPL", "MSFT", "AMZN", "META", "GOOGL", "COIN", "MSTR", "SPY", "QQQ", "BTC", "ETH")
-_FAMILIES = {"session_timing", "event_earnings", "carry_basis", "basis_convergence", "execution_venue_time", "unsupported"}
+_FAMILIES = {"session_timing", "event_earnings", "carry_basis", "basis_convergence", "execution_venue_time", "lead_lag", "unsupported"}
 
 
 def family_from_text(raw_text: str, proposed_family: str | None) -> str:
     """Unambiguous mechanism words outrank a model guess."""
+    if re.search(r"\bleads?\b|\blags?\b", raw_text, re.I):
+        return "lead_lag"
     if re.search(r"weekend|stockroute", raw_text, re.I):
         return "execution_venue_time"
     if re.search(r"earn|after[- ]hours", raw_text, re.I):
@@ -116,6 +118,7 @@ def normalize_draft(raw_text: str, proposed: dict) -> dict:
         "carry_basis": [{"code": "receive"}],
         "basis_convergence": [{"code": "fade"}],
         "execution_venue_time": [{"code": "NOW"}, {"code": "WAIT"}],
+        "lead_lag": [{"code": "follow"}, {"code": "fade"}],
     }.get(family, [{"code": "none"}])
     from killlab.engine.costs import COST_SCHEDULE
     draft = {
@@ -139,6 +142,12 @@ def normalize_draft(raw_text: str, proposed: dict) -> dict:
     }
     if family == "session_timing" and _cash_close(raw_text) and not _cash_open(raw_text):
         draft["session_hour"] = 15
+    if family == "lead_lag":
+        upper = raw_text.upper()
+        coins = [name for name in ("BTC", "ETH") if name in upper]
+        equities = [name for name in _NAMES if name not in {"BTC", "ETH"} and name in upper]
+        draft["leader"] = f"{(coins or ['BTC'])[0]}USDT"
+        draft["instruments"] = [f"{(equities or ['NVDA'])[0]}USDT"]
     reject_forbidden(draft)
     return enforce_kill_floor(draft)
 

@@ -8,6 +8,7 @@ FAMILY_MIN_UNITS = {
     "carry_basis": 60,
     "execution_venue_time": 8,
     "basis_convergence": 60,
+    "lead_lag": 60,
     "unsupported": 10**9,
 }
 
@@ -126,6 +127,11 @@ def trap_forward_book(family: str, capture, bound: float) -> list[dict]:
         return [_finding("book_unusable", "invalidate", {"reason": "empty_side", "bid_depth": bid, "ask_depth": ask})]
     if spread > bound:
         return [_finding("book_unusable", "invalidate", {"reason": "spread", "spread_bps": spread, "bound_bps": bound})]
+    if "walk_complete" in capture and capture.get("walk_complete") is not True:
+        return [_finding("book_unusable", "invalidate", {"reason": "incomplete_walk", "notional_usd": capture.get("walk_notional_usd")})]
+    walk = capture.get("walk_round_trip_bps")
+    if isinstance(walk, (int, float)) and not isinstance(walk, bool) and walk > bound:
+        return [_finding("book_unusable", "invalidate", {"reason": "walk", "walk_round_trip_bps": walk, "bound_bps": bound})]
     return []
 
 

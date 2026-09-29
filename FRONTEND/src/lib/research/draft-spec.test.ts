@@ -27,6 +27,12 @@ assert.equal(weekend.risk.book_max_spread_bps, 50);
 const outside = draftSpec("When BTC breaks its 20-day range, rotate into majors' alts perps within 48 hours.");
 assert.equal(outside.family, "unsupported");
 
+const lead = draftSpec("The BTC hour before the open leads NVDA's first cash hour.");
+assert.equal(lead.family, "lead_lag");
+assert.equal(lead.leader, "BTCUSDT");
+assert.deepEqual(lead.instruments, ["NVDAUSDT"]);
+assert.deepEqual(lead.variants.map((item) => item.code), ["follow", "fade"]);
+
 const kept = mergeCompiledDraft(close, { family: "session_timing", instruments: ["NVDAUSDT"], session_hour: 15 }, closeText(close));
 assert.equal(kept.session_hour, 15);
 

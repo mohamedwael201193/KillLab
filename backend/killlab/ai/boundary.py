@@ -29,6 +29,7 @@ class TestSpecDraft(BaseModel):
     event_kind: str = "none"
     claims_alpha: bool = True
     session_hour: int | None = None
+    leader: str | None = None
     claimed_start: str | None = None
 
 

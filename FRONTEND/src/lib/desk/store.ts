@@ -385,7 +385,7 @@ export function useActiveScenario() {
   return useDesk((s) => s.liveScenario);
 }
 
-function familyDetail(family: string, sessionHour: number | undefined): string {
+function familyDetail(family: string, sessionHour: number | undefined, leader?: string): string {
   if (family === "session_timing" && sessionHour === 15) {
     return "Cash close. Hour 15 Eastern versus the other cash hours that day. Data stays unloaded until freeze.";
   }
@@ -396,6 +396,7 @@ function familyDetail(family: string, sessionHour: number | undefined): string {
   if (family === "carry_basis") return "One continuous funding hold versus cash. Data stays unloaded until freeze.";
   if (family === "basis_convergence") return "One calendar day of perp-versus-spot basis fade. Data stays unloaded until freeze.";
   if (family === "execution_venue_time") return "Weekend now versus wait, marked to the same exit. Data stays unloaded until freeze.";
+  if (family === "lead_lag") return `The hour before the cash open signs that open hour. ${leader || "The leader"} is not traded. Data stays unloaded until freeze.`;
   return "This wording is outside the scored families. Data stays unloaded until freeze.";
 }
 
@@ -406,7 +407,7 @@ function scenarioFrom(text: string, spec: ReturnType<typeof draftSpec>, hash: st
     scenarioKey: "earnings-momentum" as const,
     hypothesisText: text,
     family: spec.family,
-    familyDetail: familyDetail(spec.family, spec.session_hour),
+    familyDetail: familyDetail(spec.family, spec.session_hour, spec.leader),
     instruments: spec.instruments.map((symbol) => ({
       symbol,
       kind: symbol.toUpperCase().startsWith("R") ? ("spot" as const) : ("perp" as const),
