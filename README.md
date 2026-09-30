@@ -328,7 +328,7 @@ After the commands above, repeat steps 2 through 7 on `http://127.0.0.1:3000`. L
 | Check | Current evidence |
 | --- | --- |
 | Python tests | 102 collected. 1 is marked `live`. 5 in `test_api.py` need Postgres and a post-freeze Bitget pull |
-| CI | `.github/workflows/ci.yml` runs `pytest -m "not live" --ignore=tests/test_api.py` (96 passed locally on 2026-09-30), then `tsc` and `npm run build` |
+| CI | `.github/workflows/ci.yml` on Node 24 runs `pytest -m "not live" --ignore=tests/test_api.py` (96 passed locally on 2026-09-30), then `npm ci`, `tsc`, and `npm run build` |
 | Frontend scripts | 3 assertion files under `FRONTEND/src` |
 | Typecheck and build | `npx tsc --noEmit`, `npm run build` |
 | Oracle | `test_oracle.py` plus `docs/calibration/verdict_curve.json` |
