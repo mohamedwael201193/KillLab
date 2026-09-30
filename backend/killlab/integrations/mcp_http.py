@@ -7,6 +7,7 @@ No account key is sent.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import threading
 import time
@@ -143,9 +144,8 @@ def _once(url: str, name: str, arguments: dict, timeout: float, send: Send, clos
         )
         _raise_for_status(status, body)
         session = headers.get("mcp-session-id")
-        if not session:
-            raise McpError("initialize returned no session", kind="session_error")
-        send(url, {"jsonrpc": "2.0", "method": "notifications/initialized"}, session, timeout)
+        if session:
+            send(url, {"jsonrpc": "2.0", "method": "notifications/initialized"}, session, timeout)
         status, _, body = send(
             url,
             {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": name, "arguments": arguments}},
@@ -159,12 +159,15 @@ def _once(url: str, name: str, arguments: dict, timeout: float, send: Send, clos
             raise McpError("malformed response", kind="malformed_response") from exc
         if payload.get("error"):
             raise McpError(str(payload["error"])[:180], kind="tool_error")
-        content = (payload.get("result") or {}).get("content") or []
+        result_obj = payload.get("result") or {}
+        content = result_obj.get("content") or []
         if not isinstance(content, list):
             raise McpError("malformed response", kind="malformed_response")
         if not content:
             raise McpError("empty result", kind="empty_result")
         text = content[0].get("text", "") if isinstance(content[0], dict) else ""
+        if result_obj.get("isError") is True:
+            raise McpError((text or "tool error")[:180], kind="tool_error")
         if not isinstance(text, str) or not text.strip():
             raise McpError("empty result", kind="empty_result")
         try:
@@ -175,7 +178,8 @@ def _once(url: str, name: str, arguments: dict, timeout: float, send: Send, clos
             raise McpError(f"upstream unavailable: {str(data.get('error') or '')[:120]}", kind="tool_error")
         if not isinstance(data, (dict, list)):
             raise McpError("malformed response", kind="malformed_response")
-        return {"data": data}
+        digest = hashlib.sha256(text[:2048].encode("utf-8", errors="replace")).hexdigest()
+        return {"data": data, "reply_sha256": digest}
     finally:
         if session and close is not None:
             close(url, session)

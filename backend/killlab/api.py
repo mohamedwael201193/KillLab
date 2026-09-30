@@ -32,6 +32,7 @@ from killlab.guard import fixtures_loaded
 from killlab.hashutil import sha256_canonical
 from killlab.logjson import log_event
 from killlab.ratelimit import allow, client_key
+from killlab.receipt import build_receipt, forward_public, tried_row
 from killlab.recover import interrupted_if_stale
 from killlab.models import (
     ENGINE_VERSION,
@@ -545,6 +546,62 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def ledger(hypothesis_id: str, session: Session = Depends(db), _: None = Depends(auth)):
         rows = session.scalars(select(LedgerEntry).where(LedgerEntry.hypothesis_id == uuid.UUID(hypothesis_id)).order_by(LedgerEntry.created_at)).all()
         return {"entries": [{"id": str(r.id), "stage": r.stage, "body": r.body, "created_at": r.created_at.isoformat() if r.created_at else None, "test_run_id": str(r.test_run_id) if r.test_run_id else None} for r in rows]}
+
+    @app.get("/v1/runs/{run_id}/receipt")
+    def receipt(run_id: str, session: Session = Depends(db), _: None = Depends(auth)):
+        row = session.get(TestRun, uuid.UUID(run_id))
+        if row is None or row.result_json is None:
+            raise _error(409, "not_ready")
+        ledgers = session.scalars(select(LedgerEntry).where(LedgerEntry.test_run_id == row.id).order_by(LedgerEntry.created_at)).all()
+        return build_receipt(row.result_json, [{"id": str(item.id), "stage": item.stage} for item in ledgers])
+
+    @app.get("/v1/runs/{run_id}/tried")
+    def tried(run_id: str, session: Session = Depends(db), _: None = Depends(auth)):
+        row = session.get(TestRun, uuid.UUID(run_id))
+        if row is None or row.result_json is None:
+            raise _error(409, "not_ready")
+        card = row.result_json or {}
+        fingerprint = card.get("fingerprint")
+        current = session.scalar(select(TestSpec).where(TestSpec.content_sha256 == row.spec_sha256))
+        found = []
+        previous_runs = session.scalars(
+            select(TestRun).where(TestRun.result_json.is_not(None), TestRun.id != row.id).order_by(TestRun.created_at.desc()).limit(200)
+        ).all()
+        for previous in previous_runs:
+            prev = previous.result_json or {}
+            relation = None
+            if fingerprint and prev.get("fingerprint") == fingerprint:
+                relation = "exact"
+            elif current is not None and previous.spec_sha256:
+                prev_spec = session.scalar(select(TestSpec).where(TestSpec.content_sha256 == previous.spec_sha256))
+                if prev_spec is not None and is_related_research(current.canonical_json, prev_spec.canonical_json):
+                    relation = "related"
+            if relation is None:
+                continue
+            found.append(
+                tried_row(
+                    str(previous.id),
+                    previous.created_at.isoformat() if previous.created_at else None,
+                    prev,
+                    previous.spec_sha256,
+                    relation,
+                )
+            )
+            if len(found) >= 12:
+                break
+        return {"runs": found}
+
+    @app.get("/v1/forward/recent")
+    def forward_recent(session: Session = Depends(db), _: None = Depends(auth)):
+        rows = session.scalars(
+            select(LedgerEntry).where(LedgerEntry.stage.in_(["AUTO_RUN", "FORWARD_CHECK"])).order_by(LedgerEntry.created_at.desc()).limit(20)
+        ).all()
+        return {
+            "entries": [
+                forward_public(item.stage, item.created_at.isoformat() if item.created_at else None, item.body or {})
+                for item in rows
+            ]
+        }
 
     @app.post("/v1/ledger/{entry_id}/next")
     def propose_next(entry_id: str, session: Session = Depends(db), _: None = Depends(auth)):

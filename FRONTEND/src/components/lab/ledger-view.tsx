@@ -3,6 +3,7 @@
 import * as React from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useDesk } from "@/lib/desk/store";
+import { killlab } from "@/lib/research/live";
 import { MonoChip, Mono, VERDICT_TONE } from "@/components/kl/atoms";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,20 @@ export function LedgerView() {
   const ledger = useDesk((s) => s.ledger);
   const advanceLedger = useDesk((s) => s.advanceLedger);
   const reduce = useReducedMotion();
+  const [forward, setForward] = React.useState<{ stage: string; window?: string; label?: string; n_units?: number; units_short?: number; created_at?: string; automatic?: boolean }[]>([]);
+  React.useEffect(() => {
+    let cancelled = false;
+    killlab("GET", "/v1/forward/recent")
+      .then((data) => {
+        if (!cancelled) setForward(data.entries || []);
+      })
+      .catch(() => {
+        if (!cancelled) setForward([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -65,6 +80,17 @@ export function LedgerView() {
       </div>
 
       {/* Entries */}
+      {forward.length > 0 ? (
+        <ul className="mt-6 space-y-2 rounded-xl border border-hairline bg-panel/40 px-5 py-4">
+          {forward.map((entry, index) => (
+            <li key={`${entry.stage}-${entry.created_at}-${index}`} className="font-mono text-[12px] text-foreground/80">
+              {entry.stage} · {entry.automatic ? "automatic, same hash" : "manual"} · {entry.label || entry.window || "—"} · {entry.n_units ?? "—"} units
+              {entry.units_short !== undefined && entry.units_short !== null ? ` · short ${entry.units_short}` : ""} · {entry.created_at || "unknown"}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
       <div className="relative mt-10">
         {/* spine */}
         <div aria-hidden="true" className="absolute bottom-4 left-[13px] top-4 w-px bg-hairline" />

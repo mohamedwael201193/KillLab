@@ -8,6 +8,7 @@ import { Mono } from "@/components/kl/atoms";
 import { EquityChart, BootstrapChart, FoldChart } from "@/components/lab/charts";
 import { Button } from "@/components/ui/button";
 import { presentVerdict } from "@/lib/research/present-verdict";
+import { killlab } from "@/lib/research/live";
 import {
   AssistantCard,
   DeskSection,
@@ -35,6 +36,50 @@ export function VerdictView() {
   const [buyPx, setBuyPx] = React.useState("");
   const [sellPx, setSellPx] = React.useState("");
   const reduce = useReducedMotion();
+  const runId = useDesk((s) => s.runId);
+  const [tried, setTried] = React.useState<{ relation: string; label?: string; primary_trap?: string; n_units?: number; created_at?: string }[]>([]);
+  const [forwardNote, setForwardNote] = React.useState<string>("");
+
+  React.useEffect(() => {
+    if (!runId) return;
+    let cancelled = false;
+    killlab("GET", `/v1/runs/${runId}/tried`)
+      .then((data) => {
+        if (!cancelled) setTried(data.runs || []);
+      })
+      .catch(() => {
+        if (!cancelled) setTried([]);
+      });
+    killlab("GET", "/v1/forward/recent")
+      .then((data) => {
+        if (cancelled) return;
+        const entries = data.entries || [];
+        const auto = entries.find((entry: { stage?: string }) => entry.stage === "AUTO_RUN");
+        const check = entries.find((entry: { stage?: string }) => entry.stage === "FORWARD_CHECK");
+        const parts: string[] = [];
+        if (auto) parts.push(`Automatic re-run ${auto.label || ""} ${auto.created_at || ""}`.trim());
+        if (check) parts.push(`Forward check ${check.window || ""} ${check.n_units ?? "—"} units, still short ${check.units_short ?? ""}`.trim());
+        setForwardNote(parts.join(" · "));
+      })
+      .catch(() => {
+        if (!cancelled) setForwardNote("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [runId]);
+
+  async function downloadReceipt() {
+    if (!runId) return;
+    const receipt = await killlab("GET", `/v1/runs/${runId}/receipt`);
+    const blob = new Blob([JSON.stringify(receipt, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `killlab-receipt-${runId}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   if (!scenario || !report) return null;
   const view = presentVerdict(report);
@@ -149,6 +194,26 @@ export function VerdictView() {
 
       <DeskSection title="Next" delay={0.36}>
         <NextTestCard question={nextQuestion} onLedger={() => setTab("ledger")} />
+        <section className="rounded-2xl border border-hairline bg-panel/50 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-base font-medium text-foreground">Already tried</h3>
+            <button type="button" onClick={() => void downloadReceipt()} className="font-mono text-[11px] uppercase tracking-[0.14em] text-ice">
+              Download receipt
+            </button>
+          </div>
+          {tried.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">No earlier run shares this fingerprint.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {tried.map((item) => (
+                <li key={`${item.created_at}-${item.label}`} className="font-mono text-[12px] text-foreground/80">
+                  {item.relation} · {item.label || "—"} · {item.primary_trap || "no trap"} · {item.n_units ?? "—"} units · {item.created_at || "unknown"}
+                </li>
+              ))}
+            </ul>
+          )}
+          {forwardNote ? <p className="mt-3 text-sm text-muted-foreground">{forwardNote}</p> : null}
+        </section>
       </DeskSection>
 
       <DeskSection title="Fills" delay={0.4}>

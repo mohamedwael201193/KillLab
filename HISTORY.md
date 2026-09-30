@@ -559,6 +559,26 @@ This file is append-only.
 - Not in this entry: receipt export, fingerprint history, forward-sweep status on the desk, MCP `isError` handling, and any new scored family. Those follow in later commits.
 - Next: commit this group, deploy, then one Chrome path on a real verdict and the ledger.
 
+## 2026-09-30 Production proof of the truth surface
+
+- Commit `c700720` is on `main`. Vercel deployments for that commit were `READY`. Render service `killlab-api` deploy for `c700720` was `live`. Engine version was not bumped.
+- Chrome on `https://killlab.vercel.app/?v=c700720`, existing tab. Landing copy says the engine uses its registered detectors. The evolution rail shows REVIEW, not a TEST stage. Resource hosts on the desk were only `killlab.vercel.app`.
+- Positioning proxy chip compiled to `basis_convergence`, instruments `NVDAUSDT` and `RNVDAUSDT`. Freeze hash `e9d65f4e555fb356c318e1695865f4dbff164162017817e9e5888d3192cbc99b`. Spec `3fd4bcd7-4db7-4e40-be0f-81904cb89a9d`. Hypothesis `db686cb1-9c46-4e10-8447-0e9b08eb5024`.
+- Same-origin `GET /api/killlab/v1/ledger` for that hypothesis returned KNOWN `2026-09-30T02:35:36Z`, UNKNOWN `2026-09-30T02:36:22Z`, RESULT and DECISION `2026-09-30T02:37:13Z`, then a second RESULT and DECISION `2026-09-30T02:37:58Z`. No TEST stage. Timestamps are the server's, not the clock at read time.
+- Same-origin verdict for run `930d4a10-8099-4ba0-8b45-7751ce86ace1`: `KILLED`, trap `contradicted`, 117 units, mechanism `daily_basis_fade_versus_cash`, detectable edge about 8.2 bps, `usable_for_verdict` false.
+- The verdict screen itself was left before it settled, because a later navigation returned the desk to review after the spec was already frozen. The API card is the proof. A second freeze of that spec returns `frozen`.
+- Landing heading still said every test is scanned for all nine cards. That sentence is removed in the following commit.
+
+## 2026-09-30 Evidence endpoints, MCP tool errors, and the C1 decision
+
+- Decision: still engine `killlab-0.13.1`. No new scored family.
+- C1 is NO-GO. The official data MCP positioning history verified earlier on 2026-09-30 is labelled `exchange: binance`, not Bitget tape. `equity_price_historical` returned HTTP 204. A day-level contrarian rule on that series would sit near the floor of 60 after lag and warm-up, on an autocorrelated ratio with a sliding lookback. That does not clear a defensible non-overlapping sample with margin, and it is not a Bitget-native question. The family is not built. Floors are unchanged.
+- Receipt `GET /v1/runs/{id}/receipt` copies only spec hash, snapshot hash, engine, label, trap, fingerprint, mechanism, units, context source and failure classes, and ledger ids. A thesis or token field on the card is not copied. The receipt hash is stable.
+- `GET /v1/runs/{id}/tried` lists up to 12 earlier exact or related runs. `GET /v1/forward/recent` lists AUTO_RUN and FORWARD_CHECK rows, automatic, hash truncated to 16 characters.
+- MCP client: a missing session id no longer aborts the call. `result.isError` is `tool_error`, not data. A raw reply is hashed (first 2048 characters) onto `content_hash` and the text is not returned. News feeds that all carry an error are `feed_error_all`. An empty article list stays `empty_result` and reads "No major developments reported by the source."
+- Checks: `python -m pytest -q tests/test_truth_surface.py` plus the empty-news test, the session-close test, and the tool-error retry test: 10 passed. `npx tsc --noEmit` passed.
+- Next: commit, deploy, then open one receipt and the forward list from the same production run.
+
 
 
 

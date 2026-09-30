@@ -117,9 +117,11 @@ def _one_skill(decision: dict, tool: str, arguments: dict, *, symbol: str | None
     skill = decision["skill"]
     requested = datetime.now(timezone.utc).replace(microsecond=0)
     started = requested.timestamp()
+    reply_sha = None
     try:
         result = call_tool(SIGNAL_URL, tool, arguments, timeout=timeout, send=send)
         payload = result["data"]
+        reply_sha = result.get("reply_sha256") if isinstance(result.get("reply_sha256"), str) else None
         error = None
         kind = classify_skill_result(None, payload, tool)
     except McpError as exc:
@@ -143,13 +145,24 @@ def _one_skill(decision: dict, tool: str, arguments: dict, *, symbol: str | None
     item["skill"] = skill
     item["source_class"] = "official_signal_mcp"
     item["failure_class"] = kind
+    if reply_sha:
+        item["content_hash"] = reply_sha
+        item["payload_hash"] = reply_sha
+    item.pop("excerpt", None)
+    item.pop("raw", None)
     if tool == "rates_yields" and not error and _rates_without_tenors(payload):
         item["summary"] = "The official rates tool returned no tenor levels."
         item["textual_summary"] = item["summary"]
         item["structured_data"] = {}
         item["current_or_historical"] = "unknown"
-    if tool == "news_feed" and not error and _no_articles(payload):
-        item["summary"] = "The official news tool answered with no articles."
+    if tool == "news_feed" and not error and _feeds_all_errored(payload):
+        item["summary"] = "Every named feed returned an error."
+        item["textual_summary"] = item["summary"]
+        item["failure_class"] = "feed_error_all"
+        item["current_or_historical"] = "unknown"
+        item["structured_data"] = {}
+    elif tool == "news_feed" and not error and _no_articles(payload):
+        item["summary"] = "No major developments reported by the source."
         item["textual_summary"] = item["summary"]
         item["current_or_historical"] = "unknown"
         item["structured_data"] = {}
@@ -187,6 +200,18 @@ def _indicator_without_reading(payload: object) -> bool:
     return not any(isinstance(value, (int, float)) and not isinstance(value, bool) for value in payload.values())
 
 
+def _feeds_all_errored(payload: object) -> bool:
+    rows = payload.get("feeds") if isinstance(payload, dict) else payload
+    if not isinstance(rows, list) or not rows:
+        return False
+    for row in rows:
+        if not isinstance(row, dict) or not row.get("error"):
+            return False
+        if row.get("items") or row.get("articles") or row.get("title"):
+            return False
+    return True
+
+
 def _no_articles(payload: object) -> bool:
     rows = payload if isinstance(payload, list) else [payload]
     if not rows:
@@ -212,6 +237,8 @@ def classify_skill_result(error: str | None, payload: object, tool: str) -> str:
         return "transport_error"
     if tool == "rates_yields" and _rates_without_tenors(payload):
         return "empty_result"
+    if tool == "news_feed" and _feeds_all_errored(payload):
+        return "feed_error_all"
     if tool == "news_feed" and _no_articles(payload):
         return "empty_result"
     if isinstance(payload, dict):

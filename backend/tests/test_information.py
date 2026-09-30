@@ -406,7 +406,7 @@ def test_an_empty_news_tool_is_not_described_as_an_article():
     )
     item = context["items"][0]
     assert item["skill"] == "news-briefing"
-    assert item["summary"] == "The official news tool answered with no articles."
+    assert item["summary"] == "No major developments reported by the source."
     assert item["current_or_historical"] == "unknown"
     assert item["source_url"] == "https://datahub.noxiaohao.com/mcp"
 

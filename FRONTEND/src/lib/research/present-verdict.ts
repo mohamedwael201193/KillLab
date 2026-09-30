@@ -56,6 +56,7 @@ const FAILURE_CLASS = new Set([
   "undated_data",
   "stale_data",
   "tool_error",
+  "feed_error_all",
 ]);
 const FRESHNESS = new Set(["current", "historical", "stale", "unknown"]);
 

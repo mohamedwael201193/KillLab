@@ -30,9 +30,9 @@ export function LandingTraps() {
             eyebrow="Failure modes"
             title={
               <>
-                Nine known ways a backtest lies.
+                Published ways a backtest lies.
                 <br />
-                <span className="text-muted-foreground">Every test is scanned for all of them.</span>
+                <span className="text-muted-foreground">The engine names the detectors it actually runs.</span>
               </>
             }
             lead="These cards are published failure modes. The engine names the detectors it actually runs. That registry is pinned by test, and a card here is not itself a detector."
