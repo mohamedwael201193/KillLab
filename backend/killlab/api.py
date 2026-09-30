@@ -593,9 +593,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/v1/forward/recent")
     def forward_recent(session: Session = Depends(db), _: None = Depends(auth)):
-        rows = session.scalars(
-            select(LedgerEntry).where(LedgerEntry.stage.in_(["AUTO_RUN", "FORWARD_CHECK"])).order_by(LedgerEntry.created_at.desc()).limit(20)
-        ).all()
+        def _latest(stage: str, limit: int):
+            return session.scalars(
+                select(LedgerEntry).where(LedgerEntry.stage == stage).order_by(LedgerEntry.created_at.desc()).limit(limit)
+            ).all()
+
+        rows = [*_latest("AUTO_RUN", 5), *_latest("FORWARD_CHECK", 8)]
+        rows.sort(key=lambda item: item.created_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
         return {
             "entries": [
                 forward_public(item.stage, item.created_at.isoformat() if item.created_at else None, item.body or {})

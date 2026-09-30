@@ -579,6 +579,12 @@ This file is append-only.
 - Checks: `python -m pytest -q tests/test_truth_surface.py` plus the empty-news test, the session-close test, and the tool-error retry test: 10 passed. `npx tsc --noEmit` passed.
 - Next: commit, deploy, then open one receipt and the forward list from the same production run.
 
+## 2026-09-30 Receipt proof, and the automatic run was crowded out
+
+- Render for `6f815a3` went `live`. Chrome, same origin, run `930d4a10-8099-4ba0-8b45-7751ce86ace1`: receipt HTTP 200, label `KILLED`, trap `contradicted`, receipt hash prefix `5d7d2f2b53f2`. Context classes stayed distinct: `official_signal_mcp/empty_result`, `authoritative_fallback/valid_data`, `bitget_public_rest/valid_data`. The body did not contain a token. `/tried` returned exact earlier `KILLED` / `contradicted` / 117-unit rows.
+- `/v1/forward/recent` returned 20 `FORWARD_CHECK` rows and zero `AUTO_RUN` rows. The 2026-09-29 automatic run was outside that window. The route now keeps the latest automatic runs separate from the latest forward checks, so one does not erase the other.
+- C1 remains NO-GO. Engine version remains `killlab-0.13.1`.
+
 
 
 
