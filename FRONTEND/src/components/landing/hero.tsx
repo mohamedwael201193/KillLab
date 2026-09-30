@@ -151,7 +151,7 @@ export function LandingHero({ onEnterLab }: { onEnterLab: () => void }) {
             className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4"
           >
             {[
-              ["102", "engine tests"],
+              ["105", "engine tests"],
               ["7", "research families"],
               ["4", "verdict states"],
               ["0.13.1", "engine"],

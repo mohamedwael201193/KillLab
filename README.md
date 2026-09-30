@@ -92,7 +92,9 @@ Confirmed in `killlab-0.13.1`:
 | Baseline | Family baselines are part of the frozen spec. Carry uses Earn USDT and BTC/ETH carry. Other scored families use buy-and-hold |
 | Costs | The server writes the versioned taker schedule. The model does not supply the cost number used in the score |
 | Four verdicts | `KILLED`, `ALIVE`, `INCONCLUSIVE`, `UNTESTABLE` |
-| Provenance | Each context item keeps `source_class` and `failure_class` |
+| Provenance | Each context item keeps `source_class` and `failure_class`. Classes stay `official_signal_mcp`, `official Bitget data MCP`, `bitget_public_rest`, or `authoritative_fallback` |
+| Source packs | Existing families name the lanes. The pack is attached after `decide()`. `usable_for_verdict` stays false |
+| Research constitution | Posture, horizon, universe, and topics to avoid are stored on the hypothesis ledger. The snapshot is not part of the research fingerprint |
 | Forward checks | A daily sweep can write `FORWARD_CHECK` on the same hash. `AUTO_RUN` is written when a previously short spec later reaches its floor. Neither edits the freeze |
 | Receipt | `GET /v1/runs/{id}/receipt` copies hashes, engine version, label, trap, units, source classes, and ledger ids. It does not copy the thesis or a raw reply |
 
@@ -156,6 +158,8 @@ Desk run on 2026-09-30, engine `killlab-0.13.1`. These figures are the engine ca
 | Engine on the receipt | `killlab-0.13.1` |
 
 Context on that card did not change the verdict. Official news was `official_signal_mcp` / `empty_result`. A CoinDesk RSS row was `authoritative_fallback` / `valid_data`. The order book was forward-recorded, not a historical book.
+
+A later basis run, `d18e4734-e651-4418-9ec7-582b3688fd12`, is also `KILLED` / `contradicted` / 117 units. Its context lanes were the frozen candle pull, the forward book, open interest (`bitget_public_rest`), technical analysis (`official_signal_mcp`), and the NVDA quote (`official Bitget data MCP`). All five were `valid_data`. The long/short lane returned nothing on that run and was left empty. Switching the research posture from exploratory to conservative changed the suggested next test on screen. The stored label, Deflated Sharpe, interval, and unit count did not change. The earlier run `3bb70f91-4ccd-404e-9629-a477ac236a7c` stayed `KILLED`.
 
 The same freeze hash was used by earlier runs that also returned `KILLED` / `contradicted` / 117 units. Same spec, new snapshot, same label. That is reproducibility of the frozen question, not a promise about a different question.
 
@@ -284,7 +288,7 @@ Offline tests, from `backend`:
 python -m pytest -q -m "not live"
 ```
 
-`python -m pytest -q --collect-only` reports **102** tests. One is marked `live` and requests a public NVDA candle. The other **101** do not need network access. Oracle checks live in `backend/tests/test_oracle.py`. The planted session curve is `docs/calibration/verdict_curve.json` for engine `killlab-0.13.1`: `false_alive_on_zero_edge` is false and `false_kill_on_40bps` is false on seeds 11 through 15. That file is a calibration fixture, not a live trading result.
+`python -m pytest -q --collect-only` reports **105** tests. One is marked `live` and requests a public NVDA candle. The other **104** do not need network access. Oracle checks live in `backend/tests/test_oracle.py`. The planted session curve is `docs/calibration/verdict_curve.json` for engine `killlab-0.13.1`: `false_alive_on_zero_edge` is false and `false_kill_on_40bps` is false on seeds 11 through 15. That file is a calibration fixture, not a live trading result.
 
 Frontend checks, from `FRONTEND`:
 
@@ -302,7 +306,7 @@ There are three frontend assertion scripts, not a second pytest suite. This repo
 
 ### Five-minute checklist
 
-1. Open [https://killlab.vercel.app](https://killlab.vercel.app). The hero states the loop and shows 102 engine tests, 7 families, 4 verdicts, and engine 0.13.1.
+1. Open [https://killlab.vercel.app](https://killlab.vercel.app). The hero states the loop and shows 105 engine tests, 7 families, 4 verdicts, and engine 0.13.1.
 2. Choose **Open the desk**. Pick **Positioning proxy** or write your own sentence. Nothing is loaded yet.
 3. **Draft the test**. Review shows the family and instruments. Data is not loaded.
 4. Hold **Freeze**. The hash is shown. The run screen waits on the run endpoint. It does not advance on a timer.
@@ -327,8 +331,8 @@ After the commands above, repeat steps 2 through 7 on `http://127.0.0.1:3000`. L
 
 | Check | Current evidence |
 | --- | --- |
-| Python tests | 102 collected. 1 is marked `live`. 5 in `test_api.py` need Postgres and a post-freeze Bitget pull |
-| CI | `.github/workflows/ci.yml` on Node 24 runs `pytest -m "not live" --ignore=tests/test_api.py` (96 passed locally on 2026-09-30), then `npm ci`, `tsc`, and `npm run build` |
+| Python tests | 105 collected. 1 is marked `live`. 5 in `test_api.py` need Postgres and a post-freeze Bitget pull |
+| CI | `.github/workflows/ci.yml` on Node 24 runs `pytest -m "not live" --ignore=tests/test_api.py`, then `npm ci`, `tsc`, and `npm run build` |
 | Frontend scripts | 3 assertion files under `FRONTEND/src` |
 | Typecheck and build | `npx tsc --noEmit`, `npm run build` |
 | Oracle | `test_oracle.py` plus `docs/calibration/verdict_curve.json` |
@@ -363,7 +367,7 @@ Verified here means that check was run or that production response was read. It 
 
 **What if Qwen is down?** The manual specification path still runs. A temporary language provider, if you configured one, still cannot write DSR, PBO, the interval, or the label.
 
-**Where do the landing numbers come from?** 102 is `pytest --collect-only` on `backend/tests`. Seven families are the scored keys in `FAMILY_MIN_UNITS`. Four verdicts are the labels in `decide()`. `0.13.1` is `ENGINE_VERSION`.
+**Where do the landing numbers come from?** 105 is `pytest --collect-only` on `backend/tests`. Seven families are the scored keys in `FAMILY_MIN_UNITS`. Four verdicts are the labels in `decide()`. `0.13.1` is `ENGINE_VERSION`.
 
 ## License
 

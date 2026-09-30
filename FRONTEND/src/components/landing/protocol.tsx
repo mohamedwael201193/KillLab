@@ -44,7 +44,7 @@ const STEPS = [
   {
     id: "pull",
     label: "Venue data is pulled",
-    text: "Only now does Bitget data enter the room. The engine could not have peeked if it wanted to.",
+    text: "Only now does Bitget data enter the room. After the decision, the family pack can attach candles, the forward book, open interest, official Signal, and the US-stock quote. A fallback stays labeled as a fallback.",
     detail: "Bitget public REST · after freeze",
     side: "engine" as const,
   },
@@ -58,7 +58,7 @@ const STEPS = [
   {
     id: "verdict",
     label: "The verdict",
-    text: "KILLED, ALIVE, INCONCLUSIVE, or UNTESTABLE — assembled from evidence, owned by the engine, never by the AI.",
+    text: "KILLED, ALIVE, INCONCLUSIVE, or UNTESTABLE. A saved research posture can change the next question. It cannot change this label, the interval, or the costs.",
     detail: "KILLED, ALIVE, INCONCLUSIVE, or UNTESTABLE",
     side: "engine" as const,
   },
