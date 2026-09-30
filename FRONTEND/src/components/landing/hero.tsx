@@ -3,7 +3,7 @@
 import * as React from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Logotype } from "@/components/kl/logotype";
-import { Backdrop } from "@/components/kl/backdrop";
+import { HeroField } from "@/components/kl/hero-field";
 import { ResearchMachine } from "@/components/kl/research-machine";
 import { MonoChip, Kbd } from "@/components/kl/atoms";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ export function LandingHero({ onEnterLab }: { onEnterLab: () => void }) {
 
   return (
     <header className="relative overflow-hidden">
-      <Backdrop />
+      <HeroField />
 
       {/* ── Nav ─────────────────────────────────────────── */}
       <nav className="relative z-20 mx-auto flex w-full max-w-6xl items-center justify-between px-6 pt-6 lg:px-8">
@@ -64,7 +64,7 @@ export function LandingHero({ onEnterLab }: { onEnterLab: () => void }) {
             initial={reduce ? false : { opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="kl-display mt-6 text-balance text-[2.6rem] leading-[1.02] text-foreground sm:text-6xl lg:text-[4.2rem]"
+            className="kl-hero-title mt-6 max-w-3xl text-balance text-[2.8rem] text-foreground sm:text-6xl lg:text-[4.55rem]"
           >
             Don&rsquo;t let a convincing
             <br />
