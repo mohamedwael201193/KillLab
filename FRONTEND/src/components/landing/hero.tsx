@@ -22,7 +22,7 @@ export function LandingHero({ onEnterLab }: { onEnterLab: () => void }) {
         <div className="hidden items-center gap-7 font-mono text-[11px] tracking-[0.14em] uppercase text-muted-foreground md:flex">
           {[
             ["Protocol", "#protocol"],
-            ["Nine Traps", "#traps"],
+            ["Detectors", "#traps"],
             ["Verdicts", "#verdicts"],
             ["Ledger", "#evolution"],
           ].map(([label, href]) => (
@@ -57,6 +57,7 @@ export function LandingHero({ onEnterLab }: { onEnterLab: () => void }) {
           >
             <MonoChip tone="ice">AI Trading Desk</MonoChip>
             <MonoChip>Review &amp; Self-Evolution</MonoChip>
+            <MonoChip>Qwen compiles. The engine computes.</MonoChip>
           </motion.div>
 
           <motion.h1
@@ -90,10 +91,8 @@ export function LandingHero({ onEnterLab }: { onEnterLab: () => void }) {
             transition={{ duration: 0.9, delay: 0.22, ease: [0.16, 1, 0.3, 1] }}
             className="mt-6 max-w-xl text-pretty text-[16px] leading-relaxed text-muted-foreground sm:text-[17px]"
           >
-            Write a trading hypothesis in plain language. KillLab turns it into a
-            frozen test specification, runs deterministic research on real venue
-            data, and actively tries to kill the idea with its registered statistical
-            and execution traps — before the market gets its turn.
+            Qwen compiles the hypothesis into a bounded test. You freeze it.
+            The engine decides on real Bitget data.
           </motion.p>
 
           <motion.div
@@ -124,11 +123,51 @@ export function LandingHero({ onEnterLab }: { onEnterLab: () => void }) {
             </Button>
           </motion.div>
 
+          <motion.ol
+            initial={reduce ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.48, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-8 flex flex-wrap items-center gap-x-2 gap-y-2"
+            aria-label="Research loop"
+          >
+            {["Write", "Review", "Freeze", "Run", "Verdict", "Ledger"].map((step, index) => (
+              <li key={step} className="flex items-center gap-2">
+                <span className="rounded-full border border-hairline px-2.5 py-1 font-mono text-[11px] tracking-[0.08em] text-foreground/80">
+                  {step}
+                </span>
+                {index < 5 ? (
+                  <span aria-hidden="true" className="text-muted-foreground/40">
+                    →
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </motion.ol>
+
+          <motion.dl
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.62 }}
+            className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4"
+          >
+            {[
+              ["102", "engine tests"],
+              ["7", "research families"],
+              ["4", "verdict states"],
+              ["0.13.1", "engine"],
+            ].map(([value, label]) => (
+              <div key={label}>
+                <dt className="font-mono text-[15px] text-foreground">{value}</dt>
+                <dd className="text-[12px] text-muted-foreground">{label}</dd>
+              </div>
+            ))}
+          </motion.dl>
+
           <motion.div
             initial={reduce ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.55 }}
-            className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-muted-foreground/80"
+            transition={{ duration: 1, delay: 0.72 }}
+            className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-muted-foreground/80"
           >
             <span className="inline-flex items-center gap-2">
               <Kbd>Enter</Kbd> open the desk

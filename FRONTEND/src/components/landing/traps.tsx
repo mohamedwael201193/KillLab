@@ -8,7 +8,7 @@ import { researchData } from "@/lib/research/data-source";
 import { cn } from "@/lib/utils";
 
 /**
- * THE NINE TRAPS — an interactive constellation.
+ * Published failure modes. These cards are not the detector registry.
  *
  * A 3×3 grid of gate glyphs; hovering/focusing a trap ignites it and
  * streams its evidence into the reading pane on the right. On mobile the

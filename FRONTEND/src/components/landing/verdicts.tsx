@@ -57,7 +57,7 @@ const VERDICT_META = {
     title: "The idea did not survive review.",
     points: [
       ["The floor failed", "Kill-floor criteria were evaluated against out-of-sample, deflated, cost-charged numbers."],
-      ["A trap was caught", "Multiple testing, overfitting, costs, regime — the lie was found and named."],
+      ["The reason is named", "The card shows the primary trap. A kill is not a rating, and it is not a claim about the next window."],
       ["It ends here", "The variant family is retired for this window. Re-testing means a new frozen spec — not a tuned one."],
     ],
     signal: "cut" as const,

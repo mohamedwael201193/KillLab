@@ -23,7 +23,7 @@ const STEPS = [
   {
     id: "draft",
     label: "AI drafts the test spec",
-    text: "The assistant converts belief into structure: instruments, windows, variants, baselines, kill floor.",
+    text: "Qwen turns the sentence into instruments, windows, variants, and a kill floor. It does not compute the verdict.",
     detail: "family · instruments · window · variants · baselines",
     side: "trader" as const,
   },
