@@ -7,7 +7,7 @@ from killlab.hashutil import sha256_canonical
 _CONTEXT_KEYS = ("source_class", "failure_class", "tool_name", "content_hash")
 
 
-def build_receipt(card: dict, ledger: list[dict]) -> dict:
+def build_receipt(card: dict, ledger: list[dict], engine_version: str | None = None) -> dict:
     context = card.get("research_context") if isinstance(card.get("research_context"), dict) else {}
     items = []
     for item in (context.get("items") or [])[:12]:
@@ -17,7 +17,7 @@ def build_receipt(card: dict, ledger: list[dict]) -> dict:
     body = {
         "spec_sha256": card.get("spec_sha256"),
         "snapshot_sha256": card.get("snapshot_sha256"),
-        "engine_version": card.get("engine_version"),
+        "engine_version": engine_version if engine_version is not None else card.get("engine_version"),
         "label": card.get("label"),
         "primary_trap": card.get("primary_trap"),
         "fingerprint": card.get("fingerprint"),

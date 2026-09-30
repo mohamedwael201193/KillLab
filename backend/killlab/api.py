@@ -553,7 +553,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if row is None or row.result_json is None:
             raise _error(409, "not_ready")
         ledgers = session.scalars(select(LedgerEntry).where(LedgerEntry.test_run_id == row.id).order_by(LedgerEntry.created_at)).all()
-        return build_receipt(row.result_json, [{"id": str(item.id), "stage": item.stage} for item in ledgers])
+        return build_receipt(
+            row.result_json,
+            [{"id": str(item.id), "stage": item.stage} for item in ledgers],
+            engine_version=row.engine_version,
+        )
 
     @app.get("/v1/runs/{run_id}/tried")
     def tried(run_id: str, session: Session = Depends(db), _: None = Depends(auth)):

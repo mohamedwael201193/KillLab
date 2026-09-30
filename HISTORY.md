@@ -585,6 +585,14 @@ This file is append-only.
 - `/v1/forward/recent` returned 20 `FORWARD_CHECK` rows and zero `AUTO_RUN` rows. The 2026-09-29 automatic run was outside that window. The route now keeps the latest automatic runs separate from the latest forward checks, so one does not erase the other.
 - C1 remains NO-GO. Engine version remains `killlab-0.13.1`.
 
+## 2026-09-30 Rendered verdict, ledger, and the receipt engine stamp
+
+- Chrome on `https://killlab.vercel.app/?v=bd416ae`, existing tab. Positioning proxy chip, family `basis_convergence`. Run screen said the status comes from the run endpoint. No timed skip. Verdict screen: `KILLED`, primary trap `contradicted`, 117 of 60, detectable edge 8.196 bps, context changes the verdict: no, engine `killlab-0.13.1`. Run `3bb70f91-4ccd-404e-9629-a477ac236a7c`. Freeze hash prefix `e9d65f4e555fb356`. News `official_signal_mcp` / `empty_result`: "No major developments reported by the source." CoinDesk RSS `authoritative_fallback` / `valid_data`. Already tried listed earlier exact `KILLED` rows. Automatic re-run `INCONCLUSIVE` `2026-09-29T19:08:47Z`. Forward check `2026-09-30`, 20 units, short 80. Resource hosts were only `killlab.vercel.app`. No token on the page.
+- Ledger tab: mark time `2026-09-30 · 02:52Z`. Arc is KNOWN, UNKNOWN, RESULT, DECISION. No TEST stage. Forward list on that tab includes `FORWARD_CHECK` and both `AUTO_RUN` rows (`INCONCLUSIVE` and `KILLED`).
+- Receipt for that run returned `engine_version` null because the field lives on the run row, not inside `result_json`. The receipt now takes `row.engine_version`. The card still supplies it when a caller passes only the card.
+- Checks: `python -m pytest -q tests/test_truth_surface.py` → 7 passed. Engine version stays `killlab-0.13.1`. C1 stays NO-GO.
+- Next: deploy this stamp, then read the same receipt again and confirm the engine string.
+
 
 
 

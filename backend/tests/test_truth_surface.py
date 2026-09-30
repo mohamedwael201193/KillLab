@@ -54,6 +54,9 @@ def test_receipt_is_stable_and_drops_unlisted_fields():
     assert "do not copy" not in blob
     assert "raw reply" not in blob
     assert first["context_items"][0]["source_class"] == "official_signal_mcp"
+    bare = {"spec_sha256": "abc", "label": "KILLED", "primary_trap": "contradicted"}
+    stamped = build_receipt(bare, [], engine_version="killlab-0.13.1")
+    assert stamped["engine_version"] == "killlab-0.13.1"
 
 
 def test_forward_row_is_automatic_and_short():
