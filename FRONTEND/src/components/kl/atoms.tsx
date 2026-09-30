@@ -175,9 +175,9 @@ export const VERDICT_TONE: Record<Verdict, { text: string; border: string; bg: s
     label: "The idea survived review — so far.",
   },
   INCONCLUSIVE: {
-    text: "text-verdict-untestable",
-    border: "border-verdict-untestable/25",
-    bg: "bg-verdict-untestable/8",
+    text: "text-verdict-inconclusive",
+    border: "border-verdict-inconclusive/30",
+    bg: "bg-verdict-inconclusive/10",
     label: "The evidence does not decide the idea.",
   },
   UNTESTABLE: {

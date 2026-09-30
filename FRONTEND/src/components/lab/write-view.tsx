@@ -49,7 +49,7 @@ export function WriteView() {
       >
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="kl-display text-2xl text-foreground sm:text-[1.7rem]">
+            <h1 className="kl-verdict-word text-4xl text-foreground sm:text-5xl">
               What do you want to test?
             </h1>
             <p className="mt-1.5 text-[14px] leading-relaxed text-muted-foreground">

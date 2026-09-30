@@ -133,6 +133,13 @@
     font-weight: 500;
   }
 
+  .kl-verdict-word {
+    font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.045em;
+    line-height: 0.92;
+  }
+
   /* Fine hairline with gradient fade at the edges */
   .kl-hairline {
     background-image: linear-gradient(
