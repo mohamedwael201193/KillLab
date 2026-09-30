@@ -29,5 +29,10 @@ backend/.data/
 docs/evidence/_*.py
 fronted/
 FRONTEND/db/
-*.egg-info/
+*.egg-info
+
+# Public GitHub tracks only the root README among Markdown files.
+# Local planning, history, and notes stay on disk.
+*.md
+!/README.md/
 
