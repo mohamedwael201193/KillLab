@@ -47,7 +47,7 @@ export function LandingHero({ onEnterLab }: { onEnterLab: () => void }) {
       </nav>
 
       {/* ── Hero ────────────────────────────────────────── */}
-      <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-14 px-6 pb-20 pt-16 sm:pt-24 lg:grid-cols-[1.02fr_0.98fr] lg:gap-8 lg:px-8 lg:pb-28 lg:pt-20">
+      <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-10 px-6 pb-12 pt-10 sm:pt-12 lg:grid-cols-[1.02fr_0.98fr] lg:gap-8 lg:px-8 lg:pb-16 lg:pt-12">
         <div>
           <motion.div
             initial={reduce ? false : { opacity: 0, y: 16 }}
@@ -99,7 +99,7 @@ export function LandingHero({ onEnterLab }: { onEnterLab: () => void }) {
             initial={reduce ? false : { opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.34, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-9 flex flex-wrap items-center gap-3"
+            className="mt-6 flex flex-wrap items-center gap-3"
           >
             <Button
               onClick={onEnterLab}
@@ -127,7 +127,7 @@ export function LandingHero({ onEnterLab }: { onEnterLab: () => void }) {
             initial={reduce ? false : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.48, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-8 flex flex-wrap items-center gap-x-2 gap-y-2"
+            className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-2"
             aria-label="Research loop"
           >
             {["Write", "Review", "Freeze", "Run", "Verdict", "Ledger"].map((step, index) => (
@@ -148,7 +148,7 @@ export function LandingHero({ onEnterLab }: { onEnterLab: () => void }) {
             initial={reduce ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.62 }}
-            className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4"
+            className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4"
           >
             {[
               ["102", "engine tests"],
