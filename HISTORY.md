@@ -521,6 +521,13 @@ This file is append-only.
 - Official `rates_yields` `empty_result`. NY Fed latest SOFR 3.9 `authoritative_fallback` `current`. SOFR last-90 `historical` n 90, 2026-05-20 to 2026-09-28, min 3.5 max 3.9. Treasury par-yield `historical` n_days 187, n_inverted 0, spread 0.20 to 0.74. Official US-stock `do_query` NVDA `last_price` 228.0182. Official technical rsi/macd/atr undated. Book forward-recorded, spread 0.438 bps, $10,000 walk 4.535 bps, not a past book.
 - Fed backdrop and crowd positioning were not re-run on this URL. The inversion path is the new scored family, and it did not silently use unfiltered session hours.
 
+## 2026-09-30 Chrome Fed backdrop and crowd on 0.13.1
+
+- Same desk `https://killlab.vercel.app/?v=57121c4`. Isolated Chrome tab. Engine `killlab-0.13.1`. Browser calls stayed on `/api/killlab`.
+- Fed backdrop: compiled `session_timing`, data unloaded. Freeze hash `2777a04c3c51d2db6166627ee2dd5a372f645e27b3209ef650151cdd5325082b`. Run `fa7fa80f-6d82-4090-adbf-d70df071d781`, hypothesis `3893739b-d50f-44f4-a287-3d011a6284b9`, spec `644799bd-3836-4438-95d9-58925e7dae91`: `INCONCLUSIVE`, 87 units, mechanism `ny_open_hour_vs_other_cash_hours`, interval `-14.136` to `14.928`. Research skill `macro-analyst + technical-analysis`. Context changes the verdict: no. Official `rates_yields` `empty_result`. NY Fed latest SOFR 3.9 labeled `stale` (effective 2026-09-28). SOFR last-90 `historical` n 90. Treasury par-yield `historical` n_days 187, n_inverted 0. Official US-stock `do_query` NVDA `last_price` 228.16. Official rsi 54.69 / macd 1.115055. Book forward-recorded, spread 0.438 bps, $10,000 walk 2.869 bps.
+- Crowd positioning: compiled `carry_basis`, instrument `BTCUSDT`, data unloaded. Freeze hash `351828e1ec285105b896a92667e60b26922ea907b69454a09e71e9c142b6e892`. Run `eae9d05b-e853-413e-a926-4fab270b73a0`, hypothesis `c16374cf-4e54-4823-a1af-f10b8f6ebb6b`, spec `f2988099-fe21-461b-ac4f-dc2990933b1b`: `UNTESTABLE`, 1 of 60, mechanism `funding_hold_versus_cash`. Research skill `sentiment-analyst`. Context changes the verdict: no. Official `sentiment_index` `empty_result`. Bitget public REST `long_short_account_ratio` 1.6253, taker buy 237.116 sell 320.918, `n_prints` 30, `current`. Book forward-recorded, spread 0.012 bps, $10,000 walk 0.012 bps.
+- Thirty hourly long/short prints are still not a 60-unit history. The floor was not changed.
+
 
 
 
