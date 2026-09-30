@@ -31,8 +31,8 @@ export function DeskShell({
       <a href="#desk-main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-foreground focus:px-4 focus:py-2 focus:text-background">
         Skip to research
       </a>
-      <header className="sticky top-0 z-40 border-b border-hairline bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex min-h-[72px] w-full max-w-[1180px] flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-3 sm:px-6 lg:px-8">
+      <header className="sticky top-0 z-40 border-b border-hairline bg-background">
+        <div className="mx-auto flex min-h-[72px] w-full max-w-[1180px] flex-wrap items-center justify-between gap-x-4 gap-y-3 bg-background px-4 py-3 sm:px-6 lg:px-8">
           <button
             onClick={onExit}
             className="group inline-flex items-center gap-3 rounded-lg px-1 py-1 text-left text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
@@ -77,7 +77,7 @@ export function DeskShell({
             </button>
           </nav>
 
-          <div className="min-w-0 text-right">
+          <div className="min-w-0 basis-full text-left sm:basis-auto sm:text-right">
             <p className="text-xs text-muted-foreground">Engine</p>
             <p className="mt-0.5 max-w-[16rem] truncate font-mono text-sm text-foreground">{engine || "assigned at run"}</p>
           </div>

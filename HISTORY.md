@@ -536,6 +536,20 @@ This file is append-only.
 - `POST /v1/internal/forward-sweep` for UTC day `2026-09-30` returned HTTP 200, 46 `below_floor` actions, and no `AUTO_RUN`. No armed spec has reached its family floor. No floor was changed and no key was deleted.
 - No new scored family. Snapshot and 90-print context are still not a 60-unit history. All five context skills are now freeze-to-run on this engine: macro and technical on Fed backdrop, sentiment on crowd, news on Fed release, intel on positioning proxy. Official Signal remains empty except technical readings on the earlier backdrop run.
 
+## 2026-09-30 The verdict screen reads before the receipt
+
+- UI problem: production verdicts rendered every field at one small mono size. Hashes, skill payloads, and the book line collided. A judge could not see the verdict before the diagnostics.
+- Decision: presentation only. `mapVerdict` still produces the strings. `presentVerdict` groups those rows into why, core, coverage, experiment, book, and context cards. Verdict words stay `KILLED`, `ALIVE`, `INCONCLUSIVE`, `UNTESTABLE`. `source_class`, `failure_class`, and `usable_for_verdict` stay visible. A fallback is not labeled official Signal. Raw provenance stays behind "View provenance", collapsed. No chart, metric, or activity was invented. The browser still calls only `/api/killlab`.
+- Desk: header shows KillLab, "AI research desk", Research, Ledger, and the run's engine version. The five steps are a numbered progress row. Verdict word uses Space Grotesk. Prose uses Geist. Mono is limited to hashes, versions, timestamps, and tool identifiers. `INCONCLUSIVE` uses the amber token. Killed stays red. Untestable stays cool.
+- Components: `desk-shell.tsx`, `verdict-view.tsx`, `verdict-panels.tsx`, `present-verdict.ts`. Write heading scale increased. Freeze, families, floors, and the API were not edited.
+- Checks: `npx tsc --noEmit` passed. `npm run build` passed. `node --experimental-strip-types src/lib/research/present-verdict.test.ts` printed `present-verdict ok`.
+- Production commit `a3f9cb5`, desk `https://killlab.vercel.app/?v=a3f9cb5`, engine `killlab-0.13.1`. Chrome resource hosts on these runs were only `killlab.vercel.app`.
+  - Crowd positioning: `UNTESTABLE`, 1 of 60, mechanism `funding_hold_versus_cash`, freeze `351828e1ec285105b896a92667e60b26922ea907b69454a09e71e9c142b6e892`. Context changes the verdict: no. Official sentiment `empty_result`. Bitget public long/short ratio 1.6184, 30 prints. Book forward-recorded, historical no, spread 0.012 bps.
+  - Positioning proxy: `KILLED` on contradicted, 117 of 60, interval low -33.206, interval high -22.036, mechanism `daily_basis_fade_versus_cash`.
+  - Fed backdrop: `INCONCLUSIVE`, 86 of 60. Treasury context on that card: 187 days, 0 inverted, spread 0.2 to 0.74. Official technical RSI 54.02 stayed `official_signal_mcp`.
+- Viewports on `a3f9cb5`: 1442 by 732 and 1282 by 732 had no horizontal overflow. The narrowest width this Chrome window accepted was 502px, also without horizontal overflow. At that width a wrapped engine line could sit on scrolled cards. The header background is now solid, and the engine row takes the full width below 640px.
+- A header-only follow-up is recorded with this entry. It does not change the three verdict readings above.
+
 
 
 
