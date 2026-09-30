@@ -37,6 +37,9 @@ export function VerdictView() {
   const [sellPx, setSellPx] = React.useState("");
   const reduce = useReducedMotion();
   const runId = useDesk((s) => s.runId);
+  const nextProposal = useDesk((s) => s.nextProposal);
+  const nextReasons = useDesk((s) => s.nextReasons);
+  const shiftPosture = useDesk((s) => s.shiftPosture);
   const [tried, setTried] = React.useState<{ relation: string; label?: string; primary_trap?: string; n_units?: number; created_at?: string }[]>([]);
   const [forwardNote, setForwardNote] = React.useState<string>("");
 
@@ -193,7 +196,12 @@ export function VerdictView() {
       </DeskSection>
 
       <DeskSection title="Next" delay={0.36}>
-        <NextTestCard question={nextQuestion} onLedger={() => setTab("ledger")} />
+        <NextTestCard
+          question={nextProposal || nextQuestion}
+          reasons={nextReasons.length > 0 ? nextReasons : view.reasons}
+          onLedger={() => setTab("ledger")}
+          onPosture={(posture) => void shiftPosture(posture)}
+        />
         <section className="rounded-2xl border border-hairline bg-panel/50 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-base font-medium text-foreground">Already tried</h3>

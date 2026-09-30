@@ -283,6 +283,15 @@ export function ResearchContext({ view }: { view: VerdictPresentation }) {
           <Chip tone="neutral">Context changes the verdict: {view.contextChanges}</Chip>
         ) : null}
       </div>
+      {view.lanes.length > 0 ? (
+        <ul className="mt-4 flex flex-wrap gap-2">
+          {view.lanes.map((lane) => (
+            <li key={lane.id} className="rounded-full border border-hairline px-3 py-1 font-mono text-[11px] text-foreground/80">
+              {lane.id} · {lane.sourceClass} · {lane.detail}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         {view.contexts.map((card, index) => (
           <ContextCard key={`${card.title}-${card.hash}-${index}`} card={card} />
@@ -365,16 +374,35 @@ export function AssistantCard({ report, question }: { report: VerdictReport; que
 
 export function NextTestCard({
   question,
+  reasons,
   onLedger,
+  onPosture,
 }: {
   question: string;
+  reasons: string[];
   onLedger: () => void;
+  onPosture: (posture: "conservative" | "exploratory") => void;
 }) {
   return (
     <Panel className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0 max-w-[62ch]">
         <h3 className="text-xl font-medium tracking-tight text-foreground">Next test</h3>
         <p className="mt-3 text-base leading-relaxed text-foreground/85">{question}</p>
+        {reasons.length > 0 ? (
+          <ul className="mt-4 space-y-1 text-sm leading-relaxed text-muted-foreground">
+            {reasons.slice(0, 3).map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        ) : null}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button type="button" variant="outline" className="h-9 rounded-full px-4 text-sm" onClick={() => onPosture("conservative")}>
+            Conservative
+          </Button>
+          <Button type="button" variant="outline" className="h-9 rounded-full px-4 text-sm" onClick={() => onPosture("exploratory")}>
+            Exploratory
+          </Button>
+        </div>
       </div>
       <Button
         onClick={onLedger}

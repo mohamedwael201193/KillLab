@@ -25,7 +25,7 @@ from killlab.config import Settings, settings_from_environ
 from killlab.data.assemble import assemble_snapshot
 from killlab.data.bitget import BitgetError, BitgetRest, NotFrozen
 from killlab.db import session_factory
-from killlab.engine.review import evolution_state, is_related_research, killed_decision, reconcile_unit, research_fingerprint, realized_from_fills
+from killlab.engine.review import apply_next, evolution_state, is_related_research, killed_decision, normalize_constitution, personalized_question, reconcile_unit, research_fingerprint, realized_from_fills
 from killlab.integrations.context import attach_context, enrich_context
 from killlab.forward import accrual_window, sweep_forward
 from killlab.guard import fixtures_loaded
@@ -55,6 +55,7 @@ class HypothesisIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     raw_text: str = Field(min_length=1, max_length=4000)
     thesis: str | None = Field(default=None, max_length=280)
+    constitution: dict | None = None
 
 
 class FreezeIn(BaseModel):
@@ -311,7 +312,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         thesis = (body.thesis or "").strip() or None
         row = Hypothesis(id=hid, raw_text=body.raw_text, thesis=thesis, family=None)
         session.add(row)
-        session.add(LedgerEntry(hypothesis_id=hid, stage="KNOWN", body={"raw_text": body.raw_text}))
+        known = {"raw_text": body.raw_text}
+        constitution = normalize_constitution(body.constitution)
+        if constitution:
+            known["constitution"] = constitution
+        session.add(LedgerEntry(hypothesis_id=hid, stage="KNOWN", body=known))
         session.commit()
         return {"id": str(row.id), "family": None, "status": "stored"}
 
@@ -472,6 +477,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         thesis=owner.thesis if owner is not None else None,
                         review=review_body,
                         fingerprint=fingerprint,
+                        snapshot=snapshot,
+                        fetch_pack=True,
                     )
                 except Exception:
                     context = {
@@ -482,6 +489,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         "personalization": {"changes_verdict": False},
                     }
             attach_context(card, context)
+            known = session.scalars(
+                select(LedgerEntry).where(LedgerEntry.hypothesis_id == spec.hypothesis_id, LedgerEntry.stage == "KNOWN").order_by(LedgerEntry.created_at.desc())
+            ).first()
+            constitution = normalize_constitution((known.body or {}).get("constitution") if known is not None else None)
+            apply_next(card, constitution)
             card["run_origin"] = "manual"
             log_event("verdict", label=card.get("label"), primary_trap=card.get("primary_trap"), run_id=str(run.id))
             run.status = "untestable" if card["label"] == "UNTESTABLE" else "succeeded"
@@ -612,12 +624,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         }
 
     @app.post("/v1/ledger/{entry_id}/next")
-    def propose_next(entry_id: str, session: Session = Depends(db), _: None = Depends(auth)):
+    async def propose_next(entry_id: str, request: Request, session: Session = Depends(db), _: None = Depends(auth)):
         row = session.get(LedgerEntry, uuid.UUID(entry_id))
         if row is None or row.stage != "DECISION":
             raise _error(404, "not_found")
         trap = (row.body or {}).get("primary_trap") or (row.body or {}).get("label")
         card = {}
+        run = None
         if row.test_run_id:
             run = session.get(TestRun, row.test_run_id)
             card = dict(run.result_json or {}) if run else {}
@@ -628,7 +641,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             ).all()
             if reviews:
                 review = reviews[-1].body
-        proposal = evolution_state(card, trap, review)
+        raw = await request.body()
+        posted = {}
+        if raw:
+            import json
+            posted = json.loads(raw.decode() or "{}")
+        constitution = posted.get("constitution") if isinstance(posted, dict) else None
+        locked = None if run is None or not run.result_json else {
+            key: run.result_json.get(key) for key in ("label", "dsr", "pbo", "ci_low", "ci_high", "n_units")
+        }
+        proposal = personalized_question(card, constitution)
+        if review and not constitution:
+            proposal = evolution_state(card, trap, review)
+            proposal["reasons"] = personalized_question(card, None)["reasons"]
+            proposal["snapshot"] = None
+        if locked is not None and run is not None and run.result_json:
+            for key, value in locked.items():
+                if run.result_json.get(key) != value:
+                    raise _error(500, "frozen_mutated")
         facts = {
             "label": card.get("label"),
             "primary_trap": card.get("primary_trap"),

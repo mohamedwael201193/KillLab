@@ -98,6 +98,8 @@ export type VerdictPresentation = {
   skill: string;
   contextChanges: string;
   nextQuestion: string;
+  reasons: string[];
+  lanes: { id: string; sourceClass: string; detail: string }[];
   contexts: ContextCardModel[];
 };
 
@@ -210,7 +212,17 @@ export function parseBook(item: EvidenceRow | undefined): BookCardModel | null {
 
 export function presentVerdict(report: VerdictReport): VerdictPresentation {
   const used = new Set<string>(HIDDEN_FROM_LEFTOVERS);
-  const contexts = report.evidence.filter((item) => !used.has(item.label)).map(parseContextRow);
+  const lanes = report.evidence
+    .filter((item) => item.label.startsWith("Source lane:"))
+    .map((item) => ({
+      id: item.label.replace("Source lane: ", ""),
+      sourceClass: item.value,
+      detail: item.threshold || "",
+    }));
+  const reasons = report.evidence.filter((item) => item.label.startsWith("Why next")).map((item) => item.value);
+  const contexts = report.evidence
+    .filter((item) => !used.has(item.label) && !item.label.startsWith("Source lane:") && !item.label.startsWith("Why next"))
+    .map(parseContextRow);
   return {
     observed: value(report, "Out-of-sample units"),
     required: value(report, "Units required"),
@@ -222,6 +234,8 @@ export function presentVerdict(report: VerdictReport): VerdictPresentation {
     skill: value(report, "Research skill"),
     contextChanges: value(report, "Context changes the verdict"),
     nextQuestion: value(report, "Next question"),
+    reasons,
+    lanes,
     contexts,
   };
 }

@@ -25,6 +25,7 @@ type VerdictJson = {
   prior_trials?: number;
   related_trials?: number;
   next_question?: string;
+  next_reasons?: string[];
   thesis?: string;
   book_capture?: {
     provenance?: string;
@@ -56,6 +57,13 @@ type VerdictJson = {
       failure_reason?: string | null;
       source_class?: string;
       failure_class?: string;
+    }[];
+    lanes?: {
+      id: string;
+      source_class?: string;
+      failure_class?: string | null;
+      useful?: boolean;
+      tool_name?: string | null;
     }[];
   };
   findings?: { code: string; severity: string; detail?: Record<string, unknown> }[];
@@ -172,6 +180,17 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
       ]
         .filter((part) => part)
         .join(" · "),
+    }))),
+    ...((raw.research_context?.lanes || []).map((lane) => ({
+      label: `Source lane: ${lane.id}`,
+      value: lane.source_class || "—",
+      status: "info" as EvidenceStatus,
+      threshold: [lane.failure_class, lane.useful ? "useful" : "not useful", lane.tool_name].filter((part) => part).join(" · "),
+    }))),
+    ...((raw.next_reasons || []).slice(0, 3).map((reason, index) => ({
+      label: `Why next ${index + 1}`,
+      value: reason,
+      status: "info" as EvidenceStatus,
     }))),
   ];
   const traps: TrapCheckResult[] = (raw.findings || []).map((finding, index) => ({

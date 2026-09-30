@@ -3,6 +3,7 @@
 import * as React from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useDesk } from "@/lib/desk/store";
+import { loadConstitution, saveConstitution } from "@/lib/research/constitution";
 import { researchData } from "@/lib/research/data-source";
 import { Kbd, MonoChip } from "@/components/kl/atoms";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,10 @@ export function WriteView() {
   const submitHypothesis = useDesk((s) => s.submitHypothesis);
   const [text, setText] = React.useState("");
   const [thesis, setThesis] = React.useState("");
+  const [posture, setPosture] = React.useState<"conservative" | "exploratory">("conservative");
+  React.useEffect(() => {
+    setPosture(loadConstitution().posture);
+  }, []);
   const examples = React.useMemo(() => researchData.listExampleHypotheses(), []);
   const error = useDesk((s) => s.error);
   const reduce = useReducedMotion();
@@ -92,6 +97,24 @@ export function WriteView() {
             placeholder="Optional thesis. Stored with the claim. It does not change the test."
             className="w-full border-t border-hairline bg-transparent px-5 py-3 text-[13px] text-foreground/80 placeholder:text-muted-foreground/40 focus:outline-none sm:px-6"
           />
+          <div className="flex items-center justify-between gap-3 border-t border-hairline px-5 py-3 sm:px-6">
+            <label className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground/70" htmlFor="posture">
+              Research posture
+            </label>
+            <select
+              id="posture"
+              value={posture}
+              onChange={(event) => {
+                const next = event.target.value === "exploratory" ? "exploratory" : "conservative";
+                setPosture(next);
+                saveConstitution({ ...loadConstitution(), posture: next });
+              }}
+              className="rounded-full border border-hairline bg-transparent px-3 py-1 text-[13px] text-foreground"
+            >
+              <option value="conservative">Conservative</option>
+              <option value="exploratory">Exploratory</option>
+            </select>
+          </div>
           <div className="flex items-center justify-between border-t border-hairline px-5 py-3 sm:px-6">
             <span className="font-mono text-[10.5px] text-muted-foreground/50">
               {text.length}/400 · <Kbd>⌘</Kbd> <Kbd>↵</Kbd> to draft

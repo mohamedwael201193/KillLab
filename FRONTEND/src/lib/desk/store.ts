@@ -3,6 +3,7 @@
 import * as React from "react";
 import { create } from "zustand";
 import { draftSpec, killlab, mergeCompiledDraft } from "@/lib/research/live";
+import { loadConstitution, saveConstitution } from "@/lib/research/constitution";
 import { mapVerdict, scenarioKeyForFamily } from "@/lib/research/map-verdict";
 import { runStatusLine } from "@/lib/desk/run-status";
 import type { ScenarioFixture } from "@/lib/research/types";
@@ -56,6 +57,7 @@ interface DeskState {
   specId: string | null;
   specHash: string | null;
   nextProposal: string | null;
+  nextReasons: string[];
   reviewNote: string | null;
   busy: boolean;
   /** Fields set once per lab session. */
@@ -63,6 +65,7 @@ interface DeskState {
   writeHypothesis: (text: string) => void;
   thesisText: string;
   submitHypothesis: (text: string, thesis?: string) => void;
+  shiftPosture: (posture: "conservative" | "exploratory") => Promise<void>;
   goReview: () => void;
   goWrite: () => void;
   updateWindow: (start: string, end: string) => void;
@@ -97,6 +100,7 @@ const initial = {
   specId: null as string | null,
   specHash: null as string | null,
   nextProposal: null as string | null,
+  nextReasons: [] as string[],
   reviewNote: null as string | null,
   busy: false,
 };
@@ -114,7 +118,11 @@ export const useDesk = create<DeskState>((set, get) => ({
     const thesisText = (thesis || "").trim();
     set({ error: null, hypothesisText: text, thesisText });
     try {
-      const created = await killlab("POST", "/v1/hypotheses", { raw_text: text, thesis: thesisText || null });
+      const created = await killlab("POST", "/v1/hypotheses", {
+        raw_text: text,
+        thesis: thesisText || null,
+        constitution: loadConstitution(),
+      });
       const local = draftSpec(text);
       let spec = local;
       try {
@@ -135,6 +143,7 @@ export const useDesk = create<DeskState>((set, get) => ({
         runProgress: null,
         runId: null,
         nextProposal: null,
+        nextReasons: [],
         reviewNote: null,
       });
     } catch (err) {
@@ -305,6 +314,29 @@ export const useDesk = create<DeskState>((set, get) => ({
       screen: { kind: "write" },
       hypothesisText: "",
     });
+  },
+
+  shiftPosture: async (posture) => {
+    const decision = get().ledger.find((entry) => entry.stage === "DECISION");
+    const runId = get().runId;
+    const before = get().report?.verdict;
+    if (!decision || !runId || !before) return;
+    const constitution = saveConstitution({ ...loadConstitution(), posture });
+    try {
+      const proposal = await killlab("POST", `/v1/ledger/${decision.id}/next`, { constitution });
+      const again = await killlab("GET", `/v1/runs/${runId}/verdict`);
+      if (again.label !== before) {
+        set({ error: "verdict_changed" });
+        return;
+      }
+      set({
+        nextProposal: proposal.proposed_raw_text || "",
+        nextReasons: Array.isArray(proposal.reasons) ? proposal.reasons.slice(0, 3) : [],
+        error: null,
+      });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : "request_failed" });
+    }
   },
 
   advanceLedger: async () => {

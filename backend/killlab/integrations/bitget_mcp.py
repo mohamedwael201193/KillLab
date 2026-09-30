@@ -60,4 +60,6 @@ def quote_evidence(*, frozen: bool, symbol: str | None, timeout: float = 12.0, s
         source_url=MCP_URL,
         requested_at=requested.isoformat(),
         latency_ms=int((datetime.now(timezone.utc).timestamp() - started) * 1000),
+        source_class="official Bitget data MCP",
+        failure_class="unavailable" if error else ("valid_data" if payload else "empty_result"),
     )

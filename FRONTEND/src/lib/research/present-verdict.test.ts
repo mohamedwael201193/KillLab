@@ -23,9 +23,13 @@ const report = mapVerdict(
       ts: "1790729196370",
     },
     next_question: "Keep this frozen spec.",
+    next_reasons: ["This run is UNTESTABLE with primary trap insufficient_units.", "Recorded prior trials on this fingerprint: 1. Related trials: 0."],
     research_context: {
       usable_for_verdict: false,
       routing: { skill: "sentiment-analyst" },
+      lanes: [
+        { id: "bitget_tape", source_class: "bitget_public_rest", failure_class: "valid_data", useful: true, tool_name: "mix_candles" },
+      ],
       items: [
         {
           category: "SKILL CONTEXT",
@@ -64,6 +68,10 @@ assert.equal(view.contextChanges, "no");
 assert.equal(view.book?.provenance, "forward-recorded");
 assert.equal(view.book?.spread, "0.012");
 assert.equal(view.book?.historical, "no");
+assert.equal(view.lanes[0]?.id, "bitget_tape");
+assert.equal(view.lanes[0]?.sourceClass, "bitget_public_rest");
+assert.equal(view.reasons.length, 2);
+assert.equal(view.contexts.length, 2);
 assert.equal(view.contexts[0]?.sourceClass, "official_signal_mcp");
 assert.equal(view.contexts[0]?.failureClass, "empty_result");
 assert.equal(view.contexts[1]?.title, "Long/short ratio");

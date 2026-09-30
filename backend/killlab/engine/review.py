@@ -121,3 +121,63 @@ def research_fingerprint(spec: dict) -> str:
     if spec.get("leader"):
         body["leader"] = str(spec["leader"])
     return sha256_canonical(body)
+
+
+_POSTURES = {"conservative", "exploratory"}
+_HORIZONS = {"session", "swing", "event"}
+_VERDICT_FIELDS = ("label", "dsr", "pbo", "ci_low", "ci_high", "n_units", "n_trials", "mechanism")
+
+
+def normalize_constitution(raw: dict | None) -> dict | None:
+    """A research preference. It is not part of the research fingerprint."""
+    if not isinstance(raw, dict):
+        return None
+    posture = raw.get("posture") if raw.get("posture") in _POSTURES else "conservative"
+    horizon = raw.get("horizon") if raw.get("horizon") in _HORIZONS else "session"
+    universe = str(raw.get("universe") or "the same instruments").strip()[:80] or "the same instruments"
+    avoid = str(raw.get("avoid") or "a new family").strip()[:80] or "a new family"
+    return {"posture": posture, "horizon": horizon, "universe": universe, "avoid": avoid}
+
+
+def personalized_question(card: dict, constitution: dict | None) -> dict:
+    """Next wording from the stored card and an optional constitution. The card is not edited."""
+    from killlab.hashutil import sha256_canonical
+
+    base = evolution_state(card, card.get("primary_trap")).get("proposed_raw_text")
+    prefs = normalize_constitution(constitution)
+    if prefs is None:
+        text = base
+    elif prefs["posture"] == "exploratory":
+        text = (
+            f"Keep the frozen result. The next test can look at a {prefs['horizon']} question on {prefs['universe']}. "
+            "This result is not reopened."
+        )
+    else:
+        text = (
+            f"Keep the frozen result. The next test stays on {prefs['universe']} and does not add {prefs['avoid']}."
+        )
+    label = card.get("label") or "unset"
+    trap = card.get("primary_trap") or "none"
+    reasons = [
+        f"This run is {label} with primary trap {trap}.",
+        f"Recorded prior trials on this fingerprint: {int(card.get('prior_trials') or 0)}. Related trials: {int(card.get('related_trials') or 0)}.",
+    ]
+    if prefs is not None:
+        reasons.append(f"Constitution posture is {prefs['posture']}; universe {prefs['universe']}.")
+    elif card.get("units_short"):
+        reasons.append(f"The frozen spec is still short by {int(card['units_short'])} units.")
+    snapshot = None if prefs is None else {"preferences": prefs, "sha256": sha256_canonical(prefs)}
+    return {"proposed_raw_text": text, "reasons": reasons[:3], "snapshot": snapshot, "stored": False}
+
+
+def apply_next(card: dict, constitution: dict | None) -> dict:
+    """Record the next question. Measured verdict fields stay on their previous values."""
+    before = {key: card.get(key) for key in _VERDICT_FIELDS}
+    proposal = personalized_question(card, constitution)
+    card["next_question"] = proposal["proposed_raw_text"]
+    card["next_reasons"] = proposal["reasons"]
+    if proposal.get("snapshot"):
+        card["constitution_snapshot"] = proposal["snapshot"]
+    for key, value in before.items():
+        card[key] = value
+    return proposal

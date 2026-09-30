@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from killlab.data.bitget import NotFrozen
 from killlab.integrations.bitget_mcp import equity_ticker, quote_evidence
 from killlab.integrations.bitget_signal import route_skills, skill_evidence
+from killlab.integrations.source_packs import extra_items, observation_items, provenance_lanes
 
 _LOCKED = ("label", "dsr", "pbo", "ci_low", "ci_high", "n_units", "n_trials", "mechanism")
 
@@ -22,6 +23,9 @@ def enrich_context(
     fingerprint: str | None = None,
     timeout: float = 18.0,
     send=None,
+    snapshot: dict | None = None,
+    fetch_pack: bool = False,
+    get=None,
 ) -> dict:
     if not frozen:
         raise NotFrozen("research context is refused before freeze")
@@ -56,7 +60,7 @@ def enrich_context(
             send=send,
         )
 
-    items = []
+    items = observation_items(snapshot)
     with ThreadPoolExecutor(max_workers=3) as pool:
         quote_job = pool.submit(_quote) if equity_ticker(symbol) else None
         skill_job = pool.submit(_skill)
@@ -68,6 +72,8 @@ def enrich_context(
                 items.append({
                     "source_type": "MCP_CONTEXT",
                     "source_url": "https://agent.bitget.com/mcp",
+                    "source_class": "official Bitget data MCP",
+                    "failure_class": "unavailable",
                     "usable_for_verdict": False,
                     "failure_reason": type(exc).__name__,
                     "summary": type(exc).__name__,
@@ -82,6 +88,8 @@ def enrich_context(
             items.append({
                 "source_type": "SKILL_CONTEXT",
                 "source_url": "https://datahub.noxiaohao.com/mcp",
+                "source_class": "official_signal_mcp",
+                "failure_class": "unavailable",
                 "skill": routing["skill"],
                 "tool_name": None,
                 "usable_for_verdict": False,
@@ -90,10 +98,14 @@ def enrich_context(
                 "current_or_historical": "unavailable",
             })
         items.extend(skills or [])
+    if fetch_pack:
+        items.extend(extra_items(family=family, items=items, symbol=symbol, text=text, timeout=min(timeout, 12.0), get=get))
+    lanes = provenance_lanes(items)
     return {
         "status": "ok" if any(not item.get("provenance", {}).get("error") and item.get("summary") for item in items) else "unavailable",
         "routing": routing,
         "items": items,
+        "lanes": lanes,
         "personalization": personalization,
         "usable_for_verdict": False,
         "equity_ticker": equity_ticker(symbol),
