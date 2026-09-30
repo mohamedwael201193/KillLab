@@ -27,7 +27,7 @@ export function LandingTraps() {
         <Reveal>
           <SectionHeading
             index="03"
-            eyebrow="The nine traps"
+            eyebrow="Failure modes"
             title={
               <>
                 Nine known ways a backtest lies.
@@ -35,7 +35,7 @@ export function LandingTraps() {
                 <span className="text-muted-foreground">Every test is scanned for all of them.</span>
               </>
             }
-            lead="These aren't exotic — they're the standard ways convincing research fools smart people. KillLab scans every frozen test against all nine and names each one it finds."
+            lead="These cards are published failure modes. The engine names the detectors it actually runs. That registry is pinned by test, and a card here is not itself a detector."
           />
         </Reveal>
 
@@ -44,7 +44,7 @@ export function LandingTraps() {
             {/* ── The constellation grid ─────────────────── */}
             <div
               role="tablist"
-              aria-label="The nine traps"
+              aria-label="Published failure modes"
               className="grid grid-cols-3 gap-2 sm:gap-3"
               onMouseLeave={() => {}}
             >

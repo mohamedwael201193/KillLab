@@ -9,6 +9,7 @@ const WHY = ["Out-of-sample units", "Units required", "Units still needed"] as c
 
 const CORE = [
   "Verdict",
+  "Primary trap",
   "Raw events",
   "Events inside tape",
   "Events outside tape",

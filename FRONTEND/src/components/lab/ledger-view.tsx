@@ -8,17 +8,19 @@ import { cn } from "@/lib/utils";
 
 /**
  * LEDGER — the research memory.
- * Vertical timeline; every entry walks KNOWN → UNKNOWN → TEST → RESULT → DECISION.
+ * Vertical timeline. Written stages are KNOWN, UNKNOWN, RESULT, DECISION, plus REVIEW, FORWARD_CHECK, and AUTO_RUN when the API records them.
  * The newest lab run appears on top with its live promotion to DECISION.
  */
-const STAGE_ORDER = ["KNOWN", "UNKNOWN", "TEST", "RESULT", "DECISION"] as const;
+const STAGE_ORDER = ["KNOWN", "UNKNOWN", "RESULT", "DECISION"] as const;
 
 const STAGE_TONE: Record<string, string> = {
   KNOWN: "border-hairline bg-secondary/40 text-muted-foreground",
   UNKNOWN: "border-ice/30 bg-ice/[0.06] text-ice",
-  TEST: "border-ice/40 bg-ice/[0.09] text-ice",
   RESULT: "border-verdict-untestable/30 bg-verdict-untestable/8 text-verdict-untestable",
   DECISION: "border-verdict-alive/30 bg-verdict-alive/8 text-verdict-alive",
+  REVIEW: "border-hairline bg-secondary/40 text-muted-foreground",
+  FORWARD_CHECK: "border-ice/30 bg-ice/[0.06] text-ice",
+  AUTO_RUN: "border-ice/40 bg-ice/[0.09] text-ice",
 };
 
 export function LedgerView() {

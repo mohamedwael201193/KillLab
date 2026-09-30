@@ -544,7 +544,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/v1/ledger")
     def ledger(hypothesis_id: str, session: Session = Depends(db), _: None = Depends(auth)):
         rows = session.scalars(select(LedgerEntry).where(LedgerEntry.hypothesis_id == uuid.UUID(hypothesis_id)).order_by(LedgerEntry.created_at)).all()
-        return {"entries": [{"id": str(r.id), "stage": r.stage, "body": r.body, "test_run_id": str(r.test_run_id) if r.test_run_id else None} for r in rows]}
+        return {"entries": [{"id": str(r.id), "stage": r.stage, "body": r.body, "created_at": r.created_at.isoformat() if r.created_at else None, "test_run_id": str(r.test_run_id) if r.test_run_id else None} for r in rows]}
 
     @app.post("/v1/ledger/{entry_id}/next")
     def propose_next(entry_id: str, session: Session = Depends(db), _: None = Depends(auth)):

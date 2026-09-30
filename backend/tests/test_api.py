@@ -104,6 +104,8 @@ def test_freeze_then_run_is_not_alive(client, auth_header):
     assert traps.status_code == 200
     ledger = client.get(f"/v1/ledger?hypothesis_id={hid}", headers=auth_header)
     assert any(entry["stage"] == "DECISION" for entry in ledger.json()["entries"])
+    assert all(entry.get("created_at") for entry in ledger.json()["entries"])
+    assert all(entry["stage"] != "TEST" for entry in ledger.json()["entries"])
     private = client.post(
         f"/v1/hypotheses/{hid}/fills",
         json={"source": "bitget_private", "fills": []},

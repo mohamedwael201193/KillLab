@@ -1,0 +1,11 @@
+[
+  {"text": "Trade NVDA in the last cash hour.", "family": "session_timing"},
+  {"text": "Trade NVDA in the first hour of the cash session.", "family": "session_timing"},
+  {"text": "Fade the NVDA perp versus spot basis.", "family": "basis_convergence"},
+  {"text": "Hold BTC perp funding against cash.", "family": "carry_basis"},
+  {"text": "Trade NVDA over the weekend instead of waiting for StockRoute.", "family": "execution_venue_time"},
+  {"text": "The BTC hour before the open leads NVDA's first cash hour.", "family": "lead_lag"},
+  {"text": "Does the Fed funds backdrop change NVDA's first cash hour?", "family": "session_timing"},
+  {"text": "Is the 2s10s curve inverted for the cash open?", "family": "macro_regime"},
+  {"text": "When BTC breaks its 20-day range, rotate into majors.", "family": "unsupported"}
+]

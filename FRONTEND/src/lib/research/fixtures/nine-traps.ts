@@ -1,8 +1,8 @@
 import type { TrapDefinition } from "../types";
 
 /**
- * The nine known ways a convincing backtest lies.
- * Every frozen test is scanned against all nine.
+ * Published failure-mode cards for the landing page.
+ * They are not the engine detector registry. The registry is pinned in the backend.
  */
 export const NINE_TRAPS: TrapDefinition[] = [
   {

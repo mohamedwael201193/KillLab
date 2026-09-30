@@ -21,7 +21,7 @@ const display = Space_Grotesk({
 export const metadata: Metadata = {
   title: "KillLab — Don't let a convincing backtest fool you.",
   description:
-    "KillLab is an AI Trading Desk for Review & Self-Evolution. Write a trading hypothesis, freeze the test, and let a deterministic research engine try to kill it with walk-forward testing, bootstrap confidence, Deflated Sharpe and nine known traps.",
+    "KillLab is an AI Trading Desk for Review & Self-Evolution. Write a trading hypothesis, freeze the test, and let a deterministic research engine try to kill it with walk-forward testing, bootstrap confidence, Deflated Sharpe and its registered trap detectors.",
   keywords: [
     "KillLab",
     "trading research",

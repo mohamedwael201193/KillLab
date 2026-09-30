@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { draftSpec, mergeCompiledDraft } from "./draft-spec.ts";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { draftSpec, familyFromText, mergeCompiledDraft } from "./draft-spec.ts";
 
 const close = draftSpec("Trade NVDA in the last cash hour.");
 assert.equal(close.family, "session_timing");
@@ -67,6 +70,13 @@ assert.equal(fedBackdrop.family, "session_timing");
 
 function closeText(spec: { session_hour?: number }): string {
   return spec.session_hour === 15 ? "Trade NVDA in the last cash hour." : "";
+}
+
+const phrases = JSON.parse(
+  readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../../../../shared/routing_phrases.json"), "utf8"),
+) as { text: string; family: string }[];
+for (const row of phrases) {
+  assert.equal(familyFromText(row.text), row.family, row.text);
 }
 
 console.log("draft-spec ok");

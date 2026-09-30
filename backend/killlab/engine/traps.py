@@ -1,4 +1,4 @@
-"""Nine independent trap detectors. Each returns zero or more findings."""
+"""Registered trap detectors. Each returns zero or more findings."""
 
 from __future__ import annotations
 
@@ -134,6 +134,20 @@ def trap_forward_book(family: str, capture, bound: float) -> list[dict]:
     if isinstance(walk, (int, float)) and not isinstance(walk, bool) and walk > bound:
         return [_finding("book_unusable", "invalidate", {"reason": "walk", "walk_round_trip_bps": walk, "bound_bps": bound})]
     return []
+
+
+REGISTERED_DETECTORS = (
+    "trap_multiple_testing",
+    "trap_beta_as_alpha",
+    "trap_bar_timing",
+    "trap_wrong_horizon",
+    "trap_leakage",
+    "trap_venue_history",
+    "trap_effect_erase",
+    "trap_wrong_cost_baseline",
+    "trap_forward_book",
+    "trap_waiting_risk",
+)
 
 
 def scan(spec: dict, measured: dict) -> list[dict]:

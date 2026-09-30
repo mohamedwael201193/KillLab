@@ -1,4 +1,4 @@
-import type { EvidenceRow, EvidenceStatus, TrapCheckResult, Verdict, VerdictReport } from "./types";
+import type { EvidenceRow, EvidenceStatus, ScenarioKey, TrapCheckResult, Verdict, VerdictReport } from "./types";
 
 type VerdictJson = {
   label?: Verdict;
@@ -66,6 +66,40 @@ function num(value: number | null | undefined): string {
   return String(Math.round(value * 1000) / 1000);
 }
 
+export function scenarioKeyForFamily(family: string, sessionHour?: number): ScenarioKey {
+  if (family === "event_earnings") return "earnings-momentum";
+  if (family === "carry_basis") return "funding-carry";
+  if (family === "execution_venue_time") return "weekend-choice";
+  if (family === "basis_convergence") return "basis-fade";
+  if (family === "lead_lag") return "prior-hour-lead";
+  if (family === "macro_regime") return "curve-inversion";
+  if (family === "session_timing") return sessionHour === 15 ? "cash-close" : "session-open";
+  return "range-rotation";
+}
+
+export function scenarioKeyForMechanism(mechanism: string | undefined): ScenarioKey {
+  const text = mechanism || "";
+  if (/funding_hold/.test(text)) return "funding-carry";
+  if (/earnings/.test(text)) return "earnings-momentum";
+  if (/cash_close/.test(text)) return "cash-close";
+  if (/prior_hour/.test(text)) return "prior-hour-lead";
+  if (/weekend|now_versus_wait|execution/.test(text)) return "weekend-choice";
+  if (/basis/.test(text)) return "basis-fade";
+  if (/invert/.test(text)) return "curve-inversion";
+  if (/ny_open|cash_open|session/.test(text)) return "session-open";
+  return "range-rotation";
+}
+
+export function coveragePct(observed: number | undefined, required: number | undefined): number {
+  if (observed === undefined || required === undefined || required <= 0) return 0;
+  return Math.round((100 * observed) / required);
+}
+
+function contextChanges(raw: VerdictJson): string {
+  if (!raw.research_context) return "—";
+  return raw.research_context.usable_for_verdict === true ? "yes" : "no";
+}
+
 export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport {
   const verdict = raw.label || "UNTESTABLE";
   const n = raw.n_units?.n;
@@ -81,6 +115,7 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
     : [];
   const evidence: EvidenceRow[] = [
     { label: "Verdict", value: verdict, status: verdict === "ALIVE" ? "pass" : verdict === "KILLED" ? "fail" : "warn" },
+    { label: "Primary trap", value: raw.primary_trap || "—", status: "info" },
     { label: "Out-of-sample units", value: n === undefined ? "—" : String(n), status: "info" },
     { label: "Units required", value: raw.required_units === undefined ? "—" : String(raw.required_units), status: "info" },
     { label: "Units still needed", value: raw.units_short === undefined ? "—" : String(raw.units_short), status: "info" },
@@ -118,7 +153,7 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
     },
     {
       label: "Context changes the verdict",
-      value: raw.research_context && raw.research_context.usable_for_verdict === false ? "no" : raw.research_context ? "no" : "—",
+      value: contextChanges(raw),
       status: "info",
     },
     ...((raw.research_context?.items || []).slice(0, 8).map((item) => ({
@@ -154,12 +189,12 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
       : verdict === "UNTESTABLE"
       ? `Not enough independent Bitget history. Observed ${n ?? "unknown"} of ${raw.required_units ?? "the family minimum"}. Oldest fetched bar ${raw.actual_first || "unknown"} (${raw.pagination_stop === "page_cap" ? "page cap, not a venue floor" : raw.pagination_stop === "window_start" ? "frozen window start, not a venue floor" : raw.pagination_stop || "fetch boundary"}).`
       : verdict === "INCONCLUSIVE"
-        ? "The interval still covers both a real edge and no edge. That is not a kill and it is not a pass."
+        ? `Underpowered${raw.primary_trap ? ` (${raw.primary_trap})` : ""}: the interval still covers both a real edge and no edge. Detectable edge ${raw.mde_bps === undefined || raw.mde_bps === null ? "unknown" : num(raw.mde_bps)} bps. That is not a kill and it is not a pass.`
       : verdict === "KILLED"
         ? `The frozen kill rule failed${raw.primary_trap ? ` on ${raw.primary_trap}` : ""}.`
         : "The frozen kill rule passed on this sample.";
   return {
-    scenarioKey: "earnings-momentum",
+    scenarioKey: scenarioKeyForMechanism(raw.mechanism),
     verdict,
     verdictSummary: summary,
     testabilityGates: [
@@ -175,7 +210,7 @@ export function mapVerdict(raw: VerdictJson, hypothesis: string): VerdictReport 
     traps,
     baselineComparison: [],
     dataCoverage: {
-      overallPct: 0,
+      overallPct: coveragePct(n, raw.required_units),
       bars: raw.actual_first || "—",
       gaps: [],
       notes: [

@@ -3,7 +3,8 @@
 import * as React from "react";
 import { create } from "zustand";
 import { draftSpec, killlab, mergeCompiledDraft } from "@/lib/research/live";
-import { mapVerdict } from "@/lib/research/map-verdict";
+import { mapVerdict, scenarioKeyForFamily } from "@/lib/research/map-verdict";
+import { runStatusLine } from "@/lib/desk/run-status";
 import type { ScenarioFixture } from "@/lib/research/types";
 import type {
   LedgerEntry,
@@ -128,7 +129,7 @@ export const useDesk = create<DeskState>((set, get) => ({
         specId: null,
         specHash: null,
         liveScenario: scenarioFrom(text, spec, null),
-        scenarioKey: "earnings-momentum",
+        scenarioKey: scenarioKeyForFamily(spec.family, spec.session_hour),
         screen: { kind: "review" },
         report: null,
         runProgress: null,
@@ -194,14 +195,14 @@ export const useDesk = create<DeskState>((set, get) => ({
       error: null,
       runProgram: [
         {
-          key: "bitget",
-          label: "Bitget",
-          detail: "Public candles after the freeze",
-          durationMs: 8000,
-          logLines: ["Spec is frozen", "Pulling Bitget bars", "Engine is scoring"],
+          key: "engine",
+          label: "Engine",
+          detail: "Status comes from the run endpoint",
+          durationMs: 0,
+          logLines: [],
         },
       ],
-      runProgress: { stageIndex: 0, stageStartedAt: Date.now(), completedKeys: [], visibleLogs: [] },
+      runProgress: { stageIndex: 0, stageStartedAt: Date.now(), completedKeys: [], visibleLogs: ["Spec is frozen"] },
     });
     try {
       const frozen = await killlab(
@@ -255,11 +256,18 @@ export const useDesk = create<DeskState>((set, get) => ({
       return;
     }
     const hypothesisText = get().hypothesisText;
+    const note = (line: string) => {
+      const progress = get().runProgress;
+      if (!progress || progress.visibleLogs.includes(line)) return;
+      set({ runProgress: { ...progress, visibleLogs: [...progress.visibleLogs, line].slice(-6) } });
+    };
     try {
       let status = await killlab("GET", `/v1/runs/${runId}`);
+      note(runStatusLine(status.status));
       for (let i = 0; i < 40 && (status.status === "running" || status.status === "queued"); i++) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
         status = await killlab("GET", `/v1/runs/${runId}`);
+        note(runStatusLine(status.status));
       }
       if (status.status === "failed") {
         finishing = false;
@@ -353,22 +361,23 @@ async function refreshLedger(
   const report = get().report;
   if (!hypothesisId) return;
   const ledger = await killlab("GET", `/v1/ledger?hypothesis_id=${hypothesisId}`);
-  const entries = (ledger.entries || []) as { id: string; stage: LedgerEntry["stage"]; body: { raw_text?: string; label?: string; primary_trap?: string } }[];
+  const entries = (ledger.entries || []) as { id: string; stage: LedgerEntry["stage"]; created_at?: string; body: { raw_text?: string; label?: string; primary_trap?: string } }[];
   if (entries.length === 0) return;
   const latest = entries[entries.length - 1];
   const decision = [...entries].reverse().find((entry) => entry.stage === "DECISION");
+  const family = get().specDraft?.family || "";
   set({
     ledger: [
       {
         id: decision?.id || latest.id,
-        scenarioKey: "earnings-momentum",
+        scenarioKey: scenarioKeyForFamily(family, get().specDraft?.session_hour),
         hypothesisText,
         family: get().specDraft?.family || "",
         instruments: get().specDraft?.instruments || [],
         stage: latest.stage,
         marks: entries.map((entry) => ({
           stage: entry.stage,
-          at: new Date().toISOString(),
+          at: entry.created_at || "unknown",
           note: entry.body?.label || entry.body?.primary_trap || entry.body?.raw_text || (entry.body && "kill_floor" in entry.body ? "Kill floor recorded at freeze" : entry.stage),
         })),
         verdict: (decision?.body?.label || latest.body?.label) as LedgerEntry["verdict"],
@@ -405,7 +414,7 @@ function scenarioFrom(text: string, spec: ReturnType<typeof draftSpec>, hash: st
   const now = new Date().toISOString();
   const researchSpec = {
     id: "live",
-    scenarioKey: "earnings-momentum" as const,
+    scenarioKey: scenarioKeyForFamily(spec.family, spec.session_hour),
     hypothesisText: text,
     family: spec.family,
     familyDetail: familyDetail(spec.family, spec.session_hour, spec.leader),
@@ -433,7 +442,7 @@ function scenarioFrom(text: string, spec: ReturnType<typeof draftSpec>, hash: st
     frozen: { ...researchSpec, freezeHash: hash || "computed when you open freeze", frozenAt: now, engineVersion: "assigned at run", datasetVersion: "Bitget public REST after freeze" },
     runStages: [],
     report: {
-      scenarioKey: "earnings-momentum",
+      scenarioKey: scenarioKeyForFamily(spec.family, spec.session_hour),
       verdict: "UNTESTABLE",
       verdictSummary: "Waiting for the engine.",
       testabilityGates: [],
@@ -441,7 +450,7 @@ function scenarioFrom(text: string, spec: ReturnType<typeof draftSpec>, hash: st
       evidence: [],
       traps: [],
       baselineComparison: [],
-      dataCoverage: { overallPct: 0, bars: "—", gaps: [], notes: [] },
+      dataCoverage: { overallPct: 0, bars: "—", gaps: [], notes: ["No run yet"] },
       aiInterpretation: { paragraphs: [], disclaimer: "" },
       nextSteps: [],
       ledgerSuggestion: { stage: "RESULT", note: "" },

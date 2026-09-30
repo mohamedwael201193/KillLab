@@ -7,7 +7,7 @@ import { SectionHeading, MonoChip } from "@/components/kl/atoms";
 
 /**
  * REVIEW & SELF-EVOLUTION — the ledger rail.
- * KNOWN → UNKNOWN → TEST → RESULT → DECISION, shown as a horizontal
+ * KNOWN → UNKNOWN → RESULT → DECISION, shown as a horizontal
  * (desktop) / vertical (mobile) progression with a live example entry
  * walking through it. The point: the desk remembers, so the next
  * question is better than the last.
@@ -26,10 +26,10 @@ const STAGES = [
     example: "“Does funding ≥ +0.10% persist long enough to harvest a 48h carry?”",
   },
   {
-    key: "TEST",
-    label: "Test",
-    caption: "The question frozen into a spec. Hash on record, nothing mutable.",
-    example: "A content hash, written before any candle is requested.",
+    key: "REVIEW",
+    label: "Review",
+    caption: "A pasted fill is compared with the unit interval. Only the next question can change.",
+    example: "The fill sits inside or outside the engine interval. The frozen result stays.",
   },
   {
     key: "RESULT",

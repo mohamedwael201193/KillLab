@@ -550,6 +550,15 @@ This file is append-only.
 - Viewports on `a3f9cb5`: 1442 by 732 and 1282 by 732 had no horizontal overflow. The narrowest width this Chrome window accepted was 502px, also without horizontal overflow. At that width a wrapped engine line could sit on scrolled cards. The header background is now solid, and the engine row takes the full width below 640px.
 - A header-only follow-up is recorded with this entry. It does not change the three verdict readings above.
 
+## 2026-09-30 Truth surface: trap reason, placeholders, run status, ledger
+
+- Decision: no engine version change. Still `killlab-0.13.1`. The accepted verdict layout stays. This pass only corrects values the desk was inventing or hiding.
+- Why: `mapVerdict` hid `primary_trap` on INCONCLUSIVE, hardcoded `scenarioKey` to `earnings-momentum` and coverage to 0, and hardcoded "context changes the verdict" to no. The run screen advanced on an 8 second timer. Ledger marks used the clock at read time, and the arc showed a TEST stage the API never writes. Landing copy said the engine scans nine named cards; `scan` calls ten registered detectors.
+- Files: `map-verdict.ts`, `present-verdict.ts`, `store.ts`, `run-view.tsx`, `run-status.ts`, `ledger-view.tsx`, `types.ts`, `evolution.tsx`, `hero.tsx`, `traps.tsx`, `layout.tsx`, `research-machine.tsx`, `nine-traps.ts`, `api.py` (ledger `created_at`), `traps.py` (`REGISTERED_DETECTORS`), `shared/routing_phrases.json`, `draft-spec.test.ts`, `present-verdict.test.ts`, `run-status.test.ts`, `test_truth_surface.py`, `test_api.py`.
+- Checks: `python -m pytest -q tests/test_truth_surface.py` → 2 passed. `node --experimental-strip-types` on `present-verdict.test.ts`, `draft-spec.test.ts`, and `run-status.test.ts` printed ok. `npx tsc --noEmit` passed. The full API suite was not replayed. `test_api.py` now asserts ledger `created_at` and no TEST stage.
+- Not in this entry: receipt export, fingerprint history, forward-sweep status on the desk, MCP `isError` handling, and any new scored family. Those follow in later commits.
+- Next: commit this group, deploy, then one Chrome path on a real verdict and the ledger.
+
 
 
 

@@ -70,4 +70,33 @@ assert.equal(view.contexts[1]?.title, "Long/short ratio");
 assert.equal(view.contexts[1]?.sourceClass, "bitget_public_rest");
 assert.notEqual(view.contexts[1]?.title, "Official Signal");
 assert.ok(view.contexts[1]?.facts.some((fact) => fact.value === "1.6253"));
+assert.equal(report.scenarioKey, "funding-carry");
+assert.notEqual(report.scenarioKey, "earnings-momentum");
+assert.equal(report.dataCoverage.overallPct, 2);
+assert.equal(view.core.find((row) => row.label === "Primary trap")?.value, "—");
+
+const inconclusive = mapVerdict(
+  {
+    label: "INCONCLUSIVE",
+    primary_trap: "underpowered",
+    mde_bps: 12.5,
+    n_units: { n: 86 },
+    required_units: 60,
+    mechanism: "ny_open_hour_vs_other_cash_hours",
+    research_context: { usable_for_verdict: true, items: [] },
+  },
+  "backdrop",
+);
+assert.match(inconclusive.verdictSummary, /underpowered/);
+assert.match(inconclusive.verdictSummary, /12\.5/);
+assert.equal(inconclusive.scenarioKey, "session-open");
+assert.equal(presentVerdict(inconclusive).contextChanges, "yes");
+assert.equal(presentVerdict(inconclusive).core.find((row) => row.label === "Primary trap")?.value, "underpowered");
+
+const killed = mapVerdict(
+  { label: "KILLED", primary_trap: "contradicted", mechanism: "daily_basis_fade_versus_cash", n_units: { n: 117 }, required_units: 60 },
+  "proxy",
+);
+assert.match(killed.verdictSummary, /contradicted/);
+assert.equal(killed.scenarioKey, "basis-fade");
 console.log("present-verdict ok");

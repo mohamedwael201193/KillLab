@@ -9,7 +9,7 @@
 
 export type Verdict = "KILLED" | "ALIVE" | "INCONCLUSIVE" | "UNTESTABLE";
 
-export type LedgerStage = "KNOWN" | "UNKNOWN" | "TEST" | "RESULT" | "DECISION";
+export type LedgerStage = "KNOWN" | "UNKNOWN" | "RESULT" | "DECISION" | "REVIEW" | "FORWARD_CHECK" | "AUTO_RUN";
 
 export type EvidenceStatus = "pass" | "fail" | "warn" | "info";
 
@@ -239,7 +239,7 @@ export interface LedgerEntry {
 /* Landing-facing definitions                                          */
 /* ------------------------------------------------------------------ */
 
-/** The nine known traps scanned on every frozen test. */
+/** Landing reading cards. The engine detector list is pinned in the backend registry. */
 export interface TrapDefinition {
   id: string;
   index: string;

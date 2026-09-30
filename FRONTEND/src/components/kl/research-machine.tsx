@@ -33,7 +33,7 @@ export function ResearchMachine({ className }: { className?: string }) {
       animate={armed ? { opacity: 1, scale: 1, y: 0 } : undefined}
       transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
     >
-      <svg viewBox="0 0 760 560" fill="none" className="h-auto w-full" role="img" aria-label="The KillLab research machine: a hypothesis enters a frozen frame, passes through a deterministic engine and nine trap gates, and exits as a sealed verdict.">
+      <svg viewBox="0 0 760 560" fill="none" className="h-auto w-full" role="img" aria-label="The KillLab research machine: a hypothesis enters a frozen frame, passes through the deterministic engine, and exits as a sealed verdict.">
         <defs>
           <linearGradient id="kl-ink" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0" stopColor="oklch(0.62 0.01 250)" />

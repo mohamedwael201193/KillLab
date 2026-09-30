@@ -92,7 +92,7 @@ export function LandingHero({ onEnterLab }: { onEnterLab: () => void }) {
           >
             Write a trading hypothesis in plain language. KillLab turns it into a
             frozen test specification, runs deterministic research on real venue
-            data, and actively tries to kill the idea with nine known statistical
+            data, and actively tries to kill the idea with its registered statistical
             and execution traps — before the market gets its turn.
           </motion.p>
 

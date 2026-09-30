@@ -8,69 +8,19 @@ import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
 /**
- * RUN — the deterministic engine experience.
- * Eight stages stream in order with restrained engine logs.
- * No fake noise; every line is drawn from the frozen program.
+ * RUN — waits on the run endpoint.
+ * Log lines are engine status, not a timed script.
  */
 export function RunView() {
   const scenario = useActiveScenario();
   const runProgram = useDesk((s) => s.runProgram);
   const runProgress = useDesk((s) => s.runProgress);
-  const tickRun = useDesk((s) => s.tickRun);
   const finishRun = useDesk((s) => s.finishRun);
   const error = useDesk((s) => s.error);
   const reduce = useReducedMotion();
-  const timersRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  // Drive the staged progression from the run program.
   React.useEffect(() => {
-    if (!runProgress || runProgram.length === 0) return;
-    const stage = runProgram[runProgress.stageIndex];
-    if (!stage) return;
-
-    // Emit this stage's log lines one by one, then advance.
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const perLine = stage.durationMs / (stage.logLines.length + 1);
-
-    stage.logLines.forEach((line, i) => {
-      timers.push(
-        setTimeout(() => {
-          tickRun(runProgress.stageIndex, [...runProgress.visibleLogs.slice(-5), line]);
-        }, perLine * (i + 0.6))
-      );
-    });
-
-    timers.push(
-      setTimeout(() => {
-        const next = runProgress.stageIndex + 1;
-        if (next >= runProgram.length) {
-          finishRun();
-        } else {
-          tickRun(next, []);
-        }
-      }, stage.durationMs)
-    );
-
-    timersRef.current = timers;
-    return () => {
-      timers.forEach(clearTimeout);
-    };
-  }, [runProgress?.stageIndex, runProgram.length]);
-
-  // Skip: allow impatient users to see the verdict instantly.
-  const skip = React.useCallback(() => {
-    timersRef.current.forEach(clearTimeout);
     finishRun();
   }, [finishRun]);
-
-  // Keyboard: Escape to skip the run animation.
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") skip();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [skip]);
 
   if (error) {
     return (
@@ -86,8 +36,6 @@ export function RunView() {
   if (!runProgress || runProgram.length === 0) return null;
 
   const frozen = scenario.frozen;
-  const stage = runProgram[runProgress.stageIndex];
-  const pct = ((runProgress.stageIndex + (stage ? 0.4 : 1)) / runProgram.length) * 100;
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -106,11 +54,11 @@ export function RunView() {
       <div className="mt-9">
         <div className="h-1 overflow-hidden rounded-full bg-secondary/60">
           <motion.div
-            className="h-full rounded-full"
+            className="h-full w-full rounded-full"
             style={{ background: "linear-gradient(90deg, color-mix(in oklch, var(--ice) 55%, transparent), var(--ice))" }}
-            initial={reduce ? false : { width: "0%" }}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            initial={reduce ? false : { opacity: 0.35 }}
+            animate={{ opacity: [0.35, 0.9, 0.35] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
           />
         </div>
 
@@ -167,12 +115,9 @@ export function RunView() {
         <div className="mt-6 overflow-hidden rounded-xl border border-hairline bg-[oklch(0.1_0.005_250)]">
           <div className="flex items-center justify-between border-b border-hairline/70 px-4 py-2.5">
             <p className="font-mono text-[9.5px] uppercase tracking-[0.2em] text-muted-foreground/60">engine log</p>
-            <button
-              onClick={skip}
-              className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground/50 transition-colors hover:text-ice focus-visible:outline-2 focus-visible:outline-ice"
-            >
-              skip to verdict · esc
-            </button>
+            <p className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground/50">
+              opens when the engine returns
+            </p>
           </div>
           <div className="kl-scroll h-28 overflow-y-auto px-4 py-3" aria-live="polite">
             <AnimatePresence initial={false}>
