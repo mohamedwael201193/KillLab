@@ -1,12 +1,20 @@
 # KillLab
 
+[![CI](https://github.com/mohamedwael201193/KillLab/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mohamedwael201193/KillLab/actions/workflows/ci.yml)
+[![Engine](https://img.shields.io/badge/engine-killlab--0.13.1-16181d)](https://killlab.vercel.app)
+[![License](https://img.shields.io/badge/license-MIT-16181d)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.12-16181d)](backend/pyproject.toml)
+[![Track](https://img.shields.io/badge/track-AI%20Trading%20Desk-16181d)](https://www.bitget.com/activity-hub/hackathon)
+
 A trader writes a hypothesis. KillLab freezes it, then a deterministic engine tries to falsify it on Bitget data.
 
 Qwen compiles language into a bounded test. It does not calculate the verdict. Track 3, AI Trading Desk, Review and Self-Evolution.
 
-Live demo: [https://killlab.vercel.app](https://killlab.vercel.app)
+**Live demo:** [https://killlab.vercel.app](https://killlab.vercel.app)
 
-Engine `killlab-0.13.1`. No CI badge is shown because this repository does not publish a GitHub Actions workflow.
+> Write the sentence. Freeze the spec. Let the engine name the trap.
+
+Engine `killlab-0.13.1`. The CI badge tracks `.github/workflows/ci.yml` on `main`. It is green only after that workflow succeeds.
 
 ## Why KillLab exists
 
@@ -53,6 +61,20 @@ flowchart TB
 ```
 
 The model may draft a specification and explain a card. The compiler rejects metric keys such as Sharpe, DSR, PBO, PnL, sample size, and verdict. The engine is the only writer of those numbers. A frozen row cannot be rewritten to match a later result.
+
+The refusal is structural, not a prompt hope. `FORBIDDEN_KEYS` in `backend/killlab/ai/boundary.py` is `sharpe`, `dsr`, `pbo`, `bps`, `pnl`, `n`, `verdict`, and `avoided_loss_bps`. The draft model uses `extra="forbid"`. A narration check rejects a number the engine did not return. `selection.split` is forced to `IS` before the pull. Costs are overwritten by the server schedule.
+
+```text
+hypothesis text
+    -> Qwen JSON draft
+    -> reject forbidden keys
+    -> human review
+    -> SHA-256 freeze
+    -> Bitget pull
+    -> walk-forward, bootstrap, DSR, PBO when the shape allows
+    -> decide()
+    -> receipt
+```
 
 ## What the engine actually does
 
@@ -201,6 +223,16 @@ flowchart LR
 
 The browser calls only `https://killlab.vercel.app/api/killlab/...`. The Next.js route adds the bearer token on the server. The API is `https://killlab-api.onrender.com`. Health is `GET /health` and returns `engine_version`.
 
+| Path | Owns |
+| --- | --- |
+| `backend/killlab/engine/verdict.py` | The four labels |
+| `backend/killlab/engine/traps.py` | Floors and the ten detectors |
+| `backend/killlab/runner.py` | Walk-forward, bootstrap, DSR, conditional PBO |
+| `backend/killlab/ai/compile.py` | Provider order. Qwen first when `LLM_API_KEY` is set |
+| `backend/killlab/receipt.py` | The public receipt body and its hash |
+| `FRONTEND/src/app/api/killlab/[...path]/route.ts` | Same-origin proxy |
+| `docs/calibration/verdict_curve.json` | Planted session curve for `killlab-0.13.1` |
+
 ## How to run locally
 
 Prerequisites: Python 3.12 or newer, Node.js 20 or newer, and a Postgres database. Public research does not need a Bitget private API key. A Qwen key is optional. Without it, compilation uses the manual spec path or a temporary provider you configure yourself.
@@ -295,7 +327,8 @@ After the commands above, repeat steps 2 through 7 on `http://127.0.0.1:3000`. L
 
 | Check | Current evidence |
 | --- | --- |
-| Python tests | 102 collected, 101 offline, 1 marked `live` |
+| Python tests | 102 collected. 1 is marked `live`. 5 in `test_api.py` need Postgres and a post-freeze Bitget pull |
+| CI | `.github/workflows/ci.yml` runs `pytest -m "not live" --ignore=tests/test_api.py` (96 passed locally on 2026-09-30), then `tsc` and `npm run build` |
 | Frontend scripts | 3 assertion files under `FRONTEND/src` |
 | Typecheck and build | `npx tsc --noEmit`, `npm run build` |
 | Oracle | `test_oracle.py` plus `docs/calibration/verdict_curve.json` |
@@ -331,6 +364,10 @@ Verified here means that check was run or that production response was read. It 
 **What if Qwen is down?** The manual specification path still runs. A temporary language provider, if you configured one, still cannot write DSR, PBO, the interval, or the label.
 
 **Where do the landing numbers come from?** 102 is `pytest --collect-only` on `backend/tests`. Seven families are the scored keys in `FAMILY_MIN_UNITS`. Four verdicts are the labels in `decide()`. `0.13.1` is `ENGINE_VERSION`.
+
+## License
+
+MIT. See [LICENSE](LICENSE). The engine, desk, and this document are covered. Market data stays with its provider. A verdict is a research record, not investment advice, and not a promise of profit.
 
 ## Links
 
