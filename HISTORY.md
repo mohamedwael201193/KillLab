@@ -593,6 +593,13 @@ This file is append-only.
 - Checks: `python -m pytest -q tests/test_truth_surface.py` → 7 passed. Engine version stays `killlab-0.13.1`. C1 stays NO-GO.
 - Next: deploy this stamp, then read the same receipt again and confirm the engine string.
 
+## 2026-09-30 Receipt engine stamp is live
+
+- Commit `bd0e728` on `main`. Render deploy for that commit is `live`. Engine stays `killlab-0.13.1`.
+- Same-origin receipt for run `3bb70f91-4ccd-404e-9629-a477ac236a7c` now returns `engine_version` `killlab-0.13.1`, label `KILLED`, trap `contradicted`, receipt hash prefix `7c287df086b0`. No thesis and no token in the body. Context classes stay `official_signal_mcp/empty_result`, `authoritative_fallback/valid_data`, and `bitget_public_rest/valid_data`. One older context row is still null/null and was not relabeled.
+- `GET /api/killlab/health` returned the same engine. Browser hosts stayed `killlab.vercel.app`.
+- C1 remains NO-GO. No new family.
+
 
 
 
