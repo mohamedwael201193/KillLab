@@ -9,6 +9,8 @@ import { EquityChart, BootstrapChart, FoldChart } from "@/components/lab/charts"
 import { Button } from "@/components/ui/button";
 import { presentVerdict } from "@/lib/research/present-verdict";
 import { killlab } from "@/lib/research/live";
+import { reconcileFieldError } from "@/lib/research/fills";
+import { postureFromReasons } from "@/lib/research/constitution";
 import {
   AssistantCard,
   DeskSection,
@@ -32,7 +34,10 @@ export function VerdictView() {
   const setTab = useDesk((s) => s.setTab);
   const submitFills = useDesk((s) => s.submitFills);
   const reviewNote = useDesk((s) => s.reviewNote);
+  const reviewError = useDesk((s) => s.reviewError);
   const error = useDesk((s) => s.error);
+  const posture = useDesk((s) => s.posture);
+  const postureBusy = useDesk((s) => s.postureBusy);
   const [buyPx, setBuyPx] = React.useState("");
   const [sellPx, setSellPx] = React.useState("");
   const reduce = useReducedMotion();
@@ -42,18 +47,21 @@ export function VerdictView() {
   const shiftPosture = useDesk((s) => s.shiftPosture);
   const [tried, setTried] = React.useState<{ relation: string; label?: string; primary_trap?: string; n_units?: number; created_at?: string }[]>([]);
   const [forwardNote, setForwardNote] = React.useState<string>("");
+  const [readNote, setReadNote] = React.useState<string>("");
+  const [fieldError, setFieldError] = React.useState("");
 
   React.useEffect(() => {
     if (!runId) return;
+    const controller = new AbortController();
     let cancelled = false;
-    killlab("GET", `/v1/runs/${runId}/tried`)
+    killlab("GET", `/v1/runs/${runId}/tried`, undefined, undefined, controller.signal)
       .then((data) => {
         if (!cancelled) setTried(data.runs || []);
       })
-      .catch(() => {
-        if (!cancelled) setTried([]);
+      .catch((err: unknown) => {
+        if (!cancelled && !controller.signal.aborted) setReadNote(err instanceof Error ? err.message : "The tried list did not load.");
       });
-    killlab("GET", "/v1/forward/recent")
+    killlab("GET", "/v1/forward/recent", undefined, undefined, controller.signal)
       .then((data) => {
         if (cancelled) return;
         const entries = data.entries || [];
@@ -64,11 +72,12 @@ export function VerdictView() {
         if (check) parts.push(`Forward check ${check.window || ""} ${check.n_units ?? "—"} units, still short ${check.units_short ?? ""}`.trim());
         setForwardNote(parts.join(" · "));
       })
-      .catch(() => {
-        if (!cancelled) setForwardNote("");
+      .catch((err: unknown) => {
+        if (!cancelled && !controller.signal.aborted) setReadNote(err instanceof Error ? err.message : "The forward list did not load.");
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [runId]);
 
@@ -199,8 +208,11 @@ export function VerdictView() {
         <NextTestCard
           question={nextProposal || nextQuestion}
           reasons={nextReasons.length > 0 ? nextReasons : view.reasons}
+          active={posture ?? postureFromReasons(nextReasons.length > 0 ? nextReasons : view.reasons)}
+          pending={postureBusy}
+          notice={error}
           onLedger={() => setTab("ledger")}
-          onPosture={(posture) => void shiftPosture(posture)}
+          onPosture={(next) => void shiftPosture(next)}
         />
         <section className="rounded-2xl border border-hairline bg-panel/50 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -221,6 +233,7 @@ export function VerdictView() {
             </ul>
           )}
           {forwardNote ? <p className="mt-3 text-sm text-muted-foreground">{forwardNote}</p> : null}
+          {readNote ? <p className="mt-3 text-sm text-verdict-killed" role="alert">{readNote}</p> : null}
         </section>
       </DeskSection>
 
@@ -230,9 +243,17 @@ export function VerdictView() {
           sell={sellPx}
           onBuy={setBuyPx}
           onSell={setSellPx}
-          onSubmit={() => void submitFills(buyPx, sellPx)}
+          onSubmit={() => {
+            const message = reconcileFieldError(buyPx, sellPx);
+            if (message) {
+              setFieldError(message);
+              return;
+            }
+            setFieldError("");
+            void submitFills(buyPx, sellPx);
+          }}
           note={reviewNote ? formatReview(reviewNote) : null}
-          error={error}
+          error={fieldError || reviewError}
         />
         <motion.div
           initial={reduce ? false : { opacity: 0 }}
@@ -262,7 +283,13 @@ function firstSentence(summary: string) {
 function formatReview(note: string) {
   try {
     const data = JSON.parse(note) as { realized_bps?: number; unit_low?: number; unit_high?: number; inside_predictive?: boolean; status?: string };
-    if (data.status) return data.status;
+    if (data.status === "no_forecast") return "This run has no one-trade range, so reconciliation stays unavailable.";
+    if (typeof (data as { narrative?: string }).narrative === "string") {
+      const bps = data.realized_bps === undefined ? null : String(Math.round(data.realized_bps * 1000) / 1000);
+      return bps === null
+        ? (data as { narrative: string }).narrative
+        : `${(data as { narrative: string }).narrative} Realized ${bps} bps. One-trade range ${data.unit_low} to ${data.unit_high}.`;
+    }
     const bps = data.realized_bps === undefined ? "unavailable" : String(Math.round(data.realized_bps * 1000) / 1000);
     return `Realized ${bps} bps. One-trade range ${data.unit_low} to ${data.unit_high}. Inside that range: ${data.inside_predictive}.`;
   } catch {

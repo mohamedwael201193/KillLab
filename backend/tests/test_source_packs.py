@@ -2,7 +2,9 @@
 
 import json
 
-from killlab.engine.review import apply_next, personalized_question, research_fingerprint
+from pathlib import Path
+
+from killlab.engine.review import apply_next, personalized_question, research_fingerprint, review_narrative
 from killlab.integrations.context import enrich_context
 from killlab.integrations.source_packs import FAMILY_PACKS, provenance_lanes
 
@@ -144,3 +146,14 @@ def test_constitution_changes_the_next_test_and_not_the_verdict():
     assert card["pbo"] is None
     assert card["constitution_snapshot"]["preferences"]["posture"] == "conservative"
     assert card["constitution_snapshot"]["sha256"] != fingerprint
+
+
+def test_next_and_reconcile_do_not_wait_on_a_model():
+    source = Path(__file__).resolve().parents[1].joinpath("killlab", "api.py").read_text(encoding="utf-8")
+    nxt = source.split("def propose_next", 1)[1].split("def fills", 1)[0]
+    rec = source.split("def reconcile", 1)[1].split("def explain", 1)[0]
+    assert "narrate(" not in nxt
+    assert "narrate(" not in rec
+    assert review_narrative({"inside_predictive": False}) == "The pasted fill sat outside the one-trade range."
+    assert review_narrative({"status": "no_forecast"}) == "This run has no one-trade range, so reconciliation stays unavailable."
+    assert "bps" not in review_narrative({"inside_predictive": True})

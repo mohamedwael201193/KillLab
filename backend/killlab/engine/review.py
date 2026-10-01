@@ -170,6 +170,17 @@ def personalized_question(card: dict, constitution: dict | None) -> dict:
     return {"proposed_raw_text": text, "reasons": reasons[:3], "snapshot": snapshot, "stored": False}
 
 
+def review_narrative(review: dict) -> str:
+    """A fixed sentence for one comparison. It does not call a model and it does not add a number."""
+    if review.get("status") == "no_forecast":
+        return "This run has no one-trade range, so reconciliation stays unavailable."
+    if review.get("inside_predictive") is True:
+        return "The pasted fill sat inside the one-trade range."
+    if review.get("inside_predictive") is False:
+        return "The pasted fill sat outside the one-trade range."
+    return "The comparison is stored. The frozen result was not rewritten."
+
+
 def apply_next(card: dict, constitution: dict | None) -> dict:
     """Record the next question. Measured verdict fields stay on their previous values."""
     before = {key: card.get(key) for key in _VERDICT_FIELDS}

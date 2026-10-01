@@ -7,7 +7,7 @@ import { loadConstitution, saveConstitution } from "@/lib/research/constitution"
 import { researchData } from "@/lib/research/data-source";
 import { Kbd, MonoChip } from "@/components/kl/atoms";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, Lock } from "lucide-react";
+import { ArrowRight, Loader2, Sparkles, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -27,6 +27,7 @@ export function WriteView() {
   }, []);
   const examples = React.useMemo(() => researchData.listExampleHypotheses(), []);
   const error = useDesk((s) => s.error);
+  const drafting = useDesk((s) => s.drafting);
   const reduce = useReducedMotion();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
@@ -119,15 +120,22 @@ export function WriteView() {
             <span className="font-mono text-[10.5px] text-muted-foreground/50">
               {text.length}/400 · <Kbd>⌘</Kbd> <Kbd>↵</Kbd> to draft
             </span>
-            <Button
-              onClick={submit}
-              disabled={!canSubmit}
-              className="group h-9 rounded-full bg-foreground px-5 text-[13px] font-medium text-background transition-all duration-300 hover:shadow-[0_0_30px_-8px] hover:shadow-ice/50 disabled:opacity-30"
-            >
-              <Sparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-              Draft the test
-              <ArrowRight className="ml-1.5 h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
-            </Button>
+            <div className="flex flex-col items-end gap-1">
+              <Button
+                onClick={submit}
+                disabled={!canSubmit || drafting}
+                className="group h-9 rounded-full bg-foreground px-5 text-[13px] font-medium text-background transition-all duration-300 hover:shadow-[0_0_30px_-8px] hover:shadow-ice/50 disabled:opacity-30"
+              >
+                {drafting ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                )}
+                {drafting ? "Drafting test…" : "Draft the test"}
+                {drafting ? null : <ArrowRight className="ml-1.5 h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />}
+              </Button>
+              {drafting ? <p className="font-mono text-[10.5px] text-muted-foreground">Qwen is compiling the hypothesis…</p> : null}
+            </div>
           </div>
         </div>
         {error ? (

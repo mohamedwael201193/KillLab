@@ -31,6 +31,14 @@ export function loadConstitution(): ResearchConstitution {
   }
 }
 
+export function postureFromReasons(reasons: string[]): ResearchConstitution["posture"] | null {
+  const line = reasons.find((reason) => reason.includes("Constitution posture is"));
+  if (!line) return null;
+  if (line.includes("exploratory")) return "exploratory";
+  if (line.includes("conservative")) return "conservative";
+  return null;
+}
+
 export function saveConstitution(next: ResearchConstitution): ResearchConstitution {
   const saved = {
     posture: next.posture === "exploratory" ? "exploratory" as const : "conservative" as const,

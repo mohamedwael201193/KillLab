@@ -375,11 +375,17 @@ export function AssistantCard({ report, question }: { report: VerdictReport; que
 export function NextTestCard({
   question,
   reasons,
+  active,
+  pending,
+  notice,
   onLedger,
   onPosture,
 }: {
   question: string;
   reasons: string[];
+  active: "conservative" | "exploratory" | null;
+  pending: boolean;
+  notice: string | null;
   onLedger: () => void;
   onPosture: (posture: "conservative" | "exploratory") => void;
 }) {
@@ -395,14 +401,26 @@ export function NextTestCard({
             ))}
           </ul>
         ) : null}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button type="button" variant="outline" className="h-9 rounded-full px-4 text-sm" onClick={() => onPosture("conservative")}>
-            Conservative
-          </Button>
-          <Button type="button" variant="outline" className="h-9 rounded-full px-4 text-sm" onClick={() => onPosture("exploratory")}>
-            Exploratory
-          </Button>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {(["conservative", "exploratory"] as const).map((posture) => (
+            <Button
+              key={posture}
+              type="button"
+              variant="outline"
+              disabled={pending}
+              aria-pressed={active === posture}
+              className={cn(
+                "h-9 rounded-full px-4 text-sm capitalize",
+                active === posture ? "border-ice text-ice" : "",
+              )}
+              onClick={() => onPosture(posture)}
+            >
+              {posture}
+            </Button>
+          ))}
+          {pending ? <span className="font-mono text-[11px] text-muted-foreground">Updating next test…</span> : null}
         </div>
+        {notice ? <p className="mt-3 text-sm text-verdict-killed" role="alert">{notice}</p> : null}
       </div>
       <Button
         onClick={onLedger}

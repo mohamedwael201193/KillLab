@@ -59,6 +59,10 @@ interface DeskState {
   nextProposal: string | null;
   nextReasons: string[];
   reviewNote: string | null;
+  reviewError: string | null;
+  drafting: boolean;
+  posture: "conservative" | "exploratory" | null;
+  postureBusy: boolean;
   busy: boolean;
   /** Fields set once per lab session. */
   setTab: (tab: DeskTab) => void;
@@ -101,6 +105,10 @@ const initial = {
   specHash: null as string | null,
   nextProposal: null as string | null,
   nextReasons: [] as string[],
+  reviewError: null as string | null,
+  drafting: false,
+  posture: null as "conservative" | "exploratory" | null,
+  postureBusy: false,
   reviewNote: null as string | null,
   busy: false,
 };
@@ -115,8 +123,9 @@ export const useDesk = create<DeskState>((set, get) => ({
   writeHypothesis: (text) => set({ hypothesisText: text }),
 
   submitHypothesis: async (text, thesis) => {
+    if (get().drafting) return;
     const thesisText = (thesis || "").trim();
-    set({ error: null, hypothesisText: text, thesisText });
+    set({ error: null, hypothesisText: text, thesisText, drafting: true });
     try {
       const created = await killlab("POST", "/v1/hypotheses", {
         raw_text: text,
@@ -148,6 +157,8 @@ export const useDesk = create<DeskState>((set, get) => ({
       });
     } catch (err) {
       set({ error: err instanceof Error ? err.message : "request_failed", screen: { kind: "write" } });
+    } finally {
+      set({ drafting: false });
     }
   },
 
@@ -317,25 +328,29 @@ export const useDesk = create<DeskState>((set, get) => ({
   },
 
   shiftPosture: async (posture) => {
+    if (get().postureBusy || get().posture === posture) return;
     const decision = get().ledger.find((entry) => entry.stage === "DECISION");
     const runId = get().runId;
     const before = get().report?.verdict;
     if (!decision || !runId || !before) return;
     const constitution = saveConstitution({ ...loadConstitution(), posture });
+    set({ postureBusy: true, error: null });
     try {
       const proposal = await killlab("POST", `/v1/ledger/${decision.id}/next`, { constitution });
       const again = await killlab("GET", `/v1/runs/${runId}/verdict`);
       if (again.label !== before) {
-        set({ error: "verdict_changed" });
+        set({ error: "The stored verdict changed. The next test was not applied.", postureBusy: false });
         return;
       }
       set({
+        posture,
+        postureBusy: false,
         nextProposal: proposal.proposed_raw_text || "",
         nextReasons: Array.isArray(proposal.reasons) ? proposal.reasons.slice(0, 3) : [],
         error: null,
       });
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : "request_failed" });
+      set({ postureBusy: false, error: err instanceof Error ? err.message : "request_failed" });
     }
   },
 
@@ -367,7 +382,7 @@ export const useDesk = create<DeskState>((set, get) => ({
   submitFills: async (buyPx, sellPx) => {
     const { hypothesisId, runId } = get();
     if (!hypothesisId || !runId) return;
-    set({ reviewNote: null, error: null });
+    set({ reviewNote: null, reviewError: null });
     try {
       const saved = await killlab("POST", `/v1/hypotheses/${hypothesisId}/fills`, {
         source: "pasted",
@@ -377,9 +392,9 @@ export const useDesk = create<DeskState>((set, get) => ({
         ],
       });
       const review = await killlab("POST", `/v1/runs/${runId}/reconcile`, { fill_ids: [saved.id] });
-      set({ reviewNote: JSON.stringify(review) });
+      set({ reviewNote: JSON.stringify(review), reviewError: null });
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : "request_failed", reviewNote: null });
+      set({ reviewError: err instanceof Error ? err.message : "request_failed", reviewNote: null });
     }
   },
 }));

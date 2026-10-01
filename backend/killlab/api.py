@@ -25,7 +25,7 @@ from killlab.config import Settings, settings_from_environ
 from killlab.data.assemble import assemble_snapshot
 from killlab.data.bitget import BitgetError, BitgetRest, NotFrozen
 from killlab.db import session_factory
-from killlab.engine.review import apply_next, evolution_state, is_related_research, killed_decision, normalize_constitution, personalized_question, reconcile_unit, research_fingerprint, realized_from_fills
+from killlab.engine.review import apply_next, evolution_state, is_related_research, killed_decision, normalize_constitution, personalized_question, reconcile_unit, research_fingerprint, review_narrative, realized_from_fills
 from killlab.integrations.context import attach_context, enrich_context
 from killlab.forward import accrual_window, sweep_forward
 from killlab.guard import fixtures_loaded
@@ -625,6 +625,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.post("/v1/ledger/{entry_id}/next")
     async def propose_next(entry_id: str, request: Request, session: Session = Depends(db), _: None = Depends(auth)):
+        """Deterministic next wording. A model call here blocked the one API worker and the proxy returned 502."""
         row = session.get(LedgerEntry, uuid.UUID(entry_id))
         if row is None or row.stage != "DECISION":
             raise _error(404, "not_found")
@@ -659,18 +660,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             for key, value in locked.items():
                 if run.result_json.get(key) != value:
                     raise _error(500, "frozen_mutated")
-        facts = {
-            "label": card.get("label"),
-            "primary_trap": card.get("primary_trap"),
-            "units_short": card.get("units_short"),
-            "required_units": card.get("required_units"),
-            "forward_armed": card.get("forward_armed"),
-            "proposed_raw_text": proposal.get("proposed_raw_text"),
-            "context_skill": ((card.get("research_context") or {}).get("routing") or {}).get("skill"),
-        }
-        words = narrate("Phrase the next research question using only these facts.", facts, timeout_s=settings.llm_timeout_s)
-        proposal["narrative"] = words["text"]
-        proposal["model"] = words["model"]
+        proposal["narrative"] = proposal.get("proposed_raw_text")
+        proposal["model"] = None
         proposal["stored"] = False
         return proposal
 
@@ -714,10 +705,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if spec_row is not None:
             session.add(LedgerEntry(hypothesis_id=spec_row.hypothesis_id, test_run_id=run.id, stage="REVIEW", body={"fingerprint": before.get("fingerprint"), "object": "unit", "inside_predictive": review.get("inside_predictive")}))
             session.commit()
-        words = narrate("Describe this one-trade review. Do not change the comparison.", review, timeout_s=settings.llm_timeout_s)
         review = dict(review)
-        review["narrative"] = words["text"]
-        review["model"] = words["model"]
+        review["narrative"] = review_narrative(review)
+        review["model"] = None
         return review
 
     @app.post("/v1/runs/{run_id}/explain")
